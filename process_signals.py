@@ -47,17 +47,23 @@ def main():
 
     n_discarded = 0
 
+    n = 1
     with get_fast5_file(fast5_file, mode="r") as f5:
-        for read in f5.get_reads():
+        for i, read in enumerate(f5.get_reads()):
+            if i < n:
+                continue
+
             signal_pA = read.get_raw_data(scale=True)
-            # signal_pA = signal_pA[:cutoff]
+            signal_pA = signal_pA[:cutoff]
             outlier_z_score = 4 # TODO: Determine how to deal with outliers
             normalised_pA = mad_normalise(signal_pA, outlier_z_score)
             break
 
 
     with h5py.File(fast5_file, 'r') as h5:
-        for read in h5.keys():
+        for i, read in enumerate(h5.keys()):
+            if i < n:
+                continue
 
             # Retrieve signal using ONT fast5 API to get raw current
             # measurements, not ADC values from fast5 file
@@ -70,7 +76,7 @@ def main():
             #     n_discarded += 1
             #     continue
             
-            # signal = signal[:cutoff]
+            signal = signal[:cutoff]
 
             # Normalise signal
 
@@ -86,6 +92,11 @@ def main():
         
             break
 
+        for i, x in enumerate(normalised):
+            if x != normalised_pA[i]:
+                print(x)
+                print(normalised_pA[i])
+
         _, axs = plt.subplots(2, 2, sharex="all")
         axs[0][0].plot(signal)
         axs[0][0].set_title("ADC signal")
@@ -96,7 +107,7 @@ def main():
         axs[1][1].plot(normalised_pA)
         axs[1][1].set_title("Normalised raw current")
         plt.show()
-            
+ 
 
 
 if __name__=="__main__":
