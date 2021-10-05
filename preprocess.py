@@ -72,7 +72,6 @@ def main():
 
         n_discarded = 0
         with get_fast5_file(f5_file, mode="r") as f5:
-            print(f5_file)
             for i, read in enumerate(f5.get_reads()):
 
                 # Retrieve raw current measurements
@@ -90,14 +89,14 @@ def main():
 
                 outlier_lim = 3.5
                 normalised = mad_normalise(signal_pA, outlier_lim)
-                data.append([normalised, label])
+                data.append(normalised)
 
         print(f"# of discarded reads (< {cutoff} samples) in {f5_file}: {n_discarded}")
 
 
     # Write data to file
 
-    np.save(f"{name}_{cutoff}.npy", np.array(data, dtype=object))
+    np.save(f"{name}_{cutoff}.npy", np.array(data))
 
 
 if __name__=="__main__":
