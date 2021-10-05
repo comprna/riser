@@ -5,15 +5,15 @@ from torch.utils.data.dataset import Dataset
 
 
 class SignalDataset(Dataset):
-    def __init__(self, coding_file, non_coding_file):
+    def __init__(self, coding_file, non_coding_file, device):
         c_np = np.load(coding_file, allow_pickle=True)
         n_np = np.load(non_coding_file, allow_pickle=True)
 
-        c_x = torch.from_numpy(c_np).to(torch.device("cuda"))
-        n_x = torch.from_numpy(n_np).to(torch.device("cuda"))
+        c_x = torch.from_numpy(c_np).to(torch.device(device))
+        n_x = torch.from_numpy(n_np).to(torch.device(device))
 
-        c_y = torch.zeros(c_x.shape[0], device=torch.device("cuda"))
-        n_y = torch.ones(n_x.shape[0], device=torch.device("cuda"))
+        c_y = torch.zeros(c_x.shape[0], device=torch.device(device))
+        n_y = torch.ones(n_x.shape[0], device=torch.device(device))
 
         self.data  = torch.cat((c_x, n_x))
         self.label = torch.cat((c_y, n_y))
@@ -29,12 +29,17 @@ class SignalDataset(Dataset):
 
 def main():
 
+    # Determine whether to use CPU or GPU
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Using {device} device")
+
     # Create dataset
 
     coding_file = "hek293_test_coding_9036.npy"
     non_coding_file = "hek293_test_other_9036.npy"
 
-    train_data = SignalDataset(coding_file, non_coding_file)
+    train_data = SignalDataset(coding_file, non_coding_file, device)
 
 
     # Create data loaders
