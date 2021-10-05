@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 
 import numpy as np
 from ont_fast5_api.fast5_interface import get_fast5_file
@@ -46,13 +47,13 @@ def main():
 
     # Number of samples to use per signal
 
-    n_secs = 3
+    n_secs = sys.argv[1]
     freq   = 3012
     cutoff = freq * n_secs
 
     # Location of raw signals
 
-    f5_dir = "/home/alex/OneDrive/phd-project/rna-classifier/4_BoostNanoSegmentSignals/heart_test_lncRNA"
+    f5_dir = sys.argv[2]
     name = f5_dir.split("/")[-1]
     if name.split("_")[-1] == "coding":
         label = 0
