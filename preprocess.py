@@ -47,7 +47,7 @@ def main():
 
     # Number of samples to use per signal
 
-    n_secs = sys.argv[1]
+    n_secs = int(sys.argv[1])
     freq   = 3012
     cutoff = freq * n_secs
 
