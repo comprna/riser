@@ -72,6 +72,7 @@ def main():
 
         n_discarded = 0
         with get_fast5_file(f5_file, mode="r") as f5:
+            print(f"Processing {f5_file}...")
             for i, read in enumerate(f5.get_reads()):
 
                 # Retrieve raw current measurements
