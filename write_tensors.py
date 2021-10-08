@@ -26,7 +26,7 @@ def write_tensor(arr, filename):
 
 
 def main():
-    npy_dir = '/home/alex/Documents/tmp/train'
+    npy_dir = sys.argv[1]
     print(npy_dir)
 
     # Build the datasets
