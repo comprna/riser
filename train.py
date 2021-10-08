@@ -1,20 +1,21 @@
 from matplotlib import pyplot as plt
 import numpy as np
 import torch
+from torch import nn
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Dataset
 
 
 class SignalDataset(Dataset):
-    def __init__(self, coding_file, noncoding_file, device):
-        c_x = torch.load(coding_file).to(device)
-        n_x = torch.load(noncoding_file).to(device)
+    def __init__(self, coding_file, noncoding_file):
+        c_x = torch.load(coding_file)
+        n_x = torch.load(noncoding_file)
 
         print(f"Shape of coding tensor: \t{c_x.shape}")
         print(f"Shape of noncoding tensor: \t{n_x.shape}")
 
-        c_y = torch.zeros(c_x.shape[0], device=device)
-        n_y = torch.ones(n_x.shape[0], device=device)
+        c_y = torch.zeros(c_x.shape[0])
+        n_y = torch.ones(n_x.shape[0])
 
         self.data  = torch.cat((c_x, n_x))
         self.label = torch.cat((c_y, n_y))
@@ -34,6 +35,47 @@ class SignalDataset(Dataset):
 # class Network(nn.Module):
 #     def __init__(self):
 #         super(Network, self).__init__()
+    
+#         # Initial layer
+
+#             # 20 channels
+
+
+#         # 4 residual layers
+
+#             # Each layer has 2 Bottleneck units
+
+#                 # 1 x 1 conv
+#                 # BN
+#                 # ReLU
+#                 # 3 x 3 conv
+#                 # BN
+#                 # ReLU
+#                 # 1 x 1 conv
+#                 # BN
+
+#                 # Stride of 2
+
+#                 # Sum output and input of unit
+            
+#             # Layer 1: 20 channels
+#             # Layer 2: 30 channels
+#             # Layer 3: 45 channels
+#             # Layer 4: 67 channels
+        
+
+#         # Fully connected layer + softmax
+
+#             # Mean pooling
+
+#             # Fully connected layer
+
+#             # Softmax activation
+
+
+
+#     def forward(self, x):
+#         # TODO
 
 
 def main():
