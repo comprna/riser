@@ -94,8 +94,8 @@ def main():
     test_cfile = f"{data_dir}/test_coding.pt"
     test_nfile = f"{data_dir}/test_noncoding.pt"
 
-    train_data = SignalDataset(train_cfile, train_nfile, device)
-    test_data = SignalDataset(test_cfile, test_nfile, device)
+    train_data = SignalDataset(train_cfile, train_nfile)
+    test_data = SignalDataset(test_cfile, test_nfile)
 
     # Create data loaders
 
