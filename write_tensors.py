@@ -22,7 +22,7 @@ def print_shapes(c_data, n_data):
 
 
 def write_tensor(arr, filename):
-    tensor = torch.from_numpy(arr)
+    tensor = torch.from_numpy(arr).float()
     torch.save(tensor, filename)
 
 
