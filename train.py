@@ -1,9 +1,13 @@
+from functools import partial
+
 from matplotlib import pyplot as plt
 import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Dataset
+
+from resnet import ResNet
 
 
 class SignalDataset(Dataset):
@@ -32,59 +36,7 @@ class SignalDataset(Dataset):
         return x, y
 
 
-# class Network(nn.Module):
-#     def __init__(self):
-#         super(Network, self).__init__()
-    
-#         # Initial layer
-
-#             # 20 channels
-
-
-#         # 4 residual layers
-
-#             # Each layer has 2 Bottleneck units
-
-#                 # 1 x 1 conv
-#                 # BN
-#                 # ReLU
-#                 # 3 x 3 conv
-#                 # BN
-#                 # ReLU
-#                 # 1 x 1 conv
-#                 # BN
-
-#                 # Stride of 2
-
-#                 # Sum output and input of unit
-            
-#             # Layer 1: 20 channels
-#             # Layer 2: 30 channels
-#             # Layer 3: 45 channels
-#             # Layer 4: 67 channels
-        
-
-#         # Fully connected layer + softmax
-
-#             # Mean pooling
-
-#             # Fully connected layer
-
-#             # Softmax activation
-
-
-
-#     def forward(self, x):
-#         # TODO
-
-
 def main():
-
-    # Determine whether to use CPU or GPU
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    device = torch.device(device)
-    print(f"Using {device} device")
 
     # Create dataset
 
@@ -96,6 +48,12 @@ def main():
 
     train_data = SignalDataset(train_cfile, train_nfile)
     test_data = SignalDataset(test_cfile, test_nfile)
+
+    # # Determine whether to use CPU or GPU
+
+    # device = "cuda" if torch.cuda.is_available() else "cpu"
+    # device = torch.device(device)
+    # print(f"Using {device} device")
 
     # Create data loaders
 
