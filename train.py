@@ -1,74 +1,98 @@
-from functools import partial
-
-from matplotlib import pyplot as plt
-import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-from torch.utils.data.dataset import Dataset
 
-from resnet import ResNet
+from resnet import ResNet, BottleneckBlock
+from data import SignalDataset
+
+def train(dataloader, model, loss_fn, optimizer, device):
+    total = len(dataloader.dataset)
+    model.train()
+    for batch, (X, y) in enumerate(dataloader):
+
+        # Move data batch to GPU for propagation through network
+        X, y = X.to(device), y.to(device)
+
+        # Compute prediction error
+        pred = model(X)
+        loss = loss_fn(pred, y)
+
+        # Backpropagation
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        # Print progress
+        if batch % 100 == 0:
+            loss = loss.item()
+            current = batch * len(X)
+            print(f"loss: {loss:>7f} [{current:>5d}/{total:>5d}]")
 
 
-class SignalDataset(Dataset):
-    def __init__(self, coding_file, noncoding_file):
-        c_x = torch.load(coding_file)
-        n_x = torch.load(noncoding_file)
+def validate(dataloader, model, loss_fn, device):
+    total = len(dataloader.dataset)
+    n_batches = len(dataloader)
+    model.eval()
+    val_loss, correct = 0, 0
+    with torch.no_grad:
+        for X, y in dataloader:
 
-        print(f"Shape of coding tensor: \t{c_x.shape}")
-        print(f"Shape of noncoding tensor: \t{n_x.shape}")
-
-        c_y = torch.zeros(c_x.shape[0])
-        n_y = torch.ones(n_x.shape[0])
-
-        self.data  = torch.cat((c_x, n_x))
-        self.label = torch.cat((c_y, n_y))
-
-        print(f"Shape of total dataset: {self.data.shape}")
-        print(f"Shape of total labels: {self.label.shape}")
-
-    def __len__(self):
-        return len(self.label)
-
-    def __getitem__(self, idx):
-        x = self.data[idx]
-        y = self.label[idx]
-        return x, y
+            # Move batch to GPU
+            X, y = X.to(device), y.to(device)
+            
+            # Compute prediction error
+            pred = model(X)
+            val_loss += loss_fn(pred, y).item()
+            correct += (pred.argmax(1) == y).type(torch.float).sum().item()
+    
+    # Compute average loss and accuracy
+    val_loss /= n_batches
+    correct /= total
+    print(f"Validation error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {val_loss:>8f} \n")
 
 
 def main():
 
-    # Create dataset
+    # Create datasets
 
     data_dir = "/g/data/xc17/Eyras/alex/working/rna-classifier/5_MakeDataset"
     train_cfile = f"{data_dir}/train_coding.pt"
     train_nfile = f"{data_dir}/train_noncoding.pt"
-    test_cfile = f"{data_dir}/test_coding.pt"
-    test_nfile = f"{data_dir}/test_noncoding.pt"
+    valid_cfile = f"{data_dir}/val_coding.pt"
+    valid_nfile = f"{data_dir}/val_noncoding.pt"
 
     train_data = SignalDataset(train_cfile, train_nfile)
-    test_data = SignalDataset(test_cfile, test_nfile)
-
-    # # Determine whether to use CPU or GPU
-
-    # device = "cuda" if torch.cuda.is_available() else "cpu"
-    # device = torch.device(device)
-    # print(f"Using {device} device")
+    valid_data = SignalDataset(valid_cfile, valid_nfile)
 
     # Create data loaders
 
-    # train_loader = DataLoader(train_data, batch_size=64, shuffle=True)
+    train_loader = DataLoader(train_data, batch_size=1000, shuffle=True)
+    valid_loader = DataLoader(valid_data, batch_size=1000, shuffle=False)
 
-    # for x, y in train_loader:
-    #     print(f"Shape of x: {x.shape}")
-    #     print(f"Shape of y: {y.shape} {y.dtype}")
+    # Get device for training
 
-    #     x = x.to('cpu')
-    #     x_d = x[0]
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = torch.device(device)
+    print(f"Using {device} device")
 
-    #     plt.plot(x_d)
-    #     plt.show()
+    # Define model
 
+    model = ResNet(BottleneckBlock, [2,2,2,2])
+    print(model)
+
+    # Define loss function & optimiser
+
+    loss_fn = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+
+    # Train
+
+    n_epochs = 6
+    for t in range(n_epochs):
+        print(f"Epoch {t+1}\n-------------------------------")
+        train(train_loader, model, loss_fn, optimizer, device)
+        validate(valid_loader, model, loss_fn, device)
+    print("Training complete.")
 
 
 
