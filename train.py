@@ -83,7 +83,7 @@ def main():
 
     # Define model
 
-    model = ResNet(BottleneckBlock, [2,2,2,2])
+    model = ResNet(BottleneckBlock, [2,2,2,2]).to(device)
     print(f"Model: \n{model}")
 
     # Define loss function & optimiser
