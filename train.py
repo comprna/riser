@@ -55,6 +55,7 @@ def main():
 
     # Create datasets
 
+    print("Creating datasets...")
     data_dir = "/g/data/xc17/Eyras/alex/working/rna-classifier/5_MakeDataset"
     train_cfile = f"{data_dir}/train_coding.pt"
     train_nfile = f"{data_dir}/train_noncoding.pt"
@@ -66,6 +67,7 @@ def main():
 
     # Create data loaders
 
+    print("Creating data loaders...")
     train_loader = DataLoader(train_data, batch_size=1000, shuffle=True)
     valid_loader = DataLoader(valid_data, batch_size=1000, shuffle=False)
 
@@ -78,7 +80,7 @@ def main():
     # Define model
 
     model = ResNet(BottleneckBlock, [2,2,2,2])
-    print(model)
+    print(f"Model: \n{model}")
 
     # Define loss function & optimiser
 
