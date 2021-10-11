@@ -1,3 +1,4 @@
+import math
 from pathlib import Path
 import sys
 
@@ -45,10 +46,27 @@ def main():
         n_data = n_data[:c_len]
     print_shapes(c_data, n_data)
 
-    # Convert to tensors and write to file
+    # If we are creating the training set, split into train and val
 
-    write_tensor(c_data, f"{sys.argv[2]}_coding.pt")
-    write_tensor(n_data, f"{sys.argv[2]}_noncoding.pt")
+    name = npy_dir.split("/")[-1]
+    if name == "train":
+        np.random.shuffle(c_data)
+        np.random.shuffle(n_data)
+
+        train_size = math.ceil(0.8 * len(c_data))
+        c_train = c_data[:train_size]
+        c_val = c_data[train_size:]
+        n_train = n_data[:train_size]
+        n_val = n_data[train_size:]
+
+        write_tensor(c_train, "train_coding.pt")
+        write_tensor(c_val, "val_coding.pt")
+        write_tensor(n_train, "train_noncoding.pt")
+        write_tensor(n_val, "val_noncoding.pt")
+
+    else:
+        write_tensor(c_data, f"test_coding.pt")
+        write_tensor(n_data, f"test_noncoding.pt")
 
 
 if __name__ == "__main__":
