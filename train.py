@@ -13,6 +13,10 @@ def train(dataloader, model, loss_fn, optimizer, device):
         # Move data batch to GPU for propagation through network
         X, y = X.to(device), y.to(device)
 
+        print(type(X))
+        print(type(y))
+        exit()
+
         # Compute prediction error
         pred = model(X)
         loss = loss_fn(pred, y)
