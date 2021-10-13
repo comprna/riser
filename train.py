@@ -34,7 +34,7 @@ def validate(dataloader, model, loss_fn, device):
     n_batches = len(dataloader)
     model.eval()
     val_loss, correct = 0, 0
-    with torch.no_grad:
+    with torch.no_grad():
         for X, y in dataloader:
 
             # Move batch to GPU
@@ -61,6 +61,14 @@ def main():
     train_nfile = f"{data_dir}/train_noncoding.pt"
     valid_cfile = f"{data_dir}/val_coding.pt"
     valid_nfile = f"{data_dir}/val_noncoding.pt"
+    batch_size = 1000
+
+    # data_dir = '/home/alex/Documents/rnaclassifier'
+    # train_cfile = f"{data_dir}/test_coding.pt"
+    # train_nfile = f"{data_dir}/test_noncoding.pt"
+    # valid_cfile = f"{data_dir}/test_coding.pt"
+    # valid_nfile = f"{data_dir}/test_noncoding.pt"
+    # batch_size = 64
 
     train_data = SignalDataset(train_cfile, train_nfile)
     valid_data = SignalDataset(valid_cfile, valid_nfile)
@@ -68,8 +76,8 @@ def main():
     # Create data loaders
 
     print("Creating data loaders...")
-    train_loader = DataLoader(train_data, batch_size=1000, shuffle=True)
-    valid_loader = DataLoader(valid_data, batch_size=1000, shuffle=False)
+    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+    valid_loader = DataLoader(valid_data, batch_size=batch_size, shuffle=False)
 
     # Get device for training
 

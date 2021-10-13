@@ -9,8 +9,8 @@ class SignalDataset(Dataset):
         print(f"Shape of coding tensor: \t{c_x.shape}")
         print(f"Shape of noncoding tensor: \t{n_x.shape}")
 
-        c_y = torch.zeros(c_x.shape[0])
-        n_y = torch.ones(n_x.shape[0])
+        c_y = torch.zeros(c_x.shape[0], dtype=torch.long)
+        n_y = torch.ones(n_x.shape[0], dtype=torch.long)
 
         self.data  = torch.cat((c_x, n_x))
         self.label = torch.cat((c_y, n_y))

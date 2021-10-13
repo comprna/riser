@@ -30,24 +30,24 @@ class BottleneckBlock(nn.Module):
 	def forward(self, x):
 		identity = x
 
-		x = self.conv1(x)
-		x = self.bn1(x)
-		x = self.relu(x)
+		out = self.conv1(x)
+		out = self.bn1(out)
+		out = self.relu(out)
 
-		x = self.conv2(x)
-		x = self.bn2(x)
-		x = self.relu(x)
+		out = self.conv2(out)
+		out = self.bn2(out)
+		out = self.relu(out)
 
-		x = self.conv3(x)
-		x = self.bn3(x)
+		out = self.conv3(out)
+		out = self.bn3(out)
 
 		if self.downsample is not None:
 			identity = self.downsample(x)
 
-		x += identity
-		x = self.relu(x)
+		out += identity
+		out = self.relu(out)
 
-		return x
+		return out
 
 
 class ResNet(nn.Module):
@@ -80,7 +80,7 @@ class ResNet(nn.Module):
 	
 	def _make_layer(self, block, channels, blocks, stride=1):
 		downsample = None
-		if stride != 1 or self.chan1 != channels:
+		if stride != 1 or self.chan1 != channels: # stride != 1 means need to downsample identity, chan1 != channels means need to downsample channels of identity
 			downsample = nn.Sequential(
 				conv1(self.chan1, channels, stride),
 				bcnorm(channels),
