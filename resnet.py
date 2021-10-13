@@ -18,12 +18,23 @@ class BottleneckBlock(nn.Module):
 	expansion = 1.5
 	def __init__(self, in_channels, out_channels, stride=1, downsample=None):
 		super().__init__()
-		self.conv1 = conv1(in_channels, in_channels)
-		self.bn1 = bcnorm(in_channels)
-		self.conv2 = conv3(in_channels, in_channels, stride)
-		self.bn2 = bcnorm(in_channels)
-		self.conv3 = conv1(in_channels, out_channels)
-		self.bn3 = bcnorm(out_channels)
+		self.conv_block1 = nn.Sequential(
+			conv1(in_channels, in_channels),
+			bcnorm(in_channels),
+			nn.ReLU(inplace=True)  # TODO: is inplace necessary?
+		)
+
+		self.conv_block2 = nn.Sequential(
+			conv3(in_channels, in_channels, stride),
+			bcnorm(in_channels),
+			nn.ReLU(inplace=True)  # TODO: is inplace necessary?
+		)
+
+		self.conv_block3 = nn.Sequential(
+			conv1(in_channels, out_channels),
+			bcnorm(out_channels)
+		)
+
 		self.relu = nn.ReLU(inplace=True)
 		self.downsample = downsample
 		self.stride = stride
@@ -31,16 +42,9 @@ class BottleneckBlock(nn.Module):
 	def forward(self, x):
 		identity = x
 
-		out = self.conv1(x)
-		out = self.bn1(out)
-		out = self.relu(out)
-
-		out = self.conv2(out)
-		out = self.bn2(out)
-		out = self.relu(out)
-
-		out = self.conv3(out)
-		out = self.bn3(out)
+		out = self.conv_block1(x)
+		out = self.conv_block2(out)
+		out = self.conv_block3(out)
 
 		if self.downsample is not None:
 			identity = self.downsample(x)
