@@ -60,19 +60,24 @@ class ResNet(nn.Module):
 		super(ResNet, self).__init__()
 		self.chan1 = 20
 
-		# first block
-		self.conv1 = nn.Conv1d(1, 20, 19, padding=5, stride=3)
-		self.bn1 = bcnorm(self.chan1)
-		self.relu = nn.ReLU(inplace=True)
-		self.pool = nn.MaxPool1d(2, padding=1, stride=2)
-		self.avgpool = nn.AdaptiveAvgPool1d(1)
-		self.fc = nn.Linear(67, 2)
+		self.conv_block1 = nn.Sequential(
+			nn.Conv1d(1, 20, 19, padding=5, stride=3),
+			bcnorm(self.chan1),
+			nn.ReLU(inplace=True),
+			nn.MaxPool1d(2, padding=1, stride=2)
+		)
 
 		self.layer1 = self._make_layer(block, 20, layers[0])
 		self.layer2 = self._make_layer(block, 30, layers[1], stride=2)
 		self.layer3 = self._make_layer(block, 45, layers[2], stride=2)
 		self.layer4 = self._make_layer(block, 67, layers[3], stride=2)
-		#self.layer5 = self._make_layer(block, 100, layers[4], stride=2)
+
+		self.avgpool = nn.AdaptiveAvgPool1d(1)
+
+		self.decoder = nn.Sequential(
+			nn.Flatten(1),   # TODO: This should match torch.flatten(x, 1)
+			nn.Linear(67, 2)
+		)
 
 		# initialization
 		for m in self.modules():
@@ -102,20 +107,15 @@ class ResNet(nn.Module):
 
 	def _forward_impl(self, x):
 		x = x.unsqueeze(1)
-		x = self.conv1(x)
-		x = self.bn1(x)
-		x = self.relu(x)
-		x = self.pool(x)
+		x = self.conv_block1(x)
 
 		x = self.layer1(x)
 		x = self.layer2(x)
 		x = self.layer3(x)
 		x = self.layer4(x)
-		#x = self.layer5(x)
 
 		x = self.avgpool(x)
-		x = torch.flatten(x, 1)
-		x = self.fc(x)
+		x = self.decoder(x)
 
 		return x
 
