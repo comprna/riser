@@ -2,37 +2,26 @@ import torch
 from torch import nn
 from torchinfo import summary
 
-def conv3(in_channel, out_channel, stride=1, padding=1, groups=1):
-  return nn.Conv1d(in_channel, out_channel, kernel_size=3, stride=stride, 
-				   padding=padding, bias=False, dilation=padding, groups=groups)
-
-def conv1(in_channel, out_channel, stride=1, padding=0):
-  return nn.Conv1d(in_channel, out_channel, kernel_size=1, stride=stride, 
-				   padding=padding, bias=False)
-
-def bcnorm(channel):
-  return nn.BatchNorm1d(channel)
-
 
 class BottleneckBlock(nn.Module):
 	expansion = 1.5
 	def __init__(self, in_channels, out_channels, stride=1, downsample=None):
 		super().__init__()
 		self.conv_block1 = nn.Sequential(
-			conv1(in_channels, in_channels),
-			bcnorm(in_channels),
+			nn.Conv1d(in_channels, in_channels, kernel_size=1, bias=False),
+			nn.BatchNorm1d(in_channels),
 			nn.ReLU(inplace=True)  # TODO: is inplace necessary?
 		)
 
 		self.conv_block2 = nn.Sequential(
-			conv3(in_channels, in_channels, stride),
-			bcnorm(in_channels),
+			nn.Conv1d(in_channels, in_channels, kernel_size=3, stride=stride, padding=1, bias=False),
+			nn.BatchNorm1d(in_channels),
 			nn.ReLU(inplace=True)  # TODO: is inplace necessary?
 		)
 
 		self.conv_block3 = nn.Sequential(
-			conv1(in_channels, out_channels),
-			bcnorm(out_channels)
+			nn.Conv1d(in_channels, out_channels, kernel_size=1, bias=False),
+			nn.BatchNorm1d(out_channels)
 		)
 
 		self.relu = nn.ReLU(inplace=True)
@@ -62,7 +51,7 @@ class ResNet(nn.Module):
 
 		self.conv_block1 = nn.Sequential(
 			nn.Conv1d(1, 20, 19, padding=5, stride=3),
-			bcnorm(self.chan1),
+			nn.BatchNorm1d(self.chan1),
 			nn.ReLU(inplace=True),
 			nn.MaxPool1d(2, padding=1, stride=2)
 		)
@@ -92,8 +81,8 @@ class ResNet(nn.Module):
 		downsample = None
 		if stride != 1 or self.chan1 != channels: # stride != 1 means need to downsample identity, chan1 != channels means need to downsample channels of identity
 			downsample = nn.Sequential(
-				conv1(self.chan1, channels, stride),
-				bcnorm(channels),
+				nn.Conv1d(self.chan1, channels, kernel_size=1, stride=stride, bias=False),
+				nn.BatchNorm1d(channels)
 			)
 
 		layers = []
