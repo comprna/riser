@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from torchinfo import summary
 
 def conv3(in_channel, out_channel, stride=1, padding=1, groups=1):
   return nn.Conv1d(in_channel, out_channel, kernel_size=3, stride=stride, 
@@ -164,4 +165,4 @@ class ResNet(nn.Module):
 
 if __name__ == "__main__":
     model = ResNet(BottleneckBlock, [2,2,2,2])
-    print(model)
+    summary(model, input_size=(64, 9036))
