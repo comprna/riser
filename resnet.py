@@ -19,16 +19,20 @@ class BottleneckBlock(nn.Module):
     def __init__(self, in_chan, out_chan, stride=1):
         super().__init__()
 
+        # Parameters
         self.in_chan = in_chan
         self.out_chan = out_chan
-        self.stride = stride # TODO: Rename downsampling
-
+        self.stride = stride
+        self.activate = nn.ReLU(inplace=True)
+    
+        # Convolutional blocks
         self.blocks = nn.Sequential(
             conv_block(in_chan, in_chan, 1, bias=False),
             conv_block(in_chan, in_chan, 3, stride=stride, padding=1, bias=False),
             conv_block(in_chan, out_chan, 1, last=True, bias=False)
         )
-        self.activate = nn.ReLU(inplace=True)
+
+        # Match dimensions of input and block output for summation
         self.shortcut = nn.Sequential(
             nn.Conv1d(in_chan, out_chan, kernel_size=1, stride=stride, bias=False),
             nn.BatchNorm1d(out_chan)
@@ -40,7 +44,7 @@ class BottleneckBlock(nn.Module):
         out += residual
         out = self.activate(out)
         return out
-    
+
     @property
     def should_apply_shortcut(self):
         return self.in_chan != self.out_chan or self.stride != 1
@@ -80,10 +84,13 @@ class ResNet(nn.Module):
 
     
     def _make_layer(self, block, channels, blocks, stride=1):
-        layers = []
-        layers.append(block(self.chan1, channels, stride))
-        if stride != 1 or self.chan1 != channels:
-          self.chan1 = channels # TODO: Rename or remove self.chan1
+        # First residual block in layer may downsample
+        layers = [block(self.chan1, channels, stride)]
+
+        # In channels for next layer will be this layer's out channels
+        self.chan1 = channels # TODO: Rename or remove self.chan1
+
+        # Remaining residual blocks in layer
         for _ in range(1, blocks):
             layers.append(block(self.chan1, channels))
 
