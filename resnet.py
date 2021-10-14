@@ -16,7 +16,7 @@ def conv_block(in_chan, out_chan, kernel_size, relu=False, **kwargs):
 
 class BottleneckBlock(nn.Module):
 	expansion = 1.5
-	def __init__(self, in_chan, out_chan, stride=1, downsample=None):
+	def __init__(self, in_chan, out_chan, stride=1, shortcut=None):
 		super().__init__()
 
 		self.blocks = nn.Sequential(  # TODO: Better name?
@@ -24,21 +24,14 @@ class BottleneckBlock(nn.Module):
 			conv_block(in_chan, in_chan, 3, relu=True, stride=stride, padding=1, bias=False),
 			conv_block(in_chan, out_chan, 1, bias=False)
 		)
-
-		self.relu = nn.ReLU(inplace=True)
-		self.downsample = downsample
+		self.activate = nn.ReLU(inplace=True)
+		self.shortcut = shortcut
 
 	def forward(self, x):
-		identity = x
-
+		residual = self.shortcut(x) if self.shortcut is not None else x
 		out = self.blocks(x)
-
-		if self.downsample is not None:
-			identity = self.downsample(x)
-
-		out += identity
-		out = self.relu(out)
-
+		out += residual
+		out = self.activate(out)
 		return out
 
 
