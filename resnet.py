@@ -16,8 +16,12 @@ def conv_block(in_chan, out_chan, kernel_size, last=False, **kwargs):
 
 class BottleneckBlock(nn.Module):
     expansion = 1.5 # TODO: Why is this here?
-    def __init__(self, in_chan, out_chan, stride=1, shortcut=None):
+    def __init__(self, in_chan, out_chan, stride=1):
         super().__init__()
+
+        self.in_chan = in_chan
+        self.out_chan = out_chan
+        self.stride = stride # TODO: Rename downsampling
 
         self.blocks = nn.Sequential(
             conv_block(in_chan, in_chan, 1, bias=False),
@@ -25,14 +29,21 @@ class BottleneckBlock(nn.Module):
             conv_block(in_chan, out_chan, 1, last=True, bias=False)
         )
         self.activate = nn.ReLU(inplace=True)
-        self.shortcut = shortcut
+        self.shortcut = nn.Sequential(
+            nn.Conv1d(in_chan, out_chan, kernel_size=1, stride=stride, bias=False),
+            nn.BatchNorm1d(out_chan)
+        )
 
     def forward(self, x):
-        residual = self.shortcut(x) if self.shortcut is not None else x
+        residual = self.shortcut(x) if self.should_apply_shortcut else x
         out = self.blocks(x)
         out += residual
         out = self.activate(out)
         return out
+    
+    @property
+    def should_apply_shortcut(self):
+        return self.in_chan != self.out_chan or self.stride != 1
 
 
 class ResNet(nn.Module):
@@ -69,17 +80,10 @@ class ResNet(nn.Module):
 
     
     def _make_layer(self, block, channels, blocks, stride=1):
-        downsample = None
-        if stride != 1 or self.chan1 != channels: # stride != 1 means need to downsample identity, chan1 != channels means need to downsample channels of identity
-            downsample = nn.Sequential(
-                nn.Conv1d(self.chan1, channels, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm1d(channels)
-            )
-
         layers = []
-        layers.append(block(self.chan1, channels, stride, downsample))
+        layers.append(block(self.chan1, channels, stride))
         if stride != 1 or self.chan1 != channels:
-          self.chan1 = channels
+          self.chan1 = channels # TODO: Rename or remove self.chan1
         for _ in range(1, blocks):
             layers.append(block(self.chan1, channels))
 
