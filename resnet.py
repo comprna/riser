@@ -4,98 +4,98 @@ from torchinfo import summary
 
 
 def conv_block(in_chan, out_chan, kernel_size, last=False, **kwargs):
-	layers = [
-		nn.Conv1d(in_chan, out_chan, kernel_size, **kwargs),
-		nn.BatchNorm1d(out_chan),
-	]
-	if last == False:
-		layers.append(nn.ReLU(inplace=True)) # TODO: is inplace necessary?
+    layers = [
+        nn.Conv1d(in_chan, out_chan, kernel_size, **kwargs),
+        nn.BatchNorm1d(out_chan),
+    ]
+    if last == False:
+        layers.append(nn.ReLU(inplace=True)) # TODO: is inplace necessary?
 
-	return nn.Sequential(*layers)
+    return nn.Sequential(*layers)
 
 
 class BottleneckBlock(nn.Module):
-	expansion = 1.5 # TODO: Why is this here?
-	def __init__(self, in_chan, out_chan, stride=1, shortcut=None):
-		super().__init__()
+    expansion = 1.5 # TODO: Why is this here?
+    def __init__(self, in_chan, out_chan, stride=1, shortcut=None):
+        super().__init__()
 
-		self.blocks = nn.Sequential(
-			conv_block(in_chan, in_chan, 1, bias=False),
-			conv_block(in_chan, in_chan, 3, stride=stride, padding=1, bias=False),
-			conv_block(in_chan, out_chan, 1, last=True, bias=False)
-		)
-		self.activate = nn.ReLU(inplace=True)
-		self.shortcut = shortcut
+        self.blocks = nn.Sequential(
+            conv_block(in_chan, in_chan, 1, bias=False),
+            conv_block(in_chan, in_chan, 3, stride=stride, padding=1, bias=False),
+            conv_block(in_chan, out_chan, 1, last=True, bias=False)
+        )
+        self.activate = nn.ReLU(inplace=True)
+        self.shortcut = shortcut
 
-	def forward(self, x):
-		residual = self.shortcut(x) if self.shortcut is not None else x
-		out = self.blocks(x)
-		out += residual
-		out = self.activate(out)
-		return out
+    def forward(self, x):
+        residual = self.shortcut(x) if self.shortcut is not None else x
+        out = self.blocks(x)
+        out += residual
+        out = self.activate(out)
+        return out
 
 
 class ResNet(nn.Module):
-	def __init__(self, block, layers, num_classes=2):
-		super(ResNet, self).__init__()
-		self.chan1 = 20
+    def __init__(self, block, layers, num_classes=2):
+        super(ResNet, self).__init__()
+        self.chan1 = 20
 
-		self.conv_block = nn.Sequential(
-			nn.Conv1d(1, 20, 19, padding=5, stride=3),
-			nn.BatchNorm1d(self.chan1),
-			nn.ReLU(inplace=True),
-			nn.MaxPool1d(2, padding=1, stride=2)
-		)
+        self.conv_block = nn.Sequential(
+            nn.Conv1d(1, 20, 19, padding=5, stride=3),
+            nn.BatchNorm1d(self.chan1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool1d(2, padding=1, stride=2)
+        )
 
-		self.layer1 = self._make_layer(block, 20, layers[0])
-		self.layer2 = self._make_layer(block, 30, layers[1], stride=2)
-		self.layer3 = self._make_layer(block, 45, layers[2], stride=2)
-		self.layer4 = self._make_layer(block, 67, layers[3], stride=2)
+        self.layer1 = self._make_layer(block, 20, layers[0])
+        self.layer2 = self._make_layer(block, 30, layers[1], stride=2)
+        self.layer3 = self._make_layer(block, 45, layers[2], stride=2)
+        self.layer4 = self._make_layer(block, 67, layers[3], stride=2)
 
-		self.avgpool = nn.AdaptiveAvgPool1d(1)
+        self.avgpool = nn.AdaptiveAvgPool1d(1)
 
-		self.decoder = nn.Sequential(
-			nn.Flatten(1),   # TODO: This should match torch.flatten(x, 1)
-			nn.Linear(67, 2)
-		)
+        self.decoder = nn.Sequential(
+            nn.Flatten(1),   # TODO: This should match torch.flatten(x, 1)
+            nn.Linear(67, 2)
+        )
 
-		# initialization
-		for m in self.modules():
-			if isinstance(m, nn.Conv1d):
-				nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-			elif isinstance(m, (nn.BatchNorm1d)):
-				nn.init.constant_(m.weight, 1)
-				nn.init.constant_(m.bias, 0)
+        # initialization
+        for m in self.modules():
+            if isinstance(m, nn.Conv1d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, (nn.BatchNorm1d)):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
 
-	
-	def _make_layer(self, block, channels, blocks, stride=1):
-		downsample = None
-		if stride != 1 or self.chan1 != channels: # stride != 1 means need to downsample identity, chan1 != channels means need to downsample channels of identity
-			downsample = nn.Sequential(
-				nn.Conv1d(self.chan1, channels, kernel_size=1, stride=stride, bias=False),
-				nn.BatchNorm1d(channels)
-			)
+    
+    def _make_layer(self, block, channels, blocks, stride=1):
+        downsample = None
+        if stride != 1 or self.chan1 != channels: # stride != 1 means need to downsample identity, chan1 != channels means need to downsample channels of identity
+            downsample = nn.Sequential(
+                nn.Conv1d(self.chan1, channels, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm1d(channels)
+            )
 
-		layers = []
-		layers.append(block(self.chan1, channels, stride, downsample))
-		if stride != 1 or self.chan1 != channels:
-		  self.chan1 = channels
-		for _ in range(1, blocks):
-			layers.append(block(self.chan1, channels))
+        layers = []
+        layers.append(block(self.chan1, channels, stride, downsample))
+        if stride != 1 or self.chan1 != channels:
+          self.chan1 = channels
+        for _ in range(1, blocks):
+            layers.append(block(self.chan1, channels))
 
-		return nn.Sequential(*layers)
+        return nn.Sequential(*layers)
 
-	def forward(self, x):
-	  	x = x.unsqueeze(1)
-		x = self.conv_block(x)
+    def forward(self, x):
+        x = x.unsqueeze(1)
+        x = self.conv_block(x)
 
-		x = self.layer1(x)
-		x = self.layer2(x)
-		x = self.layer3(x)
-		x = self.layer4(x)
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
 
-		x = self.avgpool(x)
-		x = self.decoder(x)
+        x = self.avgpool(x)
+        x = self.decoder(x)
 
 
 # class ResNet1D(nn.Module):
