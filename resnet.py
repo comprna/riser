@@ -3,26 +3,26 @@ from torch import nn
 from torchinfo import summary
 
 
-def conv_block(in_chan, out_chan, kernel_size, relu=False, **kwargs):
+def conv_block(in_chan, out_chan, kernel_size, last=False, **kwargs):
 	layers = [
 		nn.Conv1d(in_chan, out_chan, kernel_size, **kwargs),
 		nn.BatchNorm1d(out_chan),
 	]
-	if relu:
+	if last == False:
 		layers.append(nn.ReLU(inplace=True)) # TODO: is inplace necessary?
 
 	return nn.Sequential(*layers)
 
 
 class BottleneckBlock(nn.Module):
-	expansion = 1.5
+	expansion = 1.5 # TODO: Why is this here?
 	def __init__(self, in_chan, out_chan, stride=1, shortcut=None):
 		super().__init__()
 
-		self.blocks = nn.Sequential(  # TODO: Better name?
-			conv_block(in_chan, in_chan, 1, relu=True, bias=False),
-			conv_block(in_chan, in_chan, 3, relu=True, stride=stride, padding=1, bias=False),
-			conv_block(in_chan, out_chan, 1, bias=False)
+		self.blocks = nn.Sequential(
+			conv_block(in_chan, in_chan, 1, bias=False),
+			conv_block(in_chan, in_chan, 3, stride=stride, padding=1, bias=False),
+			conv_block(in_chan, out_chan, 1, last=True, bias=False)
 		)
 		self.activate = nn.ReLU(inplace=True)
 		self.shortcut = shortcut
@@ -40,7 +40,7 @@ class ResNet(nn.Module):
 		super(ResNet, self).__init__()
 		self.chan1 = 20
 
-		self.conv_block1 = nn.Sequential(
+		self.conv_block = nn.Sequential(
 			nn.Conv1d(1, 20, 19, padding=5, stride=3),
 			nn.BatchNorm1d(self.chan1),
 			nn.ReLU(inplace=True),
@@ -85,9 +85,9 @@ class ResNet(nn.Module):
 
 		return nn.Sequential(*layers)
 
-	def _forward_impl(self, x):
-		x = x.unsqueeze(1)
-		x = self.conv_block1(x)
+	def forward(self, x):
+	  	x = x.unsqueeze(1)
+		x = self.conv_block(x)
 
 		x = self.layer1(x)
 		x = self.layer2(x)
@@ -96,11 +96,6 @@ class ResNet(nn.Module):
 
 		x = self.avgpool(x)
 		x = self.decoder(x)
-
-		return x
-
-	def forward(self, x):
-	  return self._forward_impl(x)
 
 
 # class ResNet1D(nn.Module):
