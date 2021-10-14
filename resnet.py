@@ -3,26 +3,25 @@ from torch import nn
 from torchinfo import summary
 
 
+def conv_block(in_chan, out_chan, kernel_size, relu=False, **kwargs):
+	layers = [
+		nn.Conv1d(in_chan, out_chan, kernel_size, **kwargs),
+		nn.BatchNorm1d(out_chan),
+	]
+	if relu:
+		layers.append(nn.ReLU(inplace=True)) # TODO: is inplace necessary?
+
+	return nn.Sequential(*layers)
+
+
 class BottleneckBlock(nn.Module):
 	expansion = 1.5
-	def __init__(self, in_channels, out_channels, stride=1, downsample=None):
+	def __init__(self, in_chan, out_chan, stride=1, downsample=None):
 		super().__init__()
-		self.conv_block1 = nn.Sequential(
-			nn.Conv1d(in_channels, in_channels, kernel_size=1, bias=False),
-			nn.BatchNorm1d(in_channels),
-			nn.ReLU(inplace=True)  # TODO: is inplace necessary?
-		)
 
-		self.conv_block2 = nn.Sequential(
-			nn.Conv1d(in_channels, in_channels, kernel_size=3, stride=stride, padding=1, bias=False),
-			nn.BatchNorm1d(in_channels),
-			nn.ReLU(inplace=True)  # TODO: is inplace necessary?
-		)
-
-		self.conv_block3 = nn.Sequential(
-			nn.Conv1d(in_channels, out_channels, kernel_size=1, bias=False),
-			nn.BatchNorm1d(out_channels)
-		)
+		self.conv_block1 = conv_block(in_chan, in_chan, 1, relu=True, bias=False)
+		self.conv_block2 = conv_block(in_chan, in_chan, 3, relu=True, stride=stride, padding=1, bias=False)
+		self.conv_block3 = conv_block(in_chan, out_chan, 1, bias=False)
 
 		self.relu = nn.ReLU(inplace=True)
 		self.downsample = downsample
