@@ -51,30 +51,30 @@ class BottleneckBlock(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(self, block, layers, num_classes=2):
+    def __init__(self, block, layer_sizes):
         super(ResNet, self).__init__()
-        self.chan1 = 20
+        self.in_chan = 20
 
         self.conv_block = nn.Sequential(
-            nn.Conv1d(1, 20, 19, padding=5, stride=3),
-            nn.BatchNorm1d(self.chan1),
+            nn.Conv1d(1, self.in_chan, 19, padding=5, stride=3),
+            nn.BatchNorm1d(self.in_chan),
             nn.ReLU(inplace=True),
             nn.MaxPool1d(2, padding=1, stride=2)
         )
 
-        self.layer1 = self._make_layer(block, 20, layers[0])
-        self.layer2 = self._make_layer(block, 30, layers[1], stride=2)
-        self.layer3 = self._make_layer(block, 45, layers[2], stride=2)
-        self.layer4 = self._make_layer(block, 67, layers[3], stride=2)
+        self.layer1 = self._make_layer(block, 20, layer_sizes[0])
+        self.layer2 = self._make_layer(block, 30, layer_sizes[1], stride=2)
+        self.layer3 = self._make_layer(block, 45, layer_sizes[2], stride=2)
+        self.layer4 = self._make_layer(block, 67, layer_sizes[3], stride=2)
 
         self.avgpool = nn.AdaptiveAvgPool1d(1)
 
         self.decoder = nn.Sequential(
-            nn.Flatten(1),   # TODO: This should match torch.flatten(x, 1)
+            nn.Flatten(1),
             nn.Linear(67, 2)
         )
 
-        # initialization
+        # Initialise weights and biases
         for m in self.modules():
             if isinstance(m, nn.Conv1d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
@@ -85,14 +85,14 @@ class ResNet(nn.Module):
     
     def _make_layer(self, block, channels, blocks, stride=1):
         # First residual block in layer may downsample
-        layers = [block(self.chan1, channels, stride)]
+        layers = [block(self.in_chan, channels, stride)]
 
         # In channels for next layer will be this layer's out channels
-        self.chan1 = channels # TODO: Rename or remove self.chan1
+        self.in_chan = channels
 
         # Remaining residual blocks in layer
         for _ in range(1, blocks):
-            layers.append(block(self.chan1, channels))
+            layers.append(block(self.in_chan, channels))
 
         return nn.Sequential(*layers)
 
@@ -107,50 +107,6 @@ class ResNet(nn.Module):
 
         x = self.avgpool(x)
         x = self.decoder(x)
-
-
-# class ResNet1D(nn.Module):
-#     def __init__(self):
-#         super().__init__()
-
-        # Initial layer
-
-            # 20 channels
-
-
-        # 4 residual layers
-
-            # Each layer has 2 Bottleneck units
-
-                # 1 x 1 conv
-                # BN
-                # ReLU
-                # 3 x 3 conv
-                # BN
-                # ReLU
-                # 1 x 1 conv
-                # BN
-
-                # Stride of 2
-
-                # Sum output and input of unit
-            
-            # Layer 1: 20 channels
-            # Layer 2: 30 channels
-            # Layer 3: 45 channels
-            # Layer 4: 67 channels
-        
-
-        # Fully connected layer + softmax
-
-            # Mean pooling
-
-            # Fully connected layer
-
-            # Softmax activation
-
-    # def forward(self, x):
-    #     # TODO
 
 
 if __name__ == "__main__":
