@@ -19,20 +19,19 @@ class BottleneckBlock(nn.Module):
 	def __init__(self, in_chan, out_chan, stride=1, downsample=None):
 		super().__init__()
 
-		self.conv_block1 = conv_block(in_chan, in_chan, 1, relu=True, bias=False)
-		self.conv_block2 = conv_block(in_chan, in_chan, 3, relu=True, stride=stride, padding=1, bias=False)
-		self.conv_block3 = conv_block(in_chan, out_chan, 1, bias=False)
+		self.blocks = nn.Sequential(  # TODO: Better name?
+			conv_block(in_chan, in_chan, 1, relu=True, bias=False),
+			conv_block(in_chan, in_chan, 3, relu=True, stride=stride, padding=1, bias=False),
+			conv_block(in_chan, out_chan, 1, bias=False)
+		)
 
 		self.relu = nn.ReLU(inplace=True)
 		self.downsample = downsample
-		self.stride = stride
 
 	def forward(self, x):
 		identity = x
 
-		out = self.conv_block1(x)
-		out = self.conv_block2(out)
-		out = self.conv_block3(out)
+		out = self.blocks(x)
 
 		if self.downsample is not None:
 			identity = self.downsample(x)
