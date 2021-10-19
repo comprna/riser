@@ -116,6 +116,7 @@ def main():
         if val_acc > best_acc:
             best_acc = val_acc
             torch.save(model.state_dict(), f"{checkpt_dir}/best-model.pth")
+            print(f"Saved model at epoch {t+1}.")
 
     print("Training complete.")
 
