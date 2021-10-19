@@ -50,6 +50,8 @@ def validate(dataloader, model, loss_fn, device):
     correct /= total
     print(f"Validation error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {val_loss:>8f} \n")
 
+    return correct
+
 
 def main():
 
@@ -98,11 +100,15 @@ def main():
     # Train
 
     n_epochs = 6
+    best_acc = 0
     for t in range(n_epochs):
         print(f"Epoch {t+1}\n-------------------------------")
         train(train_loader, model, loss_fn, optimizer, device)
-        validate(valid_loader, model, loss_fn, device)
-        torch.save(model.state_dict(), f"model-{t}.pth")
+        val_acc = validate(valid_loader, model, loss_fn, device)
+        if val_acc > best_acc:
+            best_acc = val_acc
+            torch.save(model.state_dict(), f"model-{t+1}.pth")
+
     print("Training complete.")
 
 
