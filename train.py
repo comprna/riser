@@ -8,9 +8,10 @@ from resnet import ResNet, BottleneckBlock
 from data import SignalDataset
 
 
-def train(dataloader, model, loss_fn, optimizer, device, writer, epoch):
+def train(dataloader, model, loss_fn, optimizer, device, writer, epoch, log_freq=100):
     total = len(dataloader.dataset)
     model.train()
+    running_loss = 0.0
     for batch, (X, y) in enumerate(dataloader):
 
         # Move data batch to GPU for propagation through network
@@ -25,13 +26,17 @@ def train(dataloader, model, loss_fn, optimizer, device, writer, epoch):
         loss.backward()
         optimizer.step()
 
+        running_loss += loss.item()
         # Print progress
-        if batch % 100 == 0:
-            loss = loss.item() # Loss for the current batch
+        if batch != 0 and batch % log_freq == 0:
             current = batch * len(X) # Step in current batch
-            print(f"loss: {loss:>7f} [{current:>5d}/{total:>5d}]")
+            avg_loss = running_loss / log_freq
+            print(f"loss: {avg_loss:>7f} [{current:>5d}/{total:>5d}]")
+
             step = epoch * len(dataloader) + batch # Step in total training run
-            writer.add_scalar('training loss', loss, step)
+            writer.add_scalar('training loss', avg_loss, step)
+            running_loss = 0.0
+
 
 
 def validate(dataloader, model, loss_fn, device, writer, epoch):
