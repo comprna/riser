@@ -8,6 +8,7 @@ from resnet import ResNet, BottleneckBlock
 from data import SignalDataset
 
 
+# TODO: Too many params
 def train(dataloader, model, loss_fn, optimizer, device, writer, epoch, log_freq=100):
     model.train()
     n_samples = len(dataloader.dataset)
@@ -40,7 +41,7 @@ def train(dataloader, model, loss_fn, optimizer, device, writer, epoch, log_freq
     return avg_loss
 
 
-def validate(dataloader, model, loss_fn, device, writer, epoch):
+def validate(dataloader, model, loss_fn, device):
     n_samples = len(dataloader.dataset)
     n_batches = len(dataloader)
     model.eval()
@@ -60,10 +61,14 @@ def validate(dataloader, model, loss_fn, device, writer, epoch):
     avg_loss = total_loss / n_batches
     acc = n_correct / n_samples * 100
     print(f"Validation set: \n Accuracy: {acc:>0.1f}%, Avg loss: {avg_loss:>8f} \n")
-    writer.add_scalar('validation loss', avg_loss, epoch)
-    writer.add_scalar('validation acc', acc, epoch)
 
     return avg_loss, acc
+
+
+def write_scalars(writer, train_loss, val_loss, val_acc, epoch):
+    writer.add_scalar('validation loss', val_loss, epoch)
+    writer.add_scalar('validation acc', val_acc, epoch)
+    writer.add_scalar('train - val loss', train_loss-val_loss, epoch)
 
 
 def main():
@@ -71,6 +76,7 @@ def main():
     # TODO: CL args
     checkpt_dir = "/home/alex/Documents/rnaclassifier/saved_models"
     checkpt = None
+    n_epochs = 6
 
     # Create datasets
 
@@ -122,16 +128,20 @@ def main():
 
     # Train
 
-    n_epochs = 6
     best_acc = 0
     for t in range(n_epochs):
         print(f"Epoch {t+1}\n-------------------------------")
-        train(train_loader, model, loss_fn, optimizer, device, writer, t)
-        val_acc = validate(valid_loader, model, loss_fn, device, writer, t)
+        train_loss = train(train_loader, model, loss_fn, optimizer, device, writer, t)
+        val_loss, val_acc = validate(valid_loader, model, loss_fn, device)
+        
+        # Update TensorBoard
+        write_scalars(writer, train_loss, val_loss, val_acc, t)
+        
+        # Save model if it has improved
         if val_acc > best_acc:
             best_acc = val_acc
             torch.save(model.state_dict(), f"{checkpt_dir}/best-model.pth")
-            print(f"Saved model at epoch {t+1}.")
+            print(f"Saved model at epoch {t+1}.\n")
 
     print("Training complete.")
 
