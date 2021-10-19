@@ -9,9 +9,10 @@ from data import SignalDataset
 
 
 def train(dataloader, model, loss_fn, optimizer, device, writer, epoch, log_freq=100):
-    total = len(dataloader.dataset)
     model.train()
-    train_loss = 0.0
+    n_samples = len(dataloader.dataset)
+    n_batches = len(dataloader)
+    total_loss = 0.0
     for batch, (X, y) in enumerate(dataloader):
 
         # Move data batch to GPU for propagation through network
@@ -20,31 +21,30 @@ def train(dataloader, model, loss_fn, optimizer, device, writer, epoch, log_freq
         # Compute prediction error
         pred = model(X)
         loss = loss_fn(pred, y)
+        total_loss += loss.item()
 
         # Backpropagation
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        train_loss += loss.item()
         # Print progress
         if batch != 0 and batch % log_freq == 0:
-            current = batch * len(X) # Step in epoch
-            avg_loss = train_loss / batch
-            print(f"loss: {avg_loss:>7f} [{current:>5d}/{total:>5d}]")
+            sample = batch * len(X)
+            global_step = epoch * n_samples + sample
+            avg_loss = total_loss / batch
+            print(f"loss: {avg_loss:>7f} [{sample:>5d}/{n_samples:>5d}]")
+            writer.add_scalar('training loss', avg_loss, global_step)
 
-            step = epoch * len(dataloader) + batch # Step in total training run
-            writer.add_scalar('training loss', avg_loss, step)
-
-    # Train loss = total loss / number of batches
-    return train_loss
+    avg_loss = total_loss / n_batches
+    return avg_loss
 
 
 def validate(dataloader, model, loss_fn, device, writer, epoch):
-    total = len(dataloader.dataset)
+    n_samples = len(dataloader.dataset)
     n_batches = len(dataloader)
     model.eval()
-    val_loss, correct = 0, 0
+    total_loss, n_correct = 0, 0
     with torch.no_grad():
         for X, y in dataloader:
 
@@ -53,17 +53,17 @@ def validate(dataloader, model, loss_fn, device, writer, epoch):
             
             # Compute prediction error
             pred = model(X)
-            val_loss += loss_fn(pred, y).item()
-            correct += (pred.argmax(1) == y).type(torch.float).sum().item()
+            total_loss += loss_fn(pred, y).item()
+            n_correct += (pred.argmax(1) == y).type(torch.float).sum().item()
     
     # Compute average loss and accuracy
-    val_loss /= n_batches
-    correct /= total
-    print(f"Validation error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {val_loss:>8f} \n")
-    writer.add_scalar('validation loss', val_loss, epoch)
-    writer.add_scalar('validation acc', 100*correct, epoch)
+    avg_loss = total_loss / n_batches
+    acc = n_correct / n_samples * 100
+    print(f"Validation set: \n Accuracy: {acc:>0.1f}%, Avg loss: {avg_loss:>8f} \n")
+    writer.add_scalar('validation loss', avg_loss, epoch)
+    writer.add_scalar('validation acc', acc, epoch)
 
-    return correct
+    return avg_loss, acc
 
 
 def main():
