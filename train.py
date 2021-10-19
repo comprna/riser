@@ -56,19 +56,19 @@ def main():
     # Create datasets
 
     print("Creating datasets...")
-    data_dir = "/g/data/xc17/Eyras/alex/working/rna-classifier/5_MakeDataset"
-    train_cfile = f"{data_dir}/train_coding.pt"
-    train_nfile = f"{data_dir}/train_noncoding.pt"
-    valid_cfile = f"{data_dir}/val_coding.pt"
-    valid_nfile = f"{data_dir}/val_noncoding.pt"
-    batch_size = 1000
+    # data_dir = "/g/data/xc17/Eyras/alex/working/rna-classifier/5_MakeDataset"
+    # train_cfile = f"{data_dir}/train_coding.pt"
+    # train_nfile = f"{data_dir}/train_noncoding.pt"
+    # valid_cfile = f"{data_dir}/val_coding.pt"
+    # valid_nfile = f"{data_dir}/val_noncoding.pt"
+    # batch_size = 1000
 
-    # data_dir = '/home/alex/Documents/rnaclassifier'
-    # train_cfile = f"{data_dir}/test_coding.pt"
-    # train_nfile = f"{data_dir}/test_noncoding.pt"
-    # valid_cfile = f"{data_dir}/test_coding.pt"
-    # valid_nfile = f"{data_dir}/test_noncoding.pt"
-    # batch_size = 64
+    data_dir = '/home/alex/Documents/rnaclassifier'
+    train_cfile = f"{data_dir}/test_coding.pt"
+    train_nfile = f"{data_dir}/test_noncoding.pt"
+    valid_cfile = f"{data_dir}/test_coding.pt"
+    valid_nfile = f"{data_dir}/test_noncoding.pt"
+    batch_size = 64
 
     train_data = SignalDataset(train_cfile, train_nfile)
     valid_data = SignalDataset(valid_cfile, valid_nfile)
@@ -102,6 +102,7 @@ def main():
         print(f"Epoch {t+1}\n-------------------------------")
         train(train_loader, model, loss_fn, optimizer, device)
         validate(valid_loader, model, loss_fn, device)
+        torch.save(model.state_dict(), f"model-{t}.pth")
     print("Training complete.")
 
 
