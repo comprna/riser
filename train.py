@@ -1,9 +1,11 @@
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
+from torchinfo import summary
 
 from resnet import ResNet, BottleneckBlock
 from data import SignalDataset
+
 
 def train(dataloader, model, loss_fn, optimizer, device):
     total = len(dataloader.dataset)
@@ -96,7 +98,7 @@ def main():
     model = ResNet(BottleneckBlock, [2,2,2,2]).to(device)
     if checkpt is not None:
         model.load_state_dict(torch.load(f"{checkpt_dir}/{checkpt}"))
-    print(f"Model: \n{model}")
+    summary(model)
 
     # Define loss function & optimiser
 
