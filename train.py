@@ -55,6 +55,10 @@ def validate(dataloader, model, loss_fn, device):
 
 def main():
 
+    # TODO: CL args
+    checkpt_dir = "/home/alex/Documents/rnaclassifier/saved_models"
+    checkpt = None
+
     # Create datasets
 
     print("Creating datasets...")
@@ -90,6 +94,8 @@ def main():
     # Define model
 
     model = ResNet(BottleneckBlock, [2,2,2,2]).to(device)
+    if checkpt is not None:
+        model.load_state_dict(torch.load(f"{checkpt_dir}/{checkpt}"))
     print(f"Model: \n{model}")
 
     # Define loss function & optimiser
@@ -107,7 +113,7 @@ def main():
         val_acc = validate(valid_loader, model, loss_fn, device)
         if val_acc > best_acc:
             best_acc = val_acc
-            torch.save(model.state_dict(), f"model-{t+1}.pth")
+            torch.save(model.state_dict(), f"{checkpt_dir}/best-model.pth")
 
     print("Training complete.")
 
