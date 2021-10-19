@@ -1,13 +1,14 @@
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from torchinfo import summary
 
 from resnet import ResNet, BottleneckBlock
 from data import SignalDataset
 
 
-def train(dataloader, model, loss_fn, optimizer, device):
+def train(dataloader, model, loss_fn, optimizer, device, writer, epoch):
     total = len(dataloader.dataset)
     model.train()
     for batch, (X, y) in enumerate(dataloader):
@@ -26,12 +27,14 @@ def train(dataloader, model, loss_fn, optimizer, device):
 
         # Print progress
         if batch % 100 == 0:
-            loss = loss.item()
-            current = batch * len(X)
+            loss = loss.item() # Loss for the current batch
+            current = batch * len(X) # Step in current batch
             print(f"loss: {loss:>7f} [{current:>5d}/{total:>5d}]")
+            step = epoch * len(dataloader) + batch # Step in total training run
+            writer.add_scalar('training loss', loss, step)
 
 
-def validate(dataloader, model, loss_fn, device):
+def validate(dataloader, model, loss_fn, device, writer, epoch):
     total = len(dataloader.dataset)
     n_batches = len(dataloader)
     model.eval()
@@ -51,6 +54,8 @@ def validate(dataloader, model, loss_fn, device):
     val_loss /= n_batches
     correct /= total
     print(f"Validation error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {val_loss:>8f} \n")
+    writer.add_scalar('validation loss', val_loss, epoch)
+    writer.add_scalar('validation acc', 100*correct, epoch)
 
     return correct
 
@@ -105,14 +110,18 @@ def main():
     loss_fn = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
+    # Set up TensorBoard
+
+    writer = SummaryWriter() # TODO: runs/experiment_id
+
     # Train
 
     n_epochs = 6
     best_acc = 0
     for t in range(n_epochs):
         print(f"Epoch {t+1}\n-------------------------------")
-        train(train_loader, model, loss_fn, optimizer, device)
-        val_acc = validate(valid_loader, model, loss_fn, device)
+        train(train_loader, model, loss_fn, optimizer, device, writer, t)
+        val_acc = validate(valid_loader, model, loss_fn, device, writer, t)
         if val_acc > best_acc:
             best_acc = val_acc
             torch.save(model.state_dict(), f"{checkpt_dir}/best-model.pth")
