@@ -108,6 +108,8 @@ class ResNet(nn.Module):
         x = self.avgpool(x)
         x = self.decoder(x)
 
+        return x
+
 
 if __name__ == "__main__":
     model = ResNet(BottleneckBlock, [2,2,2,2])
