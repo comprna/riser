@@ -74,26 +74,27 @@ def write_scalars(writer, train_loss, val_loss, val_acc, epoch):
 def main():
 
     # TODO: CL args
-    checkpt_dir = "/home/alex/Documents/rnaclassifier/saved_models"
     checkpt = None
-    n_epochs = 6
+    n_epochs = 100
 
     # Create datasets
 
     print("Creating datasets...")
-    # data_dir = "/g/data/xc17/Eyras/alex/working/rna-classifier/5_MakeDataset"
-    # train_cfile = f"{data_dir}/train_coding.pt"
-    # train_nfile = f"{data_dir}/train_noncoding.pt"
-    # valid_cfile = f"{data_dir}/val_coding.pt"
-    # valid_nfile = f"{data_dir}/val_noncoding.pt"
-    # batch_size = 1000
+    checkpt_dir = "/g/data/xc17/Eyras/alex/working/rna-classifier/experiments/train-1"
+    data_dir = "/g/data/xc17/Eyras/alex/working/rna-classifier/5_MakeDataset"
+    train_cfile = f"{data_dir}/train_coding.pt"
+    train_nfile = f"{data_dir}/train_noncoding.pt"
+    valid_cfile = f"{data_dir}/val_coding.pt"
+    valid_nfile = f"{data_dir}/val_noncoding.pt"
+    batch_size = 1000
 
-    data_dir = '/home/alex/Documents/rnaclassifier'
-    train_cfile = f"{data_dir}/test_coding.pt"
-    train_nfile = f"{data_dir}/test_noncoding.pt"
-    valid_cfile = f"{data_dir}/test_coding.pt"
-    valid_nfile = f"{data_dir}/test_noncoding.pt"
-    batch_size = 64
+    # checkpt_dir = "/home/alex/Documents/rnaclassifier/saved_models"
+    # data_dir = '/home/alex/Documents/rnaclassifier'
+    # train_cfile = f"{data_dir}/test_coding.pt"
+    # train_nfile = f"{data_dir}/test_noncoding.pt"
+    # valid_cfile = f"{data_dir}/test_coding.pt"
+    # valid_nfile = f"{data_dir}/test_noncoding.pt"
+    # batch_size = 64
 
     train_data = SignalDataset(train_cfile, train_nfile)
     valid_data = SignalDataset(valid_cfile, valid_nfile)
