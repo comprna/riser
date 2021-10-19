@@ -11,7 +11,7 @@ from data import SignalDataset
 def train(dataloader, model, loss_fn, optimizer, device, writer, epoch, log_freq=100):
     total = len(dataloader.dataset)
     model.train()
-    running_loss = 0.0
+    train_loss = 0.0
     for batch, (X, y) in enumerate(dataloader):
 
         # Move data batch to GPU for propagation through network
@@ -26,17 +26,18 @@ def train(dataloader, model, loss_fn, optimizer, device, writer, epoch, log_freq
         loss.backward()
         optimizer.step()
 
-        running_loss += loss.item()
+        train_loss += loss.item()
         # Print progress
         if batch != 0 and batch % log_freq == 0:
-            current = batch * len(X) # Step in current batch
-            avg_loss = running_loss / log_freq
+            current = batch * len(X) # Step in epoch
+            avg_loss = train_loss / batch
             print(f"loss: {avg_loss:>7f} [{current:>5d}/{total:>5d}]")
 
             step = epoch * len(dataloader) + batch # Step in total training run
             writer.add_scalar('training loss', avg_loss, step)
-            running_loss = 0.0
 
+    # Train loss = total loss / number of batches
+    return train_loss
 
 
 def validate(dataloader, model, loss_fn, device, writer, epoch):
