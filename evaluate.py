@@ -1,3 +1,6 @@
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import confusion_matrix
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
@@ -8,11 +11,11 @@ from resnet import ResNet, BottleneckBlock
 from data import SignalDataset
 
 
-def count_correct(preds, targets):
-    assert len(preds) == len(targets)
+def count_correct(y_true, y_pred):
+    assert len(y_pred) == len(y_true)
     n_correct = 0
-    for i, pred in enumerate(preds):
-        if pred == targets[i]:
+    for i, pred in enumerate(y_pred):
+        if pred == y_true[i]:
             n_correct += 1
     return n_correct
 
@@ -55,8 +58,8 @@ def main():
     # Test
 
     model.eval()
-    all_preds = torch.tensor([]).to(device)
-    all_targets = torch.tensor([]).to(device)
+    all_y_pred = torch.tensor([]).to(device)
+    all_y_true = torch.tensor([]).to(device)
     with torch.no_grad():
         for X, y in test_loader:
 
@@ -64,22 +67,39 @@ def main():
             X, y = X.to(device), y.to(device)
 
             # Predict class probabilities
-            preds = model(X)
+            y_pred = model(X)
 
             # Convert to class labels
-            preds = torch.argmax(preds, dim=1)
+            y_pred = torch.argmax(y_pred, dim=1)
 
             # Store predictions
-            all_preds = torch.cat((all_preds, preds))
-            all_targets = torch.cat((all_targets, y))
+            all_y_pred = torch.cat((all_y_pred, y_pred))
+            all_y_true = torch.cat((all_y_true, y))
 
             # TODO: Is it faster to do all this on CPU with lists???
 
     # Compute accuracy
 
-    n_correct = count_correct(all_preds, all_targets)
-    acc = n_correct / len(all_targets) * 100
-    print(f"Test accuracy: {acc:>0.1f}%")
+    n_correct = count_correct(all_y_true, all_y_pred)
+    acc = n_correct / len(all_y_true) * 100
+    print(f"Test accuracy: {acc:>0.1f}%\n")
+
+    # Compute confusion matrix
+
+    all_y_true = all_y_true.cpu().numpy()
+    all_y_pred = all_y_pred.cpu().numpy()
+    matrix = confusion_matrix(all_y_true, all_y_pred)
+    print(f"Confusion matrix:\n------------------\n{matrix}")
+
+    # Visualise confusion matrix
+
+    categories = ['coding', 'non-coding'] # 0: coding, 1: non-coding
+    sns.heatmap(matrix, annot=True, fmt='', cmap='Blues', 
+                xticklabels=categories, yticklabels=categories)
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    plt.show()
+
 
 
 
