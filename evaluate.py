@@ -35,26 +35,23 @@ def callback():
 
     # Get device for training
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    device = torch.device(device)
-    print(f"Using {device} device")
+    # device = "cuda" if torch.cuda.is_available() else "cpu"
+    # device = torch.device(device)
+    # print(f"Using {device} device")
 
     # Define model
 
-    model = ResNet(BottleneckBlock, [2,2,2,2]).to(device)
+    model = ResNet(BottleneckBlock, [2,2,2,2])
     model.load_state_dict(torch.load(f"{checkpt_dir}/{checkpt}"))
     summary(model)
 
     # Test
 
     model.eval()
-    all_y_pred = torch.tensor([]).to(device)
-    all_y_true = torch.tensor([]).to(device)
+    all_y_pred = torch.tensor([])
+    all_y_true = torch.tensor([])
     with torch.no_grad():
         for X, y in test_loader:
-
-            # Move batch to GPU
-            X, y = X.to(device), y.to(device)
 
             # Predict class probabilities
             y_pred = model(X)
@@ -79,8 +76,8 @@ def callback():
 
     # Compute confusion matrix
 
-    all_y_true = all_y_true.cpu().numpy()
-    all_y_pred = all_y_pred.cpu().numpy()
+    all_y_true = all_y_true.numpy()
+    all_y_pred = all_y_pred.numpy()
     matrix = confusion_matrix(all_y_true, all_y_pred)
     print(f"Confusion matrix:\n------------------\n{matrix}")
 
