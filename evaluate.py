@@ -8,23 +8,13 @@ from resnet import ResNet, BottleneckBlock
 from data import SignalDataset
 
 
-def test(dataloader, model, device):
-    n_samples = len(dataloader.dataset)
-    model.eval()
+def count_correct(preds, targets):
+    assert len(preds) == len(targets)
     n_correct = 0
-    with torch.no_grad():
-        for X, y in dataloader:
-
-            # Move batch to GPU
-            X, y = X.to(device), y.to(device)
-            
-            # Compute prediction error
-            pred = model(X)
-            n_correct += (pred.argmax(1) == y).type(torch.float).sum().item()
-    
-    # Compute accuracy
-    acc = n_correct / n_samples * 100
-    return acc
+    for i, pred in enumerate(preds):
+        if pred == targets[i]:
+            n_correct += 1
+    return n_correct
 
 
 def main():
@@ -64,7 +54,31 @@ def main():
 
     # Test
 
-    acc = test(test_loader, model, device)
+    model.eval()
+    all_preds = torch.tensor([]).to(device)
+    all_targets = torch.tensor([]).to(device)
+    with torch.no_grad():
+        for X, y in test_loader:
+
+            # Move batch to GPU
+            X, y = X.to(device), y.to(device)
+
+            # Predict class probabilities
+            preds = model(X)
+
+            # Convert to class labels
+            preds = torch.argmax(preds, dim=1)
+
+            # Store predictions
+            all_preds = torch.cat((all_preds, preds))
+            all_targets = torch.cat((all_targets, y))
+
+            # TODO: Is it faster to do all this on CPU with lists???
+
+    # Compute accuracy
+
+    n_correct = count_correct(all_preds, all_targets)
+    acc = n_correct / len(all_targets) * 100
     print(f"Test accuracy: {acc:>0.1f}%")
 
 
