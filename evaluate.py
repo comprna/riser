@@ -2,9 +2,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
 import torch
-from torch import nn
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
 from torchinfo import summary
 
 from resnet import ResNet, BottleneckBlock
