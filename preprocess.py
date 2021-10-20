@@ -56,9 +56,9 @@ def main():
     f5_dir = sys.argv[2]
     name = f5_dir.split("/")[-1]
     if name.split("_")[-1] == "coding":
-        label = 0
-    else:
         label = 1
+    else:
+        label = 0
 
     # Store processed data
 
