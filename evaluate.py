@@ -35,23 +35,26 @@ def callback():
 
     # Get device for training
 
-    # device = "cuda" if torch.cuda.is_available() else "cpu"
-    # device = torch.device(device)
-    # print(f"Using {device} device")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = torch.device(device)
+    print(f"Using {device} device")
 
     # Define model
 
-    model = ResNet(BottleneckBlock, [2,2,2,2])
+    model = ResNet(BottleneckBlock, [2,2,2,2]).to(device)
     model.load_state_dict(torch.load(f"{checkpt_dir}/{checkpt}"))
     summary(model)
 
     # Test
 
     model.eval()
-    all_y_pred = torch.tensor([])
-    all_y_true = torch.tensor([])
+    all_y_pred = []
+    all_y_true = []
     with torch.no_grad():
         for X, y in test_loader:
+
+            # Move batch to GPU
+            X = X.to(device)
 
             # Predict class probabilities
             y_pred = model(X)
@@ -59,11 +62,13 @@ def callback():
             # Convert to class labels
             y_pred = torch.argmax(y_pred, dim=1)
 
-            # Store predictions
-            all_y_pred = torch.cat((all_y_pred, y_pred))
-            all_y_true = torch.cat((all_y_true, y))
+            # Return to CPU for remaining operations
+            y_pred = y_pred.cpu().numpy().tolist()
+            y = y.numpy().tolist()
 
-            # TODO: Is it faster to do all this on CPU with lists???
+            # Store predictions
+            all_y_pred.extend(y_pred)
+            all_y_true.extend(y)
 
     # Compute accuracy
 
@@ -76,8 +81,6 @@ def callback():
 
     # Compute confusion matrix
 
-    all_y_true = all_y_true.numpy()
-    all_y_pred = all_y_pred.numpy()
     matrix = confusion_matrix(all_y_true, all_y_pred)
     print(f"Confusion matrix:\n------------------\n{matrix}")
 
