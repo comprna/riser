@@ -111,9 +111,12 @@ def main():
     plt.plot(fpr, tpr, marker='.')
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.legend()
     plt.show()
 
+    # Compute ROC AUC
+
+    auc = roc_auc_score(all_y_true, coding_probs)
+    print(f"AUC: {auc:.3f}")
 
 
 
