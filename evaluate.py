@@ -1,4 +1,4 @@
-import cProfile
+import sys
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -22,24 +22,22 @@ def count_correct(y_true, y_pred):
 
 def main():
 
-    # TODO: CL args
-    checkpt = "best-model.pth"
+    # CL args
+
+    model_file = sys.argv[1]
+    data_dir = sys.argv[2]
+    batch_size = 1000
+
+    # Determine model ID
+
+    model_id = model_file.split('.pth')[0].split('/')[-1]
 
     # Create test dataloader
 
-    # print("Creating datasets...")
-    # checkpt_dir = "/g/data/xc17/Eyras/alex/working/rna-classifier/experiments/train-1"
-    # data_dir = "/g/data/xc17/Eyras/alex/working/rna-classifier/5_MakeDataset"
-    # test_cfile = f"{data_dir}/val_coding.pt"
-    # test_nfile = f"{data_dir}/val_noncoding.pt"
-    # batch_size = 1000
+    print("Creating test dataset...")
 
-    checkpt_dir = "/home/alex/Documents/rnaclassifier/saved_models"
-    data_dir = '/home/alex/Documents/rnaclassifier/local_data'
-    test_cfile = f"{data_dir}/test_coding.pt"
-    test_nfile = f"{data_dir}/test_noncoding.pt"
-    batch_size = 64
-
+    test_cfile = f"{data_dir}/val_coding.pt"
+    test_nfile = f"{data_dir}/val_noncoding.pt"
     test_data = SignalDataset(test_cfile, test_nfile)
     test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
 
@@ -52,12 +50,8 @@ def main():
     # Define model
 
     model = ResNet(BottleneckBlock, [2,2,2,2]).to(device)
-    model.load_state_dict(torch.load(f"{checkpt_dir}/{checkpt}"))
+    model.load_state_dict(torch.load(model_file))
     summary(model)
-
-    # Determine model ID
-
-    model_id = checkpt.split('.pth')[0]
 
     # Test
 
