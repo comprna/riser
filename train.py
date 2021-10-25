@@ -149,7 +149,7 @@ def main():
             best_epoch = t
             torch.save(model.state_dict(), f"{checkpt_dir}/{exp_id}_best_model.pth")
 
-    print(f"Best model saved at epoch {best_epoch}.")
+    print(f"Best model with validation accuracy {best_acc} saved at epoch {best_epoch}.")
 
     print("Training complete.")
 
