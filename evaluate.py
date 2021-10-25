@@ -55,6 +55,10 @@ def main():
     model.load_state_dict(torch.load(f"{checkpt_dir}/{checkpt}"))
     summary(model)
 
+    # Determine model ID
+
+    model_id = checkpt.split('.pth')[0]
+
     # Test
 
     model.eval()
@@ -102,22 +106,24 @@ def main():
                 xticklabels=categories, yticklabels=categories)
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
-    plt.show()
+    plt.title(f"{model_id} confusion matrix")
+    plt.savefig(f"{model_id}_conf_matrix.png")
+    plt.clf()
+
+    # Compute ROC AUC
+
+    coding_probs = all_y_pred_probs[:, 1]
+    auc = roc_auc_score(all_y_true, coding_probs)
+    print(f"AUC: {auc:.3f}")
 
     # Plot ROC curve
 
-    coding_probs = all_y_pred_probs[:, 1]
     fpr, tpr, _ = roc_curve(all_y_true, coding_probs)
     plt.plot(fpr, tpr, marker='.')
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.show()
-
-    # Compute ROC AUC
-
-    auc = roc_auc_score(all_y_true, coding_probs)
-    print(f"AUC: {auc:.3f}")
-
+    plt.title(f"{model_id} ROC curve, AUC = {auc:.3f}")
+    plt.savefig(f"{model_id}_roc_curve.png")
 
 
 if __name__ == "__main__":
