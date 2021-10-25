@@ -111,6 +111,10 @@ def main():
     device = torch.device(device)
     print(f"Using {device} device")
 
+    # Determine experiment ID
+
+    exp_id = checkpt_dir.split('/')[-1]
+
     # Define model
 
     model = ResNet(BottleneckBlock, [2,2,2,2]).to(device)
@@ -130,6 +134,7 @@ def main():
     # Train
 
     best_acc = 0
+    best_epoch = 0
     for t in range(n_epochs):
         print(f"Epoch {t+1}\n-------------------------------")
         train_loss = train(train_loader, model, loss_fn, optimizer, device, writer, t)
@@ -141,8 +146,10 @@ def main():
         # Save model if it has improved
         if val_acc > best_acc:
             best_acc = val_acc
-            torch.save(model.state_dict(), f"{checkpt_dir}/best-model.pth")
-            print(f"Saved model at epoch {t+1}.\n")
+            best_epoch = t
+            torch.save(model.state_dict(), f"{checkpt_dir}/{exp_id}_best_model.pth")
+
+    print(f"Best model saved at epoch {best_epoch}.")
 
     print("Training complete.")
 
