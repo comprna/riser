@@ -32,7 +32,7 @@ def train(dataloader, model, loss_fn, optimizer, device, writer, epoch, log_freq
         optimizer.step()
 
         # Print progress
-        if batch != 0 and batch % log_freq == 0:
+        if batch % log_freq == 0:
             sample = batch * len(X)
             global_step = epoch * n_samples + sample
             avg_loss = total_loss / batch
