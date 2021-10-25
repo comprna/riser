@@ -2,7 +2,7 @@ import cProfile
 
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score
 import torch
 from torch.utils.data import DataLoader
 from torchinfo import summary
@@ -43,7 +43,7 @@ def main():
     test_data = SignalDataset(test_cfile, test_nfile)
     test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
 
-    # Get device for training
+    # Get device for model evaluation
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     device = torch.device(device)
@@ -58,8 +58,9 @@ def main():
     # Test
 
     model.eval()
-    all_y_pred = []
-    all_y_true = []
+    all_y_true = torch.tensor([])
+    all_y_pred = torch.tensor([], device=device)
+    all_y_pred_probs = torch.tensor([], device=device)
     with torch.no_grad():
         for X, y in test_loader:
 
@@ -67,18 +68,21 @@ def main():
             X = X.to(device)
 
             # Predict class probabilities
-            y_pred = model(X)
+            y_pred_probs = model(X)
 
             # Convert to class labels
-            y_pred = torch.argmax(y_pred, dim=1)
-
-            # Return to CPU for remaining operations
-            y_pred = y_pred.cpu().numpy().tolist()
-            y = y.numpy().tolist()
+            y_pred = torch.argmax(y_pred_probs, dim=1)
 
             # Store predictions
-            all_y_pred.extend(y_pred)
-            all_y_true.extend(y)
+            all_y_true = torch.cat((all_y_true, y))
+            all_y_pred = torch.cat((all_y_pred, y_pred))
+            all_y_pred_probs = torch.cat((all_y_pred_probs, y_pred_probs))
+
+    # Convert tensors to numpy arrays for downstream metrics
+
+    all_y_true = all_y_true.numpy()
+    all_y_pred = all_y_pred.cpu().numpy()
+    all_y_pred_probs = all_y_pred_probs.cpu().numpy()
 
     # Compute accuracy
 
@@ -100,6 +104,15 @@ def main():
     plt.xlabel('Predicted label')
     plt.show()
 
+    # Plot ROC curve
+
+    coding_probs = all_y_pred_probs[:, 1]
+    fpr, tpr, _ = roc_curve(all_y_true, coding_probs)
+    plt.plot(fpr, tpr, marker='.')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.legend()
+    plt.show()
 
 
 
