@@ -101,7 +101,7 @@ def main():
 
     # Visualise confusion matrix
 
-    categories = ['coding', 'non-coding'] # 0: coding, 1: non-coding
+    categories = ['non-coding', 'coding'] # 0: non-coding, 1: coding
     sns.heatmap(matrix, annot=True, fmt='', cmap='Blues', 
                 xticklabels=categories, yticklabels=categories)
     plt.ylabel('True label')
