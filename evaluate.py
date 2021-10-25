@@ -26,7 +26,7 @@ def main():
 
     model_file = sys.argv[1]
     data_dir = sys.argv[2]
-    batch_size = 1000
+    batch_size = sys.argv[3]
 
     # Determine model ID
 
