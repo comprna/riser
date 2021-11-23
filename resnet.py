@@ -14,8 +14,7 @@ def conv_block(in_chan, out_chan, kernel_size, last=False, **kwargs):
     return nn.Sequential(*layers)
 
 
-# TODO: ResNet BasicBlock
-class BasicBlock(nn.Module):
+class ResidualBlock(nn.Module):
     def __init__(self, in_chan, out_chan, stride=1):
         super().__init__()
 
@@ -24,6 +23,31 @@ class BasicBlock(nn.Module):
         self.out_chan = out_chan
         self.stride = stride
         self.activate = nn.ReLU(inplace=True)
+
+        # Convolutional blocks
+        self.blocks = nn.Identity()
+
+        # Match dimensions of input and block output for summation
+        self.shortcut = nn.Sequential(
+            nn.Conv1d(in_chan, out_chan, kernel_size=1, stride=stride, bias=False),
+            nn.BatchNorm1d(out_chan)
+        )
+
+    def forward(self, x):
+        residual = self.shortcut(x) if self.should_apply_shortcut else x
+        out = self.blocks(x)
+        out += residual
+        out = self.activate(out)
+        return out
+
+    @property
+    def should_apply_shortcut(self):
+        return self.in_chan != self.out_chan or self.stride != 1
+
+
+class BasicBlock(ResidualBlock):
+    def __init__(self, in_chan, out_chan, stride=1):
+        super().__init__(in_chan, out_chan, stride)
 
         # Convolutional blocks
         self.blocks = nn.Sequential(
@@ -31,59 +55,18 @@ class BasicBlock(nn.Module):
             conv_block(out_chan, out_chan, 3, last=True)
         )
 
-        # Match dimensions of input and block output for summation
-        self.shortcut = nn.Sequential(
-            nn.Conv1d(in_chan, out_chan, kernel_size=1, stride=stride, bias=False),
-            nn.BatchNorm1d(out_chan)
-        )
 
-    def forward(self, x):
-        residual = self.shortcut(x) if self.should_apply_shortcut else x
-        out = self.blocks(x)
-        out += residual
-        out = self.activate(out)
-        return out
-
-
-    @property
-    def should_apply_shortcut(self):
-        return self.in_chan != self.out_chan or self.stride != 1
-
-
-class BottleneckBlock(nn.Module):
+class BottleneckBlock(ResidualBlock):
     expansion = 1.5 # TODO: Delete this param, or use it rather than hardcoding # channels per layer
     def __init__(self, in_chan, out_chan, stride=1):
-        super().__init__()
+        super().__init__(in_chan, out_chan, stride)
 
-        # Parameters
-        self.in_chan = in_chan
-        self.out_chan = out_chan
-        self.stride = stride
-        self.activate = nn.ReLU(inplace=True)
-    
         # Convolutional blocks
         self.blocks = nn.Sequential(
             conv_block(in_chan, in_chan, 1, bias=False),
             conv_block(in_chan, in_chan, 3, stride=stride, padding=1, bias=False), # Downsample here as per line 107 https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
             conv_block(in_chan, out_chan, 1, last=True, bias=False)
         )
-
-        # Match dimensions of input and block output for summation
-        self.shortcut = nn.Sequential(
-            nn.Conv1d(in_chan, out_chan, kernel_size=1, stride=stride, bias=False),
-            nn.BatchNorm1d(out_chan)
-        )
-
-    def forward(self, x):
-        residual = self.shortcut(x) if self.should_apply_shortcut else x
-        out = self.blocks(x)
-        out += residual
-        out = self.activate(out)
-        return out
-
-    @property
-    def should_apply_shortcut(self):
-        return self.in_chan != self.out_chan or self.stride != 1
 
 
 class ResNet(nn.Module):
