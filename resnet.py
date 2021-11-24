@@ -81,11 +81,15 @@ class ResNet(nn.Module):
             nn.MaxPool1d(2, padding=1, stride=2)
         )
 
+        # Residual layers
         block = BottleneckBlock if config.block == 'bottleneck' else BasicBlock
-        self.layer1 = self._make_layer(block, config.layer_channels[0], config.layer_blocks[0])
-        self.layer2 = self._make_layer(block, config.layer_channels[1], config.layer_blocks[1], stride=2)
-        self.layer3 = self._make_layer(block, config.layer_channels[2], config.layer_blocks[2], stride=2)
-        self.layer4 = self._make_layer(block, config.layer_channels[3], config.layer_blocks[3], stride=2)
+        layers = []
+        for i in range(c.n_layers):
+            if i == 0:
+                layers.append(self._make_layer(block, config.layer_channels[i], config.layer_blocks[i]))
+            else:
+                layers.append(self._make_layer(block, config.layer_channels[i], config.layer_blocks[i], stride=2))
+        self.layers = nn.ModuleList(layers)
 
         # Classifier
         self.avgpool = nn.AdaptiveAvgPool1d(1)
@@ -120,10 +124,8 @@ class ResNet(nn.Module):
         x = x.unsqueeze(1)
         x = self.conv_block(x)
 
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
+        for layer in self.layers:
+            x = layer(x)
 
         x = self.avgpool(x)
         x = self.decoder(x)
@@ -134,10 +136,8 @@ class ResNet(nn.Module):
 if __name__ == "__main__":
     config = get_config('config.yaml')
 
-    # TODO:
-    # (1) Verify config --> size of layer_blocks = size of layer_channels
-    # (2) parameterise # layers
-    # (3) separate object for feature extractor config
+    assert config.n_layers == len(config.layer_blocks)
+    assert config.n_layers == len(config.layer_channels)
 
     model = ResNet(config)
     summary(model, input_size=(64, 9036))
