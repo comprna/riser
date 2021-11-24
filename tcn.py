@@ -1,8 +1,7 @@
-import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.nn.utils import weight_norm
-
-### Adapted from https://github.com/locuslab/TCN/blob/master/TCN/tcn.py
+from torchinfo import summary
 
 
 class Chomp1d(nn.Module):
@@ -61,5 +60,19 @@ class TemporalConvNet(nn.Module):
 
         self.network = nn.Sequential(*layers)
 
+        self.linear = nn.Linear(num_channels[-1], 2) # TODO: Parameterise output_size
+
     def forward(self, x):
-        return self.network(x)
+        x = self.network(x)
+        x = self.linear(x[:,:,-1]) # TODO: Why the third dimension??
+        x = F.log_softmax(x, dim=1) # TODO: What is this for?
+        return x
+
+
+if __name__ == "__main__":
+    input_channels = 1
+    n_hidden_units_per_layer = 25
+    n_levels = 4
+    channel_sizes = [n_hidden_units_per_layer] * n_levels
+    model = TemporalConvNet(input_channels, channel_sizes)
+    summary(model, input_size=(64, 1, 9036)) # (batch_size, dimension, seq_length)
