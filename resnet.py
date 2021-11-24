@@ -1,4 +1,5 @@
-import torch
+import yaml
+from attrdict import AttrDict
 from torch import nn
 from torchinfo import summary
 
@@ -49,7 +50,6 @@ class BasicBlock(ResidualBlock):
     def __init__(self, in_chan, out_chan, stride=1):
         super().__init__(in_chan, out_chan, stride)
 
-        # Convolutional blocks
         self.blocks = nn.Sequential(
             conv_block(in_chan, out_chan, 3, stride=stride, bias=False),
             conv_block(out_chan, out_chan, 3, last=True)
@@ -57,11 +57,9 @@ class BasicBlock(ResidualBlock):
 
 
 class BottleneckBlock(ResidualBlock):
-    expansion = 1.5 # TODO: Delete this param, or use it rather than hardcoding # channels per layer
     def __init__(self, in_chan, out_chan, stride=1):
         super().__init__(in_chan, out_chan, stride)
 
-        # Convolutional blocks
         self.blocks = nn.Sequential(
             conv_block(in_chan, in_chan, 1, bias=False),
             conv_block(in_chan, in_chan, 3, stride=stride, padding=1, bias=False), # Downsample here as per line 107 https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
@@ -70,29 +68,28 @@ class BottleneckBlock(ResidualBlock):
 
 
 class ResNet(nn.Module):
-    def __init__(self, block, layer_sizes):
+    def __init__(self, config):
         super(ResNet, self).__init__()
-        self.in_chan = 20
+        self.in_chan = config.layer_channels[0]
 
-        # TODO: Parameterise feature extraction layer - kernel size, padding, stride
         self.conv_block = nn.Sequential(
-            nn.Conv1d(1, self.in_chan, 19, padding=5, stride=3),
+            nn.Conv1d(1, self.in_chan, config.kernel, padding=config.padding, stride=config.stride),
             nn.BatchNorm1d(self.in_chan),
             nn.ReLU(inplace=True),
             nn.MaxPool1d(2, padding=1, stride=2)
         )
 
-        # TODO: Parameterise num layers & channels
-        self.layer1 = self._make_layer(block, 20, layer_sizes[0])
-        self.layer2 = self._make_layer(block, 30, layer_sizes[1], stride=2)
-        self.layer3 = self._make_layer(block, 45, layer_sizes[2], stride=2)
-        self.layer4 = self._make_layer(block, 67, layer_sizes[3], stride=2)
+        block = BottleneckBlock if config.block == 'bottleneck' else BasicBlock
+        self.layer1 = self._make_layer(block, config.layer_channels[0], config.layer_blocks[0])
+        self.layer2 = self._make_layer(block, config.layer_channels[1], config.layer_blocks[1], stride=2)
+        self.layer3 = self._make_layer(block, config.layer_channels[2], config.layer_blocks[2], stride=2)
+        self.layer4 = self._make_layer(block, config.layer_channels[3], config.layer_blocks[3], stride=2)
 
         self.avgpool = nn.AdaptiveAvgPool1d(1)
 
         self.decoder = nn.Sequential(
             nn.Flatten(1),
-            nn.Linear(67, 2)
+            nn.Linear(config.layer_channels[-1], 2)
         )
 
         # Initialise weights and biases
@@ -132,6 +129,18 @@ class ResNet(nn.Module):
         return x
 
 
+def get_config(filepath):
+    with open(filepath) as config_file:
+        return AttrDict(yaml.load(config_file, Loader=yaml.Loader))
+
+
 if __name__ == "__main__":
-    model = ResNet(BottleneckBlock, [2,2,2,2])
+    config = get_config('config.yaml')
+
+    # TODO:
+    # (1) Verify config --> size of layer_blocks = size of layer_channels
+    # (2) parameterise # layers
+    # (3) separate object for feature extractor config
+
+    model = ResNet(config)
     summary(model, input_size=(64, 9036))
