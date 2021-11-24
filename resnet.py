@@ -3,6 +3,7 @@ from attrdict import AttrDict
 from torch import nn
 from torchinfo import summary
 
+from utilities import get_config
 
 def conv_block(in_chan, out_chan, kernel_size, last=False, **kwargs):
     layers = [
@@ -68,12 +69,13 @@ class BottleneckBlock(ResidualBlock):
 
 
 class ResNet(nn.Module):
-    def __init__(self, config):
+    def __init__(self, c):
         super(ResNet, self).__init__()
-        self.in_chan = config.layer_channels[0]
+        self.in_chan = c.layer_channels[0]
 
+        # Feature extractor layer
         self.conv_block = nn.Sequential(
-            nn.Conv1d(1, self.in_chan, config.kernel, padding=config.padding, stride=config.stride),
+            nn.Conv1d(1, self.in_chan, c.kernel, padding=c.padding, stride=c.stride),
             nn.BatchNorm1d(self.in_chan),
             nn.ReLU(inplace=True),
             nn.MaxPool1d(2, padding=1, stride=2)
@@ -85,11 +87,11 @@ class ResNet(nn.Module):
         self.layer3 = self._make_layer(block, config.layer_channels[2], config.layer_blocks[2], stride=2)
         self.layer4 = self._make_layer(block, config.layer_channels[3], config.layer_blocks[3], stride=2)
 
+        # Classifier
         self.avgpool = nn.AdaptiveAvgPool1d(1)
-
         self.decoder = nn.Sequential(
             nn.Flatten(1),
-            nn.Linear(config.layer_channels[-1], 2)
+            nn.Linear(c.layer_channels[-1], 2)
         )
 
         # Initialise weights and biases
@@ -127,11 +129,6 @@ class ResNet(nn.Module):
         x = self.decoder(x)
 
         return x
-
-
-def get_config(filepath):
-    with open(filepath) as config_file:
-        return AttrDict(yaml.load(config_file, Loader=yaml.Loader))
 
 
 if __name__ == "__main__":

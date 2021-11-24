@@ -2,5 +2,6 @@ kernel: 19
 padding: 5
 stride: 3
 block: bottleneck
+n_layers: 4
 layer_blocks: [2,2,2,2]
 layer_channels: [20,30,45,67]

@@ -8,6 +8,7 @@ from torchinfo import summary
 
 from resnet import ResNet, BottleneckBlock
 from data import SignalDataset
+from utilities import get_config
 
 
 # TODO: Too many params
@@ -77,23 +78,27 @@ def main():
 
     # CL args
 
-    exp_dir = sys.argv[1]
-    data_dir = sys.argv[2]
-    batch_size = int(sys.argv[3])
-    checkpt = sys.argv[4] if sys.argv[4] != "None" else None
-    n_epochs = int(sys.argv[5])
+    # exp_dir = sys.argv[1]
+    # data_dir = sys.argv[2]
+    # batch_size = int(sys.argv[3])
+    # checkpt = sys.argv[4] if sys.argv[4] != "None" else None
+    # n_epochs = int(sys.argv[5])
 
-    # exp_dir = "/home/alex/Documents/rnaclassifier/saved_models"
-    # data_dir = '/home/alex/Documents/rnaclassifier'
-    # batch_size = 64
-    # checkpt = None
-    # n_epochs = 10
+    exp_dir = "/home/alex/Documents/rnaclassifier/saved_models"
+    data_dir = '/home/alex/Documents/rnaclassifier/local_data'
+    batch_size = 64
+    checkpt = None
+    n_epochs = 2
 
     print(f"Experiment dir: {exp_dir}")
     print(f"Data dir: {data_dir}")
     print(f"Batch size: {batch_size}")
     print(f"Checkpoint: {checkpt}")
     print(f"Num epochs: {n_epochs}")
+
+    # Load config
+
+    config = get_config('config.yaml')
 
     # Determine experiment ID
 
@@ -123,7 +128,7 @@ def main():
 
     # Define model
 
-    model = ResNet(BottleneckBlock, [2,2,2,2]).to(device)
+    model = ResNet(config).to(device)
     if checkpt is not None:
         model.load_state_dict(torch.load(f"{exp_dir}/{checkpt}"))
     summary(model)
