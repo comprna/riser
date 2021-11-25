@@ -4,17 +4,6 @@ from torchinfo import summary
 from utilities import get_config
 
 
-# TODO: Move inside class
-def conv_block(in_chan, out_chan, kernel_size, last=False, **kwargs):
-    layers = [
-        nn.Conv1d(in_chan, out_chan, kernel_size, **kwargs),
-        nn.BatchNorm1d(out_chan),
-    ]
-    if last == False:
-        layers.append(nn.ReLU(inplace=True)) # TODO: is inplace necessary?
-    return nn.Sequential(*layers)
-
-
 class ResidualBlock(nn.Module):
     def __init__(self, in_chan, out_chan, stride=1):
         super().__init__()
@@ -34,6 +23,15 @@ class ResidualBlock(nn.Module):
             nn.BatchNorm1d(out_chan)
         )
 
+    def conv_block(self, in_chan, out_chan, kernel_size, last=False, **kwargs):
+        layers = [
+            nn.Conv1d(in_chan, out_chan, kernel_size, **kwargs),
+            nn.BatchNorm1d(out_chan),
+        ]
+        if last == False:
+            layers.append(nn.ReLU(inplace=True)) # TODO: is inplace necessary?
+        return nn.Sequential(*layers)
+
     def forward(self, x):
         residual = self.shortcut(x) if self.should_apply_shortcut else x
         out = self.blocks(x)
@@ -51,8 +49,8 @@ class BasicBlock(ResidualBlock):
         super().__init__(in_chan, out_chan, stride)
 
         self.blocks = nn.Sequential(
-            conv_block(in_chan, out_chan, 3, stride=stride, bias=False),
-            conv_block(out_chan, out_chan, 3, last=True)
+            self.conv_block(in_chan, out_chan, 3, stride=stride, bias=False),
+            self.conv_block(out_chan, out_chan, 3, last=True)
         )
 
 
@@ -61,9 +59,9 @@ class BottleneckBlock(ResidualBlock):
         super().__init__(in_chan, out_chan, stride)
 
         self.blocks = nn.Sequential(
-            conv_block(in_chan, in_chan, 1, bias=False),
-            conv_block(in_chan, in_chan, 3, stride=stride, padding=1, bias=False), # Downsample here as per line 107 https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
-            conv_block(in_chan, out_chan, 1, last=True, bias=False)
+            self.conv_block(in_chan, in_chan, 1, bias=False),
+            self.conv_block(in_chan, in_chan, 3, stride=stride, padding=1, bias=False), # Downsample here as per line 107 https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
+            self.conv_block(in_chan, out_chan, 1, last=True, bias=False)
         )
 
 
@@ -98,14 +96,20 @@ class ResNet(nn.Module):
         )
 
         # Initialise weights and biases
-        for m in self.modules():
-            if isinstance(m, nn.Conv1d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            elif isinstance(m, (nn.BatchNorm1d)):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
+        self._init_weights()
 
-    
+    def forward(self, x):
+        x = x.unsqueeze(1)
+        x = self.conv_block(x)
+
+        for layer in self.layers:
+            x = layer(x)
+
+        x = self.avgpool(x)
+        x = self.decoder(x)
+
+        return x
+
     def _make_layer(self, block, channels, blocks, stride=1):
         # First residual block in layer may downsample
         layers = [block(self.in_chan, channels, stride)]
@@ -119,18 +123,14 @@ class ResNet(nn.Module):
             layers.append(block(self.in_chan, channels))
 
         return nn.Sequential(*layers)
-
-    def forward(self, x):
-        x = x.unsqueeze(1)
-        x = self.conv_block(x)
-
-        for layer in self.layers:
-            x = layer(x)
-
-        x = self.avgpool(x)
-        x = self.decoder(x)
-
-        return x
+    
+    def _init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv1d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, (nn.BatchNorm1d)):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
 
 
 if __name__ == "__main__":
