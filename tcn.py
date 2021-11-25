@@ -3,6 +3,8 @@ import torch.nn.functional as F
 from torch.nn.utils import weight_norm
 from torchinfo import summary
 
+from utilities import get_config
+
 
 class Chomp1d(nn.Module):
     def __init__(self, chomp_size):
@@ -64,22 +66,21 @@ class TemporalBlock(nn.Module):
 class TCN(nn.Module):
     # TODO: Pass config
     # Layer channels = # channels output from each hidden layer
-    def __init__(self, input_chan, layer_chan, n_classes, kernel_size=2, dropout=0.2):
+    def __init__(self, c):
         super().__init__()
         
         # Feature extractor layers
         layers = []
-        n_layers = len(layer_chan)
-        for i in range(n_layers):
-            dilation_size = 2 ** i
-            in_chan = input_chan if i == 0 else layer_chan[i-1]
-            out_chan = layer_chan[i]
-            layers += [TemporalBlock(in_chan, out_chan, kernel_size, stride=1, dilation=dilation_size,
-                                     padding=(kernel_size-1) * dilation_size, dropout=dropout)]
+        for i in range(c.n_layers):
+            dilation = 2 ** i
+            in_chan = c.in_chan if i == 0 else c.n_filters
+            out_chan = c.n_filters
+            layers += [TemporalBlock(in_chan, out_chan, c.kernel_size, stride=1, dilation=dilation,
+                                     padding=(c.kernel_size-1) * dilation, dropout=c.dropout)]
         self.layers = nn.Sequential(*layers)
 
         # Classifier
-        self.linear = nn.Linear(layer_chan[-1], n_classes)
+        self.linear = nn.Linear(c.n_filters, c.n_classes)
 
 
     def forward(self, x):
@@ -90,11 +91,10 @@ class TCN(nn.Module):
 
 
 def main():
-    input_chan = 1
-    n_filters_per_layer = 25
-    n_levels = 4
-    layer_chan = [n_filters_per_layer] * n_levels
-    model = TCN(input_chan, layer_chan, 2)
+    config = get_config('config.yaml')
+
+    model = TCN(config.tcn)
+
     summary(model, input_size=(64, 1, 9036)) # (batch_size, dimension, seq_length)
 
 

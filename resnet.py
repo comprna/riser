@@ -135,6 +135,7 @@ class ResNet(nn.Module):
 def main():
     config = get_config('config.yaml')
 
+    # TODO: Move verify config inside get_config
     assert config.n_layers == len(config.layer_blocks)
     assert config.n_layers == len(config.layer_channels)
 
