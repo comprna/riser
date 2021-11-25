@@ -1,10 +1,10 @@
-import yaml
-from attrdict import AttrDict
 from torch import nn
 from torchinfo import summary
 
 from utilities import get_config
 
+
+# TODO: Move inside class
 def conv_block(in_chan, out_chan, kernel_size, last=False, **kwargs):
     layers = [
         nn.Conv1d(in_chan, out_chan, kernel_size, **kwargs),
@@ -12,7 +12,6 @@ def conv_block(in_chan, out_chan, kernel_size, last=False, **kwargs):
     ]
     if last == False:
         layers.append(nn.ReLU(inplace=True)) # TODO: is inplace necessary?
-
     return nn.Sequential(*layers)
 
 
@@ -24,12 +23,12 @@ class ResidualBlock(nn.Module):
         self.in_chan = in_chan
         self.out_chan = out_chan
         self.stride = stride
-        self.activate = nn.ReLU(inplace=True)
+        self.activate = nn.ReLU(inplace=True) # TODO: Rename activation
 
         # Convolutional blocks
         self.blocks = nn.Identity()
 
-        # Match dimensions of input and block output for summation
+        # Match dimensions of block's input and output for summation
         self.shortcut = nn.Sequential(
             nn.Conv1d(in_chan, out_chan, kernel_size=1, stride=stride, bias=False),
             nn.BatchNorm1d(out_chan)
@@ -95,7 +94,7 @@ class ResNet(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool1d(1)
         self.decoder = nn.Sequential(
             nn.Flatten(1),
-            nn.Linear(c.layer_channels[-1], 2)
+            nn.Linear(c.layer_channels[-1], 2) # TODO: Parameterise output_size
         )
 
         # Initialise weights and biases
@@ -110,6 +109,7 @@ class ResNet(nn.Module):
     def _make_layer(self, block, channels, blocks, stride=1):
         # First residual block in layer may downsample
         layers = [block(self.in_chan, channels, stride)]
+        # TODO: Rename layers to blocks
 
         # In channels for next layer will be this layer's out channels
         self.in_chan = channels
