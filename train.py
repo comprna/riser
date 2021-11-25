@@ -6,7 +6,8 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchinfo import summary
 
-from resnet import ResNet, BottleneckBlock
+from resnet import ResNet
+from tcn import TCN
 from data import SignalDataset
 from utilities import get_config
 
@@ -80,25 +81,22 @@ def main():
 
     # exp_dir = sys.argv[1]
     # data_dir = sys.argv[2]
-    # batch_size = int(sys.argv[3])
-    # checkpt = sys.argv[4] if sys.argv[4] != "None" else None
-    # n_epochs = int(sys.argv[5])
+    # checkpt = sys.argv[3] if sys.argv[3] != "None" else None
+    # config_file = sys.argv[4]
 
     exp_dir = "/home/alex/Documents/rnaclassifier/saved_models"
     data_dir = '/home/alex/Documents/rnaclassifier/local_data'
-    batch_size = 64
     checkpt = None
-    n_epochs = 2
+    config_file = 'config.yaml'
 
     print(f"Experiment dir: {exp_dir}")
     print(f"Data dir: {data_dir}")
-    print(f"Batch size: {batch_size}")
     print(f"Checkpoint: {checkpt}")
-    print(f"Num epochs: {n_epochs}")
+    print(f"Config file: {config_file}")
 
     # Load config
 
-    config = get_config('config.yaml')
+    config = get_config(config_file)
 
     # Determine experiment ID
 
@@ -117,8 +115,8 @@ def main():
     # Create data loaders
 
     print("Creating data loaders...")
-    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
-    valid_loader = DataLoader(valid_data, batch_size=batch_size, shuffle=False)
+    train_loader = DataLoader(train_data, batch_size=config.batch_size, shuffle=True)
+    valid_loader = DataLoader(valid_data, batch_size=config.batch_size, shuffle=False)
 
     # Get device for training
 
@@ -128,7 +126,15 @@ def main():
 
     # Define model
 
-    model = ResNet(config).to(device)
+    if config.model == 'tcn':
+        model = TCN(config.tcn).to(device)
+    elif config.model == 'resnet':
+        model = ResNet(config.resnet).to(device)
+    else:
+        print(f"{config.model} model is not supported - typo in config?")
+
+    # Load model weights if restoring a checkpoint
+
     if checkpt is not None:
         model.load_state_dict(torch.load(f"{exp_dir}/{checkpt}"))
     summary(model)
@@ -136,7 +142,7 @@ def main():
     # Define loss function & optimiser
 
     loss_fn = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
 
     # Set up TensorBoard
 
@@ -146,7 +152,7 @@ def main():
 
     best_acc = 0
     best_epoch = 0
-    for t in range(n_epochs):
+    for t in range(config.n_epochs):
         print(f"Epoch {t+1}\n-------------------------------")
         train_loss = train(train_loader, model, loss_fn, optimizer, device, writer, t)
         val_loss, val_acc = validate(valid_loader, model, loss_fn, device)

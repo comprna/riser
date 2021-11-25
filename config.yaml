@@ -1,3 +1,9 @@
+model: resnet
+# batch_size: 1000
+batch_size: 64
+n_epochs: 50
+learning_rate: 0.001
+
 tcn:
   n_filters: 25
   n_layers: 4
@@ -14,4 +20,3 @@ resnet:
   n_layers: 4
   layer_blocks: [2,2,2,2]
   layer_channels: [20,30,45,67]
-
