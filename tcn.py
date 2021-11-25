@@ -28,14 +28,19 @@ class TemporalBlock(nn.Module):
     def __init__(self, in_chan, out_chan, kernel_size, stride, dilation, padding, dropout=0.2):
         super(TemporalBlock, self).__init__()
 
+        # Parameters
+        self.in_chan = in_chan
+        self.out_chan = out_chan
+        self.activation = nn.ReLU(inplace=True)
+
         # Causal convolutional blocks
         self.blocks = nn.Sequential(
             conv_block(in_chan, out_chan, kernel_size, stride, dilation, padding, dropout),
             conv_block(out_chan, out_chan, kernel_size, stride, dilation, padding, dropout),
         )
         
-        self.downsample = nn.Conv1d(in_chan, out_chan, 1) if in_chan != out_chan else None
-        self.relu = nn.ReLU() # TODO: Rename activation
+        # Match dimensions of block's input and output for summation
+        self.shortcut = nn.Conv1d(in_chan, out_chan, 1)
 
         # Initialise weights and biases
         for m in self.modules():
@@ -43,9 +48,15 @@ class TemporalBlock(nn.Module):
                 nn.init.normal_(m.weight, mean=0, std=0.01)
 
     def forward(self, x):
+        residual = self.shortcut(x) if self.should_apply_shortcut else x
         out = self.blocks(x)
-        res = x if self.downsample is None else self.downsample(x)
-        return self.relu(out + res)
+        out += residual
+        out = self.activation(out)
+        return out
+    
+    @property
+    def should_apply_shortcut(self):
+        return self.in_chan != self.out_chan
 
 
 class TemporalConvNet(nn.Module):
