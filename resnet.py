@@ -12,7 +12,7 @@ class ResidualBlock(nn.Module):
         self.in_chan = in_chan
         self.out_chan = out_chan
         self.stride = stride
-        self.activate = nn.ReLU(inplace=True) # TODO: Rename activation
+        self.activation = nn.ReLU(inplace=True)
 
         # Convolutional blocks
         self.blocks = nn.Identity()
@@ -29,14 +29,13 @@ class ResidualBlock(nn.Module):
             nn.BatchNorm1d(out_chan),
         ]
         if last == False:
-            layers.append(nn.ReLU(inplace=True)) # TODO: is inplace necessary?
+            layers.append(nn.ReLU(inplace=True))
         return nn.Sequential(*layers)
 
     def forward(self, x):
         residual = self.shortcut(x) if self.should_apply_shortcut else x
         out = self.blocks(x)
-        out += residual
-        out = self.activate(out)
+        out = self.activation(out + residual)
         return out
 
     @property
@@ -79,13 +78,13 @@ class ResNet(nn.Module):
         )
 
         # Residual layers
-        block = BottleneckBlock if config.block == 'bottleneck' else BasicBlock
+        block = BottleneckBlock if c.block == 'bottleneck' else BasicBlock
         layers = []
         for i in range(c.n_layers):
             if i == 0:
-                layers.append(self._make_layer(block, config.layer_channels[i], config.layer_blocks[i]))
+                layers.append(self._make_layer(block, c.layer_channels[i], c.layer_blocks[i]))
             else:
-                layers.append(self._make_layer(block, config.layer_channels[i], config.layer_blocks[i], stride=2))
+                layers.append(self._make_layer(block, c.layer_channels[i], c.layer_blocks[i], stride=2))
         self.layers = nn.ModuleList(layers)
 
         # Classifier
@@ -133,7 +132,7 @@ class ResNet(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
 
-if __name__ == "__main__":
+def main():
     config = get_config('config.yaml')
 
     assert config.n_layers == len(config.layer_blocks)
@@ -141,3 +140,7 @@ if __name__ == "__main__":
 
     model = ResNet(config)
     summary(model, input_size=(64, 9036))
+
+
+if __name__ == "__main__":
+    main()

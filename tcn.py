@@ -12,10 +12,10 @@ class Chomp1d(nn.Module):
     def forward(self, x):
         return x[:, :, :-self.chomp_size].contiguous()
 
-
+# TODO: Inherit ResidualBlock??
 class TemporalBlock(nn.Module):
     def __init__(self, in_chan, out_chan, kernel_size, stride, dilation, padding, dropout=0.2):
-        super(TemporalBlock, self).__init__()
+        super().__init__()
 
         # Parameters
         self.in_chan = in_chan
@@ -47,10 +47,10 @@ class TemporalBlock(nn.Module):
     def forward(self, x):
         residual = self.shortcut(x) if self.should_apply_shortcut else x
         out = self.blocks(x)
-        out += residual
-        out = self.activation(out)
+        out = self.activation(out + residual)
         return out
     
+    # TODO: Move to TCN class
     def _init_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv1d):
@@ -61,36 +61,43 @@ class TemporalBlock(nn.Module):
         return self.in_chan != self.out_chan
 
 
-class TemporalConvNet(nn.Module):
-    def __init__(self, num_inputs, num_channels, kernel_size=2, dropout=0.2):
+class TCN(nn.Module):
+    # TODO: Pass config
+    # Layer channels = # channels output from each hidden layer
+    def __init__(self, input_chan, layer_chan, n_classes, kernel_size=2, dropout=0.2):
         super().__init__()
         
+        # Feature extractor layers
         layers = []
-        num_levels = len(num_channels)
-        for i in range(num_levels):
+        n_layers = len(layer_chan)
+        for i in range(n_layers):
             dilation_size = 2 ** i
-            in_channels = num_inputs if i == 0 else num_channels[i-1]
-            out_channels = num_channels[i]
-            layers += [TemporalBlock(in_channels, out_channels, kernel_size, stride=1, dilation=dilation_size,
+            in_chan = input_chan if i == 0 else layer_chan[i-1]
+            out_chan = layer_chan[i]
+            layers += [TemporalBlock(in_chan, out_chan, kernel_size, stride=1, dilation=dilation_size,
                                      padding=(kernel_size-1) * dilation_size, dropout=dropout)]
-
-        self.network = nn.Sequential(*layers)
+        self.layers = nn.Sequential(*layers)
 
         # Classifier
-        self.linear = nn.Linear(num_channels[-1], 2) # TODO: Parameterise output_size
+        self.linear = nn.Linear(layer_chan[-1], n_classes)
 
 
     def forward(self, x):
-        x = self.network(x)
+        x = self.layers(x)
         x = self.linear(x[:,:,-1]) # TODO: Why the third dimension??
         x = F.log_softmax(x, dim=1) # TODO: What is this for?
         return x
 
 
-if __name__ == "__main__":
-    input_channels = 1
-    n_hidden_units_per_layer = 25
+def main():
+    input_chan = 1
+    n_filters_per_layer = 25
     n_levels = 4
-    channel_sizes = [n_hidden_units_per_layer] * n_levels
-    model = TemporalConvNet(input_channels, channel_sizes)
+    layer_chan = [n_filters_per_layer] * n_levels
+    model = TCN(input_chan, layer_chan, 2)
     summary(model, input_size=(64, 1, 9036)) # (batch_size, dimension, seq_length)
+
+
+if __name__ == "__main__":
+    main()
+    
