@@ -13,10 +13,24 @@ tcn:
   in_chan: 1
 
 resnet:
-  kernel: 19
+  kernel_size: 19
   padding: 5
   stride: 3
   block: bottleneck
   n_layers: 4
   layer_blocks: [2,2,2,2]
   layer_channels: [20,30,45,67]
+  n_classes: 2
+
+cnn:
+  n_layers: 4
+  layer_channels: [20,30,45,67]
+  layer_kernels: [3,3,3,3]
+  n_classes: 2
+
+
+lstm:
+
+
+cnn+lstm:
+  
