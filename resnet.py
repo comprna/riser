@@ -5,12 +5,12 @@ from utilities import get_config
 
 
 class ResidualBlock(nn.Module):
-    def __init__(self, in_chan, out_chan, stride=1):
+    def __init__(self, in_channels, out_channels, stride=1):
         super().__init__()
 
         # Parameters
-        self.in_chan = in_chan
-        self.out_chan = out_chan
+        self.in_channels = in_channels
+        self.out_channels = out_channels
         self.stride = stride
         self.activation = nn.ReLU(inplace=True)
 
@@ -19,17 +19,20 @@ class ResidualBlock(nn.Module):
 
         # Match dimensions of block's input and output for summation
         self.shortcut = nn.Sequential(
-            nn.Conv1d(in_chan, out_chan, kernel_size=1, stride=stride, bias=False),
-            nn.BatchNorm1d(out_chan)
+            nn.Conv1d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
+            nn.BatchNorm1d(out_channels)
         )
 
-    def conv_block(self, in_chan, out_chan, kernel_size, last=False, **kwargs):
+    def conv_block(self, in_channels, out_channels, kernel_size, last=False, **kwargs):
         layers = [
-            nn.Conv1d(in_chan, out_chan, kernel_size, **kwargs),
-            nn.BatchNorm1d(out_chan),
+            nn.Conv1d(in_channels, out_channels, kernel_size, **kwargs),
+            nn.BatchNorm1d(out_channels),
         ]
+
+        # Activate all but the last hidden layer
         if last == False:
             layers.append(nn.ReLU(inplace=True))
+        
         return nn.Sequential(*layers)
 
     def forward(self, x):
@@ -40,39 +43,39 @@ class ResidualBlock(nn.Module):
 
     @property
     def should_apply_shortcut(self):
-        return self.in_chan != self.out_chan or self.stride != 1
+        return self.in_channels != self.out_channels or self.stride != 1
 
 
 class BasicBlock(ResidualBlock):
-    def __init__(self, in_chan, out_chan, stride=1):
-        super().__init__(in_chan, out_chan, stride)
+    def __init__(self, in_channels, out_channels, stride=1):
+        super().__init__(in_channels, out_channels, stride)
 
         self.blocks = nn.Sequential(
-            self.conv_block(in_chan, out_chan, 3, stride=stride, bias=False),
-            self.conv_block(out_chan, out_chan, 3, last=True)
+            self.conv_block(in_channels, out_channels, 3, stride=stride, bias=False),
+            self.conv_block(out_channels, out_channels, 3, last=True)
         )
 
 
 class BottleneckBlock(ResidualBlock):
-    def __init__(self, in_chan, out_chan, stride=1):
-        super().__init__(in_chan, out_chan, stride)
+    def __init__(self, in_channels, out_channels, stride=1):
+        super().__init__(in_channels, out_channels, stride)
 
         self.blocks = nn.Sequential(
-            self.conv_block(in_chan, in_chan, 1, bias=False),
-            self.conv_block(in_chan, in_chan, 3, stride=stride, padding=1, bias=False), # Downsample here as per line 107 https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
-            self.conv_block(in_chan, out_chan, 1, last=True, bias=False)
+            self.conv_block(in_channels, in_channels, 1, bias=False),
+            self.conv_block(in_channels, in_channels, 3, stride=stride, padding=1, bias=False), # Downsample here as per line 107 https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
+            self.conv_block(in_channels, out_channels, 1, last=True, bias=False)
         )
 
 
 class ResNet(nn.Module):
     def __init__(self, c):
         super(ResNet, self).__init__()
-        self.in_chan = c.layer_channels[0]
+        self.in_channels = c.layer_channels[0]
 
         # Feature extractor layer
         self.conv_block = nn.Sequential(
-            nn.Conv1d(1, self.in_chan, c.kernel, padding=c.padding, stride=c.stride),
-            nn.BatchNorm1d(self.in_chan),
+            nn.Conv1d(1, self.in_channels, c.kernel_size, padding=c.padding, stride=c.stride),
+            nn.BatchNorm1d(self.in_channels),
             nn.ReLU(inplace=True),
             nn.MaxPool1d(2, padding=1, stride=2)
         )
@@ -88,10 +91,10 @@ class ResNet(nn.Module):
         self.layers = nn.ModuleList(layers)
 
         # Classifier
-        self.avgpool = nn.AdaptiveAvgPool1d(1)
+        self.avgpool = nn.AdaptiveAvgPool1d(1) # TODO: Can avgpool go inside decoder?
         self.decoder = nn.Sequential(
             nn.Flatten(1),
-            nn.Linear(c.layer_channels[-1], 2) # TODO: Parameterise output_size
+            nn.Linear(c.layer_channels[-1], c.n_classes)
         )
 
         # Initialise weights and biases
@@ -109,19 +112,18 @@ class ResNet(nn.Module):
 
         return x
 
-    def _make_layer(self, block, channels, blocks, stride=1):
+    def _make_layer(self, block, out_channels, n_blocks, stride=1):
         # First residual block in layer may downsample
-        layers = [block(self.in_chan, channels, stride)]
-        # TODO: Rename layers to blocks
+        blocks = [block(self.in_channels, out_channels, stride)]
 
         # In channels for next layer will be this layer's out channels
-        self.in_chan = channels
+        self.in_channels = out_channels
 
         # Remaining residual blocks in layer
-        for _ in range(1, blocks):
-            layers.append(block(self.in_chan, channels))
+        for _ in range(1, n_blocks):
+            blocks.append(block(self.in_channels, out_channels))
 
-        return nn.Sequential(*layers)
+        return nn.Sequential(*blocks)
     
     def _init_weights(self):
         for m in self.modules():
@@ -133,7 +135,7 @@ class ResNet(nn.Module):
 
 
 def main():
-    config = get_config('config.yaml')
+    config = get_config('config.yaml').resnet
 
     # TODO: Move verify config inside get_config
     assert config.n_layers == len(config.layer_blocks)

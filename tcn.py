@@ -90,6 +90,8 @@ class TCN(nn.Module):
         return x
 
 
+    # TODO: Function to calculate receptive field.  See https://github.com/locuslab/TCN/issues/44
+
 def main():
     config = get_config('config.yaml')
 
