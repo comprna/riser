@@ -9,6 +9,7 @@ import torch
 def build_dataset(npy_dir):
     data = None
     for npy_file in Path(npy_dir).glob('*.npy'):
+        print(f"Loading {npy_file}...")
         if data is None:
             data = np.load(npy_file, allow_pickle=True)
         else:
