@@ -64,7 +64,6 @@ class TemporalBlock(nn.Module):
 
 
 class TCN(nn.Module):
-    # TODO: Pass config
     # Layer channels = # channels output from each hidden layer
     def __init__(self, c):
         super().__init__()
