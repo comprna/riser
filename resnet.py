@@ -101,7 +101,7 @@ class ResNet(nn.Module):
         self._init_weights()
 
     def forward(self, x):
-        x = x.unsqueeze(1)
+        x = x.unsqueeze(1) # Add dimension to represent 1D input
         x = self.conv_block(x)
 
         for layer in self.layers:

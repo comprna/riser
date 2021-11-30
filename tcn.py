@@ -84,6 +84,7 @@ class TCN(nn.Module):
 
 
     def forward(self, x):
+        x = x.unsqueeze(1) # Add dimension to represent 1D input
         x = self.layers(x)
         x = self.linear(x[:,:,-1]) # Receptive field of last value covers entire input
         x = F.log_softmax(x, dim=1) # TODO: What is this for?
@@ -96,7 +97,7 @@ class TCN(nn.Module):
 def main():
     config = get_config('config.yaml')
     model = TCN(config.tcn)
-    summary(model, input_size=(64, 1, 9036)) # (batch_size, dimension, seq_length)
+    summary(model, input_size=(64, 9036))
 
 
 if __name__ == "__main__":

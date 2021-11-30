@@ -39,9 +39,9 @@ class ConvNet(nn.Module):
             print("Typo in config file: Classifier = {c.classifier}")
 
     def forward(self, x):
+        x = x.unsqueeze(1) # Add dimension to represent 1D input
         for layer in self.conv_layers:
             x = layer(x)
-
         x = self.classifier(x)
 
         return x
@@ -62,7 +62,7 @@ class ConvNet(nn.Module):
 def main():
     config = get_config('config.yaml')
     model = ConvNet(config.cnn)
-    summary(model, input_size=(64, 1, 9036)) # (batch_size, dimension, seq_length)
+    summary(model, input_size=(64, 9036))
 
 
 if __name__ == "__main__":
