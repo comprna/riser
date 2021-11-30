@@ -92,8 +92,8 @@ class ResNet(nn.Module):
 
         # Classifier
         self.decoder = nn.Sequential(
-            nn.AdaptiveAvgPool1d(1),
-            nn.Flatten(1),
+            nn.AdaptiveAvgPool1d(1), # Converts each channel into a single value
+            nn.Flatten(1), # Concatenates channels
             nn.Linear(c.layer_channels[-1], c.n_classes)
         )
 

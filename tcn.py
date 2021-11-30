@@ -1,4 +1,4 @@
-import torch.nn as nn
+from torch import nn
 import torch.nn.functional as F
 from torch.nn.utils import weight_norm
 from torchinfo import summary
@@ -85,18 +85,17 @@ class TCN(nn.Module):
 
     def forward(self, x):
         x = self.layers(x)
-        x = self.linear(x[:,:,-1]) # TODO: Why the third dimension??
+        x = self.linear(x[:,:,-1]) # Receptive field of last value covers entire input
         x = F.log_softmax(x, dim=1) # TODO: What is this for?
         return x
 
 
     # TODO: Function to calculate receptive field.  See https://github.com/locuslab/TCN/issues/44
+    # TODO: Receptive field needs to cover entire input
 
 def main():
     config = get_config('config.yaml')
-
     model = TCN(config.tcn)
-
     summary(model, input_size=(64, 1, 9036)) # (batch_size, dimension, seq_length)
 
 
