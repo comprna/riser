@@ -14,7 +14,7 @@ tcn:
 
 resnet:
   kernel_size: 19
-  padding: 5
+  padding: 5  # TODO: How was this calculated?
   stride: 3
   block: bottleneck
   n_layers: 4
@@ -27,6 +27,7 @@ cnn:
   layer_channels: [20,30,45,67]
   layer_kernels: [3,3,3,3]
   n_classes: 2
+  classifier: gap_fc # fc / gap_fc / gap
 
 
 lstm:
