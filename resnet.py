@@ -91,8 +91,8 @@ class ResNet(nn.Module):
         self.layers = nn.ModuleList(layers)
 
         # Classifier
-        self.avgpool = nn.AdaptiveAvgPool1d(1) # TODO: Can avgpool go inside decoder?
         self.decoder = nn.Sequential(
+            nn.AdaptiveAvgPool1d(1),
             nn.Flatten(1),
             nn.Linear(c.layer_channels[-1], c.n_classes)
         )
@@ -107,7 +107,6 @@ class ResNet(nn.Module):
         for layer in self.layers:
             x = layer(x)
 
-        x = self.avgpool(x)
         x = self.decoder(x)
 
         return x
