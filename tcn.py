@@ -87,7 +87,11 @@ class TCN(nn.Module):
         x = x.unsqueeze(1) # Add dimension to represent 1D input
         x = self.layers(x)
         x = self.linear(x[:,:,-1]) # Receptive field of last value covers entire input
-        x = F.log_softmax(x, dim=1) # TODO: What is this for?
+
+        # NB: Softmax not needed since it is incorporated into
+        # torch implementation of CrossEntropyLoss. Can send the raw
+        # logits there.
+
         return x
 
 

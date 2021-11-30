@@ -109,6 +109,10 @@ class ResNet(nn.Module):
 
         x = self.decoder(x)
 
+        # NB: Softmax not needed since it is incorporated into
+        # torch implementation of CrossEntropyLoss. Can send the raw
+        # logits there.
+
         return x
 
     def _make_layer(self, block, out_channels, n_blocks, stride=1):

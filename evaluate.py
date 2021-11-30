@@ -66,7 +66,9 @@ def main():
             X = X.to(device)
 
             # Predict class probabilities
-            y_pred_probs = model(X)
+            y_pred_probs = model(X) 
+            # TODO: Check if there are errors downstream - these are the
+            # raw logits, not the softmax probs.
 
             # Convert to class labels
             y_pred = torch.argmax(y_pred_probs, dim=1)
