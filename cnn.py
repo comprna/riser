@@ -45,10 +45,6 @@ class ConvNet(nn.Module):
             x = layer(x)
         x = self.classifier(x)
 
-        # NB: Softmax not needed since it is incorporated into
-        # torch implementation of CrossEntropyLoss. Can send the raw
-        # logits there.
-
         return x
 
     def _make_layer(self, in_channels, out_channels, kernel_size):

@@ -75,7 +75,7 @@ class ResNet(nn.Module):
 
         # Feature extractor layer
         self.conv_block = nn.Sequential(
-            nn.Conv1d(1, self.in_channels, c.kernel_size, padding=c.padding, stride=c.stride),
+            nn.Conv1d(1, self.in_channels, c.kernel, padding=c.padding, stride=c.stride),
             nn.BatchNorm1d(self.in_channels),
             nn.ReLU(inplace=True),
             nn.MaxPool1d(2, padding=1, stride=2)
@@ -107,10 +107,6 @@ class ResNet(nn.Module):
             x = layer(x)
 
         x = self.decoder(x)
-
-        # NB: Softmax not needed since it is incorporated into
-        # torch implementation of CrossEntropyLoss. Can send the raw
-        # logits there.
 
         return x
 

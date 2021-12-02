@@ -74,8 +74,8 @@ class TCN(nn.Module):
             dilation = 2 ** i
             in_chan = c.in_chan if i == 0 else c.n_filters
             out_chan = c.n_filters
-            layers += [TemporalBlock(in_chan, out_chan, c.kernel_size, stride=1, dilation=dilation,
-                                     padding=(c.kernel_size-1) * dilation, dropout=c.dropout)]
+            layers += [TemporalBlock(in_chan, out_chan, c.kernel, stride=1, dilation=dilation,
+                                     padding=(c.kernel-1) * dilation, dropout=c.dropout)]
         self.layers = nn.Sequential(*layers)
 
         # Classifier
@@ -86,10 +86,6 @@ class TCN(nn.Module):
         x = x.unsqueeze(1) # Add dimension to represent 1D input
         x = self.layers(x)
         x = self.linear(x[:,:,-1]) # Receptive field of last value covers entire input
-
-        # NB: Softmax not needed since it is incorporated into
-        # torch implementation of CrossEntropyLoss. Can send the raw
-        # logits there.
 
         return x
 

@@ -7,13 +7,13 @@ learning_rate: 0.001
 tcn:
   n_filters: 25
   n_layers: 4
-  kernel_size: 2
+  kernel: 2
   dropout: 0.2
   n_classes: 2
   in_chan: 1
 
 resnet:
-  kernel_size: 19
+  kernel: 19
   padding: 5  # TODO: How was this calculated?
   stride: 3
   block: bottleneck
@@ -34,11 +34,11 @@ cnn_rnn:
   channels: [20,30,45,67]
   kernels: [3,3,3,3]
   n_rec_layers: 2
-  rec_cell: lstm # TODO: also implement GRU
-  rec_hidden_size: 50
-  rec_dropout: 0.2
-  rec_bidirectional: FALSE
+  cell: lstm # TODO: also implement GRU
+  hidden: 50
+  dropout: 0.2
+  bidirectional: True
   n_classes: 2
-  classifier: gap_fc # fc / gap_fc / gap
+
 
 
