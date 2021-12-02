@@ -19,13 +19,13 @@ class ConvRecNet(nn.Module):
 
         # Recurrent layers
         rec_layers = []
+        output_dim = c.hidden * 2 if c.bidirectional else c.hidden
         for i in range(c.n_rec_layers):
             # First layer takes last conv layer output
-            output_dim = c.hidden * 2 if c.bidirectional else c.hidden
             input_dim = c.channels[-1] if i == 0 else output_dim
-            rec_layers.append(nn.LSTM(input_size=input_dim,
-                                      hidden_size=c.hidden,
-                                      num_layers=c.n_rec_layers,
+            rec_layers.append(nn.LSTM(input_dim,
+                                      c.hidden,
+                                      c.n_rec_layers,
                                       batch_first=True,
                                       dropout=c.dropout,
                                       bidirectional=c.bidirectional))
@@ -35,7 +35,7 @@ class ConvRecNet(nn.Module):
         self.activation = nn.ReLU(inplace=True)
 
         # Classifier
-        self.linear = nn.Linear(c.hidden, c.n_classes)
+        self.linear = nn.Linear(output_dim, c.n_classes)
 
 
     def forward(self, x):
@@ -50,7 +50,6 @@ class ConvRecNet(nn.Module):
             x, _ = layer(x)
             x = self.activation(x)
 
-        # TODO: Deal with bidirectional output
         # TODO: Implement GRU
 
         x = self.linear(x[:, -1, :]) # Hidden states for the last timestep
