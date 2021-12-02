@@ -11,27 +11,18 @@ class ConvRecNet(nn.Module):
         # Convolutional layers
         conv_layers = []
         for i in range(c.n_conv_layers):
-            # First layer takes 1D time-series input while the rest
-            # take channel outputs from previous layer
-            in_channels = 1 if i == 0 else c.layer_channels[i-1]
-            conv_layers.append(self._make_layer(in_channels, c.layer_channels[i], c.layer_kernels[i]))
+            # First layer takes 1D time-series input
+            in_channels = 1 if i == 0 else c.channels[i-1]
+            layer = self._make_conv_layer(in_channels, c.channels[i], c.kernels[i])
+            conv_layers.append(layer)
         self.conv_layers = nn.ModuleList(conv_layers)
 
         # Recurrent layers
         rec_layers = []
         for i in range(c.n_rec_layers):
-            # First LSTM layer takes last conv layer output
-            if i == 0:
-                input_dim = c.conv_layer_channels[-1]
-            # Subsequent layers take hidden output from previous layer
-            else:
-                input_dim = c.rec_hidden_size
-            rec_layers.append(nn.LSTM(input_size=input_dim,
-                                      hidden_size=c.rec_hidden_size,
-                                      num_layers=c.n_rec_layers,
-                                      batch_first=True,
-                                      dropout=c.rec_dropout,
-                                      bidirectional=c.rec_bidirectional))
+            # First layer takes last conv layer output
+            input_dim = c.channels[-1] if i == 0 else c.rec_hidden_size
+            rec_layers.append(self._make_rec_layer(input_dim, c))
         self.rec_layers = nn.ModuleList(rec_layers)
 
         # Classifier
@@ -47,7 +38,7 @@ class ConvRecNet(nn.Module):
             print(f"After conv layer x: {x.shape}")
 
         # CNN output is (B,C,L) but LSTM input needs to be (B,L,C)
-        # B = batch_size, C = features (channels), L = seq_length
+        # B = batch_size, C = features/channels, L = seq_length
         x = x.permute(0, 2, 1)
         print(f"After permute x: {x.shape}")
 
@@ -70,18 +61,25 @@ class ConvRecNet(nn.Module):
 
         return x
 
-    def _make_layer(self, in_channels, out_channels, kernel_size, last=False):
+    def _make_conv_layer(self, in_channels, out_channels, kernel_size):
         layers = [
             nn.Conv1d(in_channels, out_channels, kernel_size),
-            nn.MaxPool1d(kernel_size=2, stride=2)
+            nn.MaxPool1d(kernel_size=2, stride=2),
+            nn.ReLU(inplace=True)
         ]
-
-        # Activate all but the last hidden layer
-        if last == False:
-            layers.append(nn.ReLU(inplace=True))
-        
         return nn.Sequential(*layers)
 
+    def _make_rec_layer(self, input_dim, c):
+        layers = [
+            nn.LSTM(input_size=input_dim,
+                    hidden_size=c.rec_hidden_size,
+                    num_layers=c.n_rec_layers,
+                    batch_first=True,
+                    dropout=c.rec_dropout,
+                    bidirectional=c.rec_bidirectional),
+            nn.ReLU(inplace=True)
+        ]
+        return nn.Sequential(*layers)
 
 def main():
     config = get_config('config.yaml')
