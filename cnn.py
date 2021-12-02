@@ -11,10 +11,10 @@ class ConvNet(nn.Module):
         # Convolutional layers
         layers = []
         for i in range(c.n_layers):
-            if i == 0:
-                layers.append(self._make_layer(1, c.layer_channels[i], c.layer_kernels[i]))
-            else:
-                layers.append(self._make_layer(c.layer_channels[i-1], c.layer_channels[i], c.layer_kernels[i]))
+            # First layer takes 1D time-series input while the rest
+            # take channel outputs from previous layer
+            in_channels = 1 if i == 0 else c.layer_channels[i-1]
+            layers.append(self._make_layer(in_channels, c.layer_channels[i], c.layer_kernels[i]))
         self.layers = nn.ModuleList(layers)
 
         # Classifier
