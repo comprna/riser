@@ -29,9 +29,16 @@ cnn:
   n_classes: 2
   classifier: gap_fc # fc / gap_fc / gap
 
+cnn_rnn:
+  n_conv_layers: 4
+  conv_layer_channels: [20,30,45,67]
+  conv_layer_kernels: [3,3,3,3]
+  n_rec_layers: 2
+  rec_cell: lstm # TODO: also implement GRU
+  rec_hidden_size: 50
+  rec_dropout: 0.2
+  rec_bidirectional: FALSE
+  n_classes: 2
+  classifier: gap_fc # fc / gap_fc / gap
 
-lstm:
 
-
-cnn+lstm:
-  
