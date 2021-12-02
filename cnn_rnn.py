@@ -21,43 +21,39 @@ class ConvRecNet(nn.Module):
         rec_layers = []
         for i in range(c.n_rec_layers):
             # First layer takes last conv layer output
-            input_dim = c.channels[-1] if i == 0 else c.rec_hidden_size
-            rec_layers.append(self._make_rec_layer(input_dim, c))
+            output_dim = c.hidden * 2 if c.bidirectional else c.hidden
+            input_dim = c.channels[-1] if i == 0 else output_dim
+            rec_layers.append(nn.LSTM(input_size=input_dim,
+                                      hidden_size=c.hidden,
+                                      num_layers=c.n_rec_layers,
+                                      batch_first=True,
+                                      dropout=c.dropout,
+                                      bidirectional=c.bidirectional))
         self.rec_layers = nn.ModuleList(rec_layers)
 
+        # Activation
+        self.activation = nn.ReLU(inplace=True)
+
         # Classifier
-        self.linear = nn.Linear(c.rec_hidden_size, c.n_classes)
+        self.linear = nn.Linear(c.hidden, c.n_classes)
 
 
     def forward(self, x):
-        print(f"Raw x: {x.shape}")
         x = x.unsqueeze(1) # Add dimension to represent 1D input
-        print(f"After unsqueeze x: {x.shape}")
         for layer in self.conv_layers:
             x = layer(x)
-            print(f"After conv layer x: {x.shape}")
 
         # CNN output is (B,C,L) but LSTM input needs to be (B,L,C)
-        # B = batch_size, C = features/channels, L = seq_length
         x = x.permute(0, 2, 1)
-        print(f"After permute x: {x.shape}")
 
         for layer in self.rec_layers:
-            x, (hn, cn) = layer(x)
-            # x: (B,L,H) - H hidden states for every timestep in L
-            # hn: (1,B,H) - H hidden states for the last timestep in L
-            print(f"After LSTM layer x: {x.shape}")
-            print(f"After LSTM layer hn: {hn.shape}")
-            print(f"After LSTM layer cn: {cn.shape}")
+            x, _ = layer(x)
+            x = self.activation(x)
 
-        # TODO: Do we need a ReLU after LSTM?
-        # TODO: Bidirectional implementation
+        # TODO: Deal with bidirectional output
+        # TODO: Implement GRU
 
-        x = self.linear(x[:, -1, :]) # Get the hidden states for the last timestep in L. Equivalent to self.linear(hn) if # layers = 1
-
-        # NB: Softmax not needed since it is incorporated into
-        # torch implementation of CrossEntropyLoss. Can send the raw
-        # logits there.
+        x = self.linear(x[:, -1, :]) # Hidden states for the last timestep
 
         return x
 
@@ -69,17 +65,6 @@ class ConvRecNet(nn.Module):
         ]
         return nn.Sequential(*layers)
 
-    def _make_rec_layer(self, input_dim, c):
-        layers = [
-            nn.LSTM(input_size=input_dim,
-                    hidden_size=c.rec_hidden_size,
-                    num_layers=c.n_rec_layers,
-                    batch_first=True,
-                    dropout=c.rec_dropout,
-                    bidirectional=c.rec_bidirectional),
-            nn.ReLU(inplace=True)
-        ]
-        return nn.Sequential(*layers)
 
 def main():
     config = get_config('config.yaml')
