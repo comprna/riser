@@ -29,7 +29,8 @@ class ResidualBlock(nn.Module):
             nn.BatchNorm1d(out_channels),
         ]
 
-        # Activate all but the last hidden layer
+        # Activate all but the last hidden layer so that the block
+        # output and residual can be summed
         if last == False:
             layers.append(nn.ReLU(inplace=True))
         
@@ -84,10 +85,8 @@ class ResNet(nn.Module):
         block = BottleneckBlock if c.block == 'bottleneck' else BasicBlock
         layers = []
         for i in range(c.n_layers):
-            if i == 0:
-                layers.append(self._make_layer(block, c.layer_channels[i], c.layer_blocks[i]))
-            else:
-                layers.append(self._make_layer(block, c.layer_channels[i], c.layer_blocks[i], stride=2))
+            stride = 1 if i == 0 else 2
+            layers.append(self._make_layer(block, c.layer_channels[i], c.layer_blocks[i], stride))
         self.layers = nn.ModuleList(layers)
 
         # Classifier
@@ -115,7 +114,7 @@ class ResNet(nn.Module):
 
         return x
 
-    def _make_layer(self, block, out_channels, n_blocks, stride=1):
+    def _make_layer(self, block, out_channels, n_blocks, stride):
         # First residual block in layer may downsample
         blocks = [block(self.in_channels, out_channels, stride)]
 
