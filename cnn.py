@@ -13,8 +13,8 @@ class ConvNet(nn.Module):
         for i in range(c.n_layers):
             # First layer takes 1D time-series input while the rest
             # take channel outputs from previous layer
-            in_channels = 1 if i == 0 else c.layer_channels[i-1]
-            layers.append(self._make_layer(in_channels, c.layer_channels[i], c.layer_kernels[i]))
+            in_channels = 1 if i == 0 else c.channels[i-1]
+            layers.append(self._make_layer(in_channels, c.channels[i], c.kernels[i]))
         self.layers = nn.ModuleList(layers)
 
         # Classifier
@@ -29,11 +29,11 @@ class ConvNet(nn.Module):
             self.classifier = nn.Sequential(
                 nn.AdaptiveAvgPool1d(1),
                 nn.Flatten(1),
-                nn.Linear(c.layer_channels[-1], c.n_classes)
+                nn.Linear(c.channels[-1], c.n_classes)
             )
         elif c.classifier == 'gap':
             self.classifier = nn.Sequential(
-                nn.Conv1d(c.layer_channels[-1], c.n_classes, 1),
+                nn.Conv1d(c.channels[-1], c.n_classes, 1),
                 nn.AdaptiveAvgPool1d(1)
             )
         else:

@@ -71,7 +71,7 @@ class BottleneckBlock(ResidualBlock):
 class ResNet(nn.Module):
     def __init__(self, c):
         super(ResNet, self).__init__()
-        self.in_channels = c.layer_channels[0]
+        self.in_channels = c.channels[0]
 
         # Feature extractor layer
         self.conv_block = nn.Sequential(
@@ -86,14 +86,14 @@ class ResNet(nn.Module):
         layers = []
         for i in range(c.n_layers):
             stride = 1 if i == 0 else 2
-            layers.append(self._make_layer(block, c.layer_channels[i], c.layer_blocks[i], stride))
+            layers.append(self._make_layer(block, c.channels[i], c.blocks[i], stride))
         self.layers = nn.ModuleList(layers)
 
         # Classifier
         self.decoder = nn.Sequential(
             nn.AdaptiveAvgPool1d(1), # Converts each channel into a single value
             nn.Flatten(1), # Concatenates channels
-            nn.Linear(c.layer_channels[-1], c.n_classes)
+            nn.Linear(c.channels[-1], c.n_classes)
         )
 
         # Initialise weights and biases
@@ -140,8 +140,8 @@ def main():
     config = get_config('config.yaml').resnet
 
     # TODO: Move verify config inside get_config
-    assert config.n_layers == len(config.layer_blocks)
-    assert config.n_layers == len(config.layer_channels)
+    assert config.n_layers == len(config.blocks)
+    assert config.n_layers == len(config.channels)
 
     model = ResNet(config)
     summary(model, input_size=(64, 9036))

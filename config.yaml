@@ -18,21 +18,21 @@ resnet:
   stride: 3
   block: bottleneck
   n_layers: 4
-  layer_blocks: [2,2,2,2]
-  layer_channels: [20,30,45,67]
+  blocks: [2,2,2,2]
+  channels: [20,30,45,67]
   n_classes: 2
 
 cnn:
   n_layers: 4
-  layer_channels: [20,30,45,67]
-  layer_kernels: [3,3,3,3]
+  channels: [20,30,45,67]
+  kernels: [3,3,3,3]
   n_classes: 2
   classifier: gap_fc # fc / gap_fc / gap
 
 cnn_rnn:
   n_conv_layers: 4
-  conv_layer_channels: [20,30,45,67]
-  conv_layer_kernels: [3,3,3,3]
+  channels: [20,30,45,67]
+  kernels: [3,3,3,3]
   n_rec_layers: 2
   rec_cell: lstm # TODO: also implement GRU
   rec_hidden_size: 50
