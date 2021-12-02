@@ -15,13 +15,14 @@ class ConvNet(nn.Module):
                 layers.append(self._make_layer(1, c.layer_channels[i], c.layer_kernels[i]))
             else:
                 layers.append(self._make_layer(c.layer_channels[i-1], c.layer_channels[i], c.layer_kernels[i]))
-        self.conv_layers = nn.ModuleList(layers)
+        self.layers = nn.ModuleList(layers)
 
         # Classifier
         if c.classifier == 'fc':
             self.classifier = nn.Sequential(
                 nn.Flatten(1),
-                nn.Linear(37654, 4096), # TODO: Hardcoded
+                nn.Linear(67*562, 4096), # TODO: Hardcoded
+                nn.ReLU(inplace=True),
                 nn.Linear(4096, c.n_classes)
             )
         elif c.classifier == 'gap_fc':
@@ -40,7 +41,7 @@ class ConvNet(nn.Module):
 
     def forward(self, x):
         x = x.unsqueeze(1) # Add dimension to represent 1D input
-        for layer in self.conv_layers:
+        for layer in self.layers:
             x = layer(x)
         x = self.classifier(x)
 
@@ -50,16 +51,12 @@ class ConvNet(nn.Module):
 
         return x
 
-    def _make_layer(self, in_channels, out_channels, kernel_size, last=False):
+    def _make_layer(self, in_channels, out_channels, kernel_size):
         layers = [
             nn.Conv1d(in_channels, out_channels, kernel_size),
-            nn.MaxPool1d(kernel_size=2, stride=2)
+            nn.MaxPool1d(kernel_size=2, stride=2),
+            nn.ReLU(inplace=True)
         ]
-
-        # Activate all but the last hidden layer
-        if last == False:
-            layers.append(nn.ReLU(inplace=True))
-        
         return nn.Sequential(*layers)
 
 
