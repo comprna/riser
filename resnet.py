@@ -19,7 +19,7 @@ class ResidualBlock(nn.Module):
 
         # Match dimensions of block's input and output for summation
         self.shortcut = nn.Sequential(
-            nn.Conv1d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
+            nn.Conv1d(in_channels, out_channels, 1, stride=stride, bias=False),
             nn.BatchNorm1d(out_channels)
         )
 
@@ -78,7 +78,7 @@ class ResNet(nn.Module):
             nn.Conv1d(1, self.in_channels, c.kernel, padding=c.padding, stride=c.stride),
             nn.BatchNorm1d(self.in_channels),
             nn.ReLU(inplace=True),
-            nn.MaxPool1d(2, padding=1, stride=2)
+            nn.MaxPool1d(2, stride=2, padding=1)
         )
 
         # Residual layers
@@ -100,14 +100,11 @@ class ResNet(nn.Module):
         self._init_weights()
 
     def forward(self, x):
-        x = x.unsqueeze(1) # Add dimension to represent 1D input
+        x = x.unsqueeze(1)
         x = self.conv_block(x)
-
         for layer in self.layers:
             x = layer(x)
-
         x = self.decoder(x)
-
         return x
 
     def _make_layer(self, block, out_channels, n_blocks, stride):
@@ -133,13 +130,8 @@ class ResNet(nn.Module):
 
 
 def main():
-    config = get_config('config.yaml').resnet
-
-    # TODO: Move verify config inside get_config
-    assert config.n_layers == len(config.blocks)
-    assert config.n_layers == len(config.channels)
-
-    model = ResNet(config)
+    config = get_config('config-resnet.yaml')
+    model = ResNet(config.resnet)
     summary(model, input_size=(64, 9036))
 
 
