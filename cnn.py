@@ -23,7 +23,7 @@ class ConvNet(nn.Module):
                 nn.Flatten(1),
                 nn.Linear(67*562, 4096), # TODO: Hardcoded
                 nn.ReLU(inplace=True),
-                nn.Linear(4096, c.n_classes)
+                nn.Linear(4096, c.n_classes) # TODO: Hardcoded
             )
         elif c.classifier == 'gap_fc':
             self.classifier = nn.Sequential(
@@ -38,13 +38,13 @@ class ConvNet(nn.Module):
             )
         else:
             print("Typo in config file: Classifier = {c.classifier}")
+            exit()
 
     def forward(self, x):
-        x = x.unsqueeze(1) # Add dimension to represent 1D input
+        x = x.unsqueeze(1)
         for layer in self.layers:
             x = layer(x)
         x = self.classifier(x)
-
         return x
 
     def _make_layer(self, in_channels, out_channels, kernel_size):
@@ -57,7 +57,7 @@ class ConvNet(nn.Module):
 
 
 def main():
-    config = get_config('config.yaml')
+    config = get_config('config-cnn.yaml')
     model = ConvNet(config.cnn)
     summary(model, input_size=(64, 9036))
 
