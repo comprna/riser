@@ -81,6 +81,11 @@ class TCN(nn.Module):
         # Classifier
         self.linear = nn.Linear(c.n_filters, c.n_classes)
 
+        print(f"Kernel: {c.kernel}")
+        print(f"N layers: {c.n_layers}")
+        print(f"Receptive field: ")
+        print(self.get_receptive_field(c.kernel, c.n_layers, 2))
+
 
     def forward(self, x):
         x = x.unsqueeze(1) # Add dimension to represent 1D input
@@ -89,12 +94,13 @@ class TCN(nn.Module):
 
         return x
 
+    def get_receptive_field(self, kernel, n_layers, dilation_base): 
+        return 1 + 2 * sum([dilation_base**(i) * (kernel-1) for i in range(n_layers)])
 
-    # TODO: Function to calculate receptive field.  See https://github.com/locuslab/TCN/issues/44
     # TODO: Receptive field needs to cover entire input
 
 def main():
-    config = get_config('config.yaml')
+    config = get_config('config-tcn.yaml')
     model = TCN(config.tcn)
     summary(model, input_size=(64, 9036))
 
