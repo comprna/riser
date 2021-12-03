@@ -23,12 +23,7 @@ class ConvRecNet(nn.Module):
         for i in range(c.n_rec_layers):
             # First layer takes last conv layer output
             input_dim = c.channels[-1] if i == 0 else output_dim
-            rec_layers.append(nn.LSTM(input_dim,
-                                      c.hidden,
-                                      c.n_rec_layers,
-                                      batch_first=True,
-                                      dropout=c.dropout,
-                                      bidirectional=c.bidirectional))
+            rec_layers.append(self._make_rec_layer(input_dim, c))
         self.rec_layers = nn.ModuleList(rec_layers)
 
         # Activation
@@ -43,14 +38,11 @@ class ConvRecNet(nn.Module):
         for layer in self.conv_layers:
             x = layer(x)
 
-        # CNN output is (B,C,L) but LSTM input needs to be (B,L,C)
-        x = x.permute(0, 2, 1)
+        x = x.permute(0, 2, 1) # CNN outputs (B,C,L) & LSTM input is (B,L,C)
 
         for layer in self.rec_layers:
             x, _ = layer(x)
             x = self.activation(x)
-
-        # TODO: Implement GRU
 
         x = self.linear(x[:, -1, :]) # Hidden states for the last timestep
 
@@ -64,6 +56,24 @@ class ConvRecNet(nn.Module):
         ]
         return nn.Sequential(*layers)
 
+    def _make_rec_layer(self, input_dim, c):
+        if c.cell == "lstm":
+            return nn.LSTM(input_dim,
+                           c.hidden,
+                           c.n_rec_layers,
+                           batch_first=True,
+                           dropout=c.dropout,
+                           bidirectional=c.bidirectional)
+        elif c.cell == "gru":
+            return nn.GRU(input_dim,
+                          c.hidden,
+                          c.n_rec_layers,
+                          batch_first=True,
+                          dropout=c.dropout,
+                          bidirectional=c.bidirectional)
+        else:
+            print(f"Invalid config file: Cell = {c.cell}")
+            exit()
 
 def main():
     config = get_config('config.yaml')
