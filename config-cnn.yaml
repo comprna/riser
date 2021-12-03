@@ -1,0 +1,12 @@
+model: cnn
+# batch_size: 1000
+batch_size: 64
+n_epochs: 50
+learning_rate: 0.001
+
+cnn:
+  n_layers: 4
+  channels: [20,30,45,67]
+  kernels: [3,3,3,3]
+  n_classes: 2
+  classifier: gap_fc # fc / gap_fc / gap

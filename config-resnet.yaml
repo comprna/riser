@@ -1,0 +1,15 @@
+model: resnet
+# batch_size: 1000
+batch_size: 64
+n_epochs: 50
+learning_rate: 0.001
+
+resnet:
+  kernel: 19
+  padding: 5  # TODO: How was this calculated?
+  stride: 3
+  block: bottleneck
+  n_layers: 4
+  blocks: [2,2,2,2]
+  channels: [20,30,45,67]
+  n_classes: 2
