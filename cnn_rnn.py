@@ -34,18 +34,14 @@ class ConvRecNet(nn.Module):
 
 
     def forward(self, x):
-        x = x.unsqueeze(1) # Add dimension to represent 1D input
+        x = x.unsqueeze(1)
         for layer in self.conv_layers:
             x = layer(x)
-
         x = x.permute(0, 2, 1) # CNN outputs (B,C,L) & LSTM input is (B,L,C)
-
         for layer in self.rec_layers:
             x, _ = layer(x)
             x = self.activation(x)
-
         x = self.linear(x[:, -1, :]) # Hidden states for the last timestep
-
         return x
 
     def _make_conv_layer(self, in_channels, out_channels, kernel_size):
@@ -76,7 +72,7 @@ class ConvRecNet(nn.Module):
             exit()
 
 def main():
-    config = get_config('config.yaml')
+    config = get_config('config-cnn-rnn.yaml')
     model = ConvRecNet(config.cnn_rnn)
     summary(model, input_size=(64, 9036))
 
