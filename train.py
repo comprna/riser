@@ -79,15 +79,15 @@ def main():
 
     # CL args
 
-    # exp_dir = sys.argv[1]
-    # data_dir = sys.argv[2]
-    # checkpt = sys.argv[3] if sys.argv[3] != "None" else None
-    # config_file = sys.argv[4]
+    exp_dir = sys.argv[1]
+    data_dir = sys.argv[2]
+    checkpt = sys.argv[3] if sys.argv[3] != "None" else None
+    config_file = sys.argv[4]
 
-    exp_dir = "/home/alex/Documents/rnaclassifier/saved_models"
-    data_dir = '/home/alex/Documents/rnaclassifier/local_data'
-    checkpt = None
-    config_file = 'config.yaml'
+    # exp_dir = "/home/alex/Documents/rnaclassifier/saved_models"
+    # data_dir = '/home/alex/Documents/rnaclassifier/local_data'
+    # checkpt = None
+    # config_file = 'config.yaml'
 
     print(f"Experiment dir: {exp_dir}")
     print(f"Data dir: {data_dir}")
