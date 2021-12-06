@@ -160,12 +160,16 @@ def main():
         # Update TensorBoard
         write_scalars(writer, train_loss, val_loss, val_acc, t)
         
-        # Save model if it has improved
+        # Save model if it is the best so far
         if val_acc > best_acc:
             best_acc = val_acc
             best_epoch = t
             torch.save(model.state_dict(), f"{exp_dir}/{exp_id}_best_model.pth")
-            print(f"Saved model at epoch {t} with accuracy {best_acc}.")
+            print(f"Saved best model at epoch {t} with accuracy {best_acc}.")
+
+        # Always save latest model in case training is interrupted
+        torch.save(model.state_dict(), f"{exp_dir}/{exp_id}_latest_model.pth")
+        print(f"Saved latest model at epoch {t} with accuracy {val_acc}.")
 
     print(f"Best model with validation accuracy {best_acc} saved at epoch {best_epoch}.")
 
