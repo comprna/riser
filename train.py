@@ -165,6 +165,7 @@ def main():
             best_acc = val_acc
             best_epoch = t
             torch.save(model.state_dict(), f"{exp_dir}/{exp_id}_best_model.pth")
+            print(f"Saved model at epoch {t} with accuracy {best_acc}.")
 
     print(f"Best model with validation accuracy {best_acc} saved at epoch {best_epoch}.")
 
