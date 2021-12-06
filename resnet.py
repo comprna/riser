@@ -132,7 +132,7 @@ class ResNet(nn.Module):
 def main():
     config = get_config('config-resnet.yaml')
     model = ResNet(config.resnet)
-    summary(model, input_size=(64, 9036))
+    summary(model, input_size=(64, 12048))
 
 
 if __name__ == "__main__":
