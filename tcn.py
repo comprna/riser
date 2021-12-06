@@ -98,7 +98,7 @@ class TCN(nn.Module):
 def main():
     config = get_config('config-tcn.yaml')
     model = TCN(config.tcn)
-    summary(model, input_size=(64, 9036))
+    summary(model, input_size=(32, 12048))
 
 
 if __name__ == "__main__":
