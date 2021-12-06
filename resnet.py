@@ -53,7 +53,7 @@ class BasicBlock(ResidualBlock):
 
         self.blocks = nn.Sequential(
             self.conv_block(in_channels, out_channels, 3, stride=stride, bias=False),
-            self.conv_block(out_channels, out_channels, 3, last=True)
+            self.conv_block(out_channels, out_channels, 3, last=True, bias=False)
         )
 
 
