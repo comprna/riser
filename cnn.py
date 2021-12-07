@@ -49,13 +49,16 @@ class ConvNet(nn.Module):
 
     def _make_layer(self, in_channels, out_channels, kernel_size, depth):
         layers = []
-        for _ in range(depth):
+        for i in range(depth):
             layers.append(nn.Conv1d(in_channels,
                                     out_channels,
                                     kernel_size,
                                     stride=1,
                                     padding='same'))
             layers.append(nn.ReLU(inplace=True))
+            # Only the first block takes input from the previous layer
+            if i == 0:
+                in_channels = out_channels
         layers.append(nn.MaxPool1d(kernel_size=2, stride=2))
         return nn.Sequential(*layers)
 
@@ -63,7 +66,7 @@ class ConvNet(nn.Module):
 def main():
     config = get_config('config-cnn.yaml')
     model = ConvNet(config.cnn)
-    summary(model, input_size=(64, 12048))
+    summary(model, input_size=(config.batch_size, 12048))
 
 
 if __name__ == "__main__":
