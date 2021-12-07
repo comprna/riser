@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchinfo import summary
 
+from cnn import ConvNet
 from resnet import ResNet
 from tcn import TCN
 from data import SignalDataset
@@ -131,6 +132,8 @@ def main():
         model = TCN(config.tcn).to(device)
     elif config.model == 'resnet':
         model = ResNet(config.resnet).to(device)
+    elif config.model == 'cnn':
+        model = ConvNet(config.cnn).to(device)
     else:
         print(f"{config.model} model is not supported - typo in config?")
 
