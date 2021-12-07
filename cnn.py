@@ -21,7 +21,7 @@ class ConvNet(nn.Module):
         if c.classifier == 'fc':
             self.classifier = nn.Sequential(
                 nn.Flatten(1),
-                nn.Linear(67*562, 4096), # TODO: Hardcoded
+                nn.Linear(67*753, 4096), # TODO: Hardcoded
                 nn.ReLU(inplace=True),
                 nn.Linear(4096, c.n_classes) # TODO: Hardcoded
             )
