@@ -83,7 +83,7 @@ def main():
     data_dir = sys.argv[2]
     checkpt = sys.argv[3] if sys.argv[3] != "None" else None
     config_file = sys.argv[4]
-    start_epoch = sys.argv[5]
+    start_epoch = int(sys.argv[5])
 
     # exp_dir = "/home/alex/Documents/rnaclassifier/saved_models"
     # data_dir = '/home/alex/Documents/rnaclassifier/local_data'
