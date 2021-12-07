@@ -83,6 +83,7 @@ def main():
     data_dir = sys.argv[2]
     checkpt = sys.argv[3] if sys.argv[3] != "None" else None
     config_file = sys.argv[4]
+    start_epoch = sys.argv[5]
 
     # exp_dir = "/home/alex/Documents/rnaclassifier/saved_models"
     # data_dir = '/home/alex/Documents/rnaclassifier/local_data'
@@ -137,6 +138,9 @@ def main():
 
     if checkpt is not None:
         model.load_state_dict(torch.load(f"{exp_dir}/{checkpt}"))
+        assert start_epoch > 0
+    else:
+        assert start_epoch == 0
     summary(model)
 
     # Define loss function & optimiser
@@ -152,7 +156,7 @@ def main():
 
     best_acc = 0
     best_epoch = 0
-    for t in range(config.n_epochs):
+    for t in range(start_epoch, config.n_epochs):
         print(f"Epoch {t+1}\n-------------------------------")
         train_loss = train(train_loader, model, loss_fn, optimizer, device, writer, t)
         val_loss, val_acc = validate(valid_loader, model, loss_fn, device)
