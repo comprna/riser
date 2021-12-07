@@ -14,7 +14,7 @@ class ConvNet(nn.Module):
             # First layer takes 1D time-series input while the rest
             # take channel outputs from previous layer
             in_channels = 1 if i == 0 else c.channels[i-1]
-            layers.append(self._make_layer(in_channels, c.channels[i], c.kernels[i]))
+            layers.append(self._make_layer(in_channels, c.channels[i], c.kernels[i], c.depth))
         self.layers = nn.ModuleList(layers)
 
         # Classifier
@@ -47,19 +47,23 @@ class ConvNet(nn.Module):
         x = self.classifier(x)
         return x
 
-    def _make_layer(self, in_channels, out_channels, kernel_size):
-        layers = [
-            nn.Conv1d(in_channels, out_channels, kernel_size),
-            nn.MaxPool1d(kernel_size=2, stride=2),
-            nn.ReLU(inplace=True)
-        ]
+    def _make_layer(self, in_channels, out_channels, kernel_size, depth):
+        layers = []
+        for _ in range(depth):
+            layers.append(nn.Conv1d(in_channels,
+                                    out_channels,
+                                    kernel_size,
+                                    stride=1,
+                                    padding='same'))
+            layers.append(nn.ReLU(inplace=True))
+        layers.append(nn.MaxPool1d(kernel_size=2, stride=2))
         return nn.Sequential(*layers)
 
 
 def main():
     config = get_config('config-cnn.yaml')
     model = ConvNet(config.cnn)
-    summary(model, input_size=(64, 9036))
+    summary(model, input_size=(64, 12048))
 
 
 if __name__ == "__main__":
