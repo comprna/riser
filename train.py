@@ -171,7 +171,7 @@ def main():
         if val_acc > best_acc:
             best_acc = val_acc
             best_epoch = t
-            torch.save(model.state_dict(), f"{exp_dir}/{exp_id}_best_model.pth")
+            torch.save(model.state_dict(), f"{exp_dir}/{exp_id}_{start_epoch}_best_model.pth")
             print(f"Saved best model at epoch {t} with accuracy {best_acc}.")
 
         # Always save latest model in case training is interrupted
