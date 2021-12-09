@@ -45,8 +45,8 @@ class ConvNet(nn.Module):
         for layer in self.layers:
             x = layer(x)
         x = self.classifier(x)
-        if x.shape[2] == 1: # Remove extra dimension added by avg pool
-            x = x.squeeze()
+        if len(x.shape) == 3 and x.shape[2] == 1:
+            x = x.squeeze() # Remove extra dimension added by avg pool
         return x
 
     def _make_layer(self, in_channels, out_channels, kernel_size, depth):
