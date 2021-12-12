@@ -1,0 +1,13 @@
+model: tcn-bot
+# batch_size: 1000
+batch_size: 64
+n_epochs: 50
+learning_rate: 0.0001
+
+tcnbot:
+  n_filters: 16
+  n_layers: 9
+  kernel: 15
+  dropout: 0.2
+  n_classes: 2
+  in_channels: 1

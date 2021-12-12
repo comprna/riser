@@ -134,6 +134,8 @@ def main():
         model = ResNet(config.resnet).to(device)
     elif config.model == 'cnn':
         model = ConvNet(config.cnn).to(device)
+    elif config.model == 'tcn-bot':
+        model = TCN(config.tcnbot).to(device)
     else:
         print(f"{config.model} model is not supported - typo in config?")
 
