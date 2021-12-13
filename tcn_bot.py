@@ -29,6 +29,7 @@ class TemporalBlock(nn.Module):
         # Causal convolutional blocks
         self.blocks = nn.Sequential(
             self.conv_block(in_channels, in_channels, kernel=1, dilation=1, padding=0, dropout=0),
+            self.conv_block(in_channels, in_channels, kernel, dilation, padding, dropout),
             self.conv_block(in_channels, in_channels, kernel, dilation, padding, dropout), # TODO: Update receptive field if single layer here
             self.conv_block(in_channels, out_channels, kernel=1, dilation=1, padding=0, dropout=0),
         )
