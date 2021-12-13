@@ -26,9 +26,7 @@ class TemporalBlock(nn.Module):
 
         # Causal convolutional blocks
         self.blocks = nn.Sequential(
-            self.conv_block(in_channels, in_channels, kernel=1, dilation=1, padding=0, dropout=0),
-            self.conv_block(in_channels, in_channels, kernel, dilation, padding, dropout), # TODO: Try single layer here, but update receptive field
-            self.conv_block(in_channels, out_channels, kernel=1, dilation=1, padding=0, dropout=0),
+            self.conv_block(in_channels, out_channels, kernel, dilation, padding, dropout), # TODO: Try single layer here, but update receptive field
         )
 
         # Match dimensions of block's input and output for summation
