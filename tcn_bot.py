@@ -30,7 +30,7 @@ class TemporalBlock(nn.Module):
         # Causal convolutional blocks
         self.blocks = nn.Sequential(
             self.conv_block(in_channels, in_channels, kernel=1, dilation=1, padding=0, dropout=0, chomp=False),
-            self.conv_block(in_channels, in_channels, kernel, dilation, padding, dropout),
+            # self.conv_block(in_channels, in_channels, kernel, dilation, padding, dropout),
             self.conv_block(in_channels, in_channels, kernel, dilation, padding, dropout), # TODO: Update receptive field if single layer here
             self.conv_block(in_channels, out_channels, kernel=1, dilation=1, padding=0, dropout=0, chomp=False),
         )
@@ -101,10 +101,10 @@ class TCNBot(nn.Module):
         return 1 + 2 * sum([2**i * (kernel-1) for i in range(n_layers)])
 
 def main():
-    # cProfile.run('callback()', sort='cumtime')
-    config = get_config('config-tcn-bot.yaml')
-    model = TCNBot(config.tcnbot)
-    summary(model, input_size=(32, 12048))
+    cProfile.run('callback()', sort='cumtime')
+    # config = get_config('config-tcn-bot.yaml')
+    # model = TCNBot(config.tcnbot)
+    # summary(model, input_size=(32, 12048))
 
 def callback():
     config = get_config('config-tcn-bot.yaml')
