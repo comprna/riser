@@ -1,3 +1,5 @@
+import cProfile
+
 from torch import nn
 import torch.nn.functional as F
 from torch.nn.utils import weight_norm
@@ -26,7 +28,10 @@ class TemporalBlock(nn.Module):
 
         # Causal convolutional blocks
         self.blocks = nn.Sequential(
-            self.conv_block(in_channels, out_channels, kernel, dilation, padding, dropout), # TODO: Try single layer here, but update receptive field
+            self.conv_block(in_channels, in_channels, kernel=1, dilation=1, padding=0, dropout=0),
+            self.conv_block(in_channels, in_channels, kernel, dilation, padding, dropout),
+            self.conv_block(in_channels, in_channels, kernel, dilation, padding, dropout), # TODO: Update receptive field if single layer here
+            self.conv_block(in_channels, out_channels, kernel=1, dilation=1, padding=0, dropout=0),
         )
 
         # Match dimensions of block's input and output for summation
@@ -62,7 +67,7 @@ class TemporalBlock(nn.Module):
         return self.in_channels != self.out_channels
 
 
-class TCN(nn.Module):
+class TCNBot(nn.Module):
     def __init__(self, c):
         super().__init__()
 
@@ -95,8 +100,14 @@ class TCN(nn.Module):
         return 1 + 2 * sum([2**i * (kernel-1) for i in range(n_layers)])
 
 def main():
-    config = get_config('config-tcn.yaml')
-    model = TCN(config.tcn)
+    cProfile.run('callback()', sort='cumtime')
+    # config = get_config('config-tcn-bot.yaml')
+    # model = TCN(config.tcnbot)
+    # summary(model, input_size=(32, 12048))
+
+def callback():
+    config = get_config('config-tcn-bot.yaml')
+    model = TCN(config.tcnbot)
     summary(model, input_size=(32, 12048))
 
 

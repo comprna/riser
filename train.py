@@ -1,4 +1,5 @@
 import sys
+import time
 
 import torch
 from torch import nn
@@ -9,6 +10,7 @@ from torchinfo import summary
 from cnn import ConvNet
 from resnet import ResNet
 from tcn import TCN
+from tcn_bot import TCNBot
 from data import SignalDataset
 from utilities import get_config
 
@@ -70,10 +72,12 @@ def validate(dataloader, model, loss_fn, device):
     return avg_loss, acc
 
 
-def write_scalars(writer, train_loss, val_loss, val_acc, epoch):
+def write_scalars(writer, train_loss, val_loss, val_acc, train_t, val_t, epoch):
     writer.add_scalar('validation loss', val_loss, epoch)
     writer.add_scalar('validation acc', val_acc, epoch)
     writer.add_scalar('train - val loss', train_loss-val_loss, epoch)
+    writer.add_scalar('train time', train_t, epoch)
+    writer.add_scalar('val time', val_t, epoch)
 
 
 def main():
@@ -135,7 +139,7 @@ def main():
     elif config.model == 'cnn':
         model = ConvNet(config.cnn).to(device)
     elif config.model == 'tcn-bot':
-        model = TCN(config.tcnbot).to(device)
+        model = TCNBot(config.tcnbot).to(device)
     else:
         print(f"{config.model} model is not supported - typo in config?")
 
@@ -163,11 +167,19 @@ def main():
     best_epoch = 0
     for t in range(start_epoch, config.n_epochs):
         print(f"Epoch {t+1}\n-------------------------------")
+        start_train_t = time.time()
         train_loss = train(train_loader, model, loss_fn, optimizer, device, writer, t)
+        end_train_t = time.time()
+        start_val_t = end_train_t
         val_loss, val_acc = validate(valid_loader, model, loss_fn, device)
+        end_val_t = time.time()
+
+        # Compute walltime taken for training and validation loops
+        train_t = end_train_t - start_train_t
+        val_t = end_val_t - start_val_t
 
         # Update TensorBoard
-        write_scalars(writer, train_loss, val_loss, val_acc, t)
+        write_scalars(writer, train_loss, val_loss, val_acc, train_t, val_t, t)
         
         # Save model if it is the best so far
         if val_acc > best_acc:
