@@ -1,0 +1,14 @@
+model: resnet
+batch_size: 32
+n_epochs: 50
+learning_rate: 0.001
+
+resnet:
+  kernel: 19
+  padding: 5
+  stride: 3
+  block: basic
+  n_layers: 4
+  blocks: [3,4,6,3]
+  channels: [64,128,256,512]
+  n_classes: 2

@@ -3,6 +3,8 @@ import torch.nn.functional as F
 from torch.nn.utils import weight_norm
 from torchinfo import summary
 
+import torch.autograd.profiler as profiler
+
 from utilities import get_config
 
 
@@ -47,9 +49,14 @@ class TemporalBlock(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        residual = self.shortcut(x) if self.should_apply_shortcut else x
-        out = self.blocks(x)
-        out = self.activation(out + residual)
+        with profiler.record_function("Calculate residual"):
+            residual = self.shortcut(x) if self.should_apply_shortcut else x
+        
+        with profiler.record_function("Conv blocks"):
+            out = self.blocks(x)
+        
+        with profiler.record_function("Sum residual and output"):
+            out = self.activation(out + residual)
         return out
 
     # TODO: Move to TCN class
@@ -87,9 +94,14 @@ class TCN(nn.Module):
         print(f"Receptive field: {self.get_receptive_field(c.kernel, c.n_layers)}")
 
     def forward(self, x):
-        x = x.unsqueeze(1)
-        x = self.layers(x)
-        x = self.linear(x[:,:,-1]) # Receptive field of last value covers entire input
+        with profiler.record_function("Unsqueeze raw input"):
+            x = x.unsqueeze(1)
+        
+        with profiler.record_function("TCN layers"):
+            x = self.layers(x)
+        
+        with profiler.record_function("Linear classifier"):
+            x = self.linear(x[:,:,-1]) # Receptive field of last value covers entire input
         return x
 
     def get_receptive_field(self, kernel, n_layers): 

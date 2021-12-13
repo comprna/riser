@@ -1,10 +1,9 @@
-import cProfile
-
-import torch
 from torch import nn
 import torch.nn.functional as F
 from torch.nn.utils import weight_norm
 from torchinfo import summary
+
+import torch.autograd.profiler as profiler
 
 from utilities import get_config
 
@@ -30,7 +29,7 @@ class TemporalBlock(nn.Module):
         # Causal convolutional blocks
         self.blocks = nn.Sequential(
             self.conv_block(in_channels, in_channels, kernel=1, dilation=1, padding=0, dropout=0, chomp=False),
-            # self.conv_block(in_channels, in_channels, kernel, dilation, padding, dropout),
+            self.conv_block(in_channels, in_channels, kernel, dilation, padding, dropout),
             self.conv_block(in_channels, in_channels, kernel, dilation, padding, dropout), # TODO: Update receptive field if single layer here
             self.conv_block(in_channels, out_channels, kernel=1, dilation=1, padding=0, dropout=0, chomp=False),
         )
@@ -52,9 +51,14 @@ class TemporalBlock(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        residual = self.shortcut(x) if self.should_apply_shortcut else x
-        out = self.blocks(x)
-        out = self.activation(out + residual)
+        with profiler.record_function("Calculate residual"):
+            residual = self.shortcut(x) if self.should_apply_shortcut else x
+        
+        with profiler.record_function("Conv blocks"):
+            out = self.blocks(x)
+        
+        with profiler.record_function("Sum residual and output"):
+            out = self.activation(out + residual)
         return out
 
     # TODO: Move to TCN class
@@ -92,21 +96,21 @@ class TCNBot(nn.Module):
         print(f"Receptive field: {self.get_receptive_field(c.kernel, c.n_layers)}")
 
     def forward(self, x):
-        x = x.unsqueeze(1)
-        x = self.layers(x)
-        x = self.linear(x[:,:,-1]) # Receptive field of last value covers entire input
+        with profiler.record_function("Unsqueeze raw input"):
+            x = x.unsqueeze(1)
+        
+        with profiler.record_function("TCN layers"):
+            x = self.layers(x)
+        
+        with profiler.record_function("Linear classifier"):
+            x = self.linear(x[:,:,-1]) # Receptive field of last value covers entire input
+
         return x
 
     def get_receptive_field(self, kernel, n_layers): 
         return 1 + 2 * sum([2**i * (kernel-1) for i in range(n_layers)])
 
 def main():
-    cProfile.run('callback()', sort='cumtime')
-    # config = get_config('config-tcn-bot.yaml')
-    # model = TCNBot(config.tcnbot)
-    # summary(model, input_size=(32, 12048))
-
-def callback():
     config = get_config('config-tcn-bot.yaml')
     model = TCNBot(config.tcnbot)
     summary(model, input_size=(32, 12048))
