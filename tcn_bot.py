@@ -1,5 +1,6 @@
 import cProfile
 
+import torch
 from torch import nn
 import torch.nn.functional as F
 from torch.nn.utils import weight_norm
@@ -28,10 +29,10 @@ class TemporalBlock(nn.Module):
 
         # Causal convolutional blocks
         self.blocks = nn.Sequential(
-            self.conv_block(in_channels, in_channels, kernel=1, dilation=1, padding=0, dropout=0),
+            self.conv_block(in_channels, in_channels, kernel=1, dilation=1, padding=0, dropout=0, chomp=False),
             self.conv_block(in_channels, in_channels, kernel, dilation, padding, dropout),
             self.conv_block(in_channels, in_channels, kernel, dilation, padding, dropout), # TODO: Update receptive field if single layer here
-            self.conv_block(in_channels, out_channels, kernel=1, dilation=1, padding=0, dropout=0),
+            self.conv_block(in_channels, out_channels, kernel=1, dilation=1, padding=0, dropout=0, chomp=False),
         )
 
         # Match dimensions of block's input and output for summation
@@ -41,13 +42,13 @@ class TemporalBlock(nn.Module):
         self._init_weights()
 
     # TODO: Pass config as param
-    def conv_block(self, in_channels, out_channels, kernel, dilation, padding, dropout):
-        layers = [
-            weight_norm(nn.Conv1d(in_channels, out_channels, kernel, stride=1, padding=padding, dilation=dilation)),
-            Chomp1d(padding),
-            nn.ReLU(), # ReLU applied even at the last layer because https://github.com/locuslab/TCN/issues/34 
-            nn.Dropout(dropout)
-        ]
+    def conv_block(self, in_channels, out_channels, kernel, dilation, padding, dropout, chomp=True):
+        layers = [weight_norm(nn.Conv1d(in_channels, out_channels, kernel, stride=1, padding=padding, dilation=dilation))]
+        if chomp is True:
+            layers.append(Chomp1d(padding))
+        layers.append(nn.ReLU()), # ReLU applied even at the last layer because https://github.com/locuslab/TCN/issues/34 
+        layers.append(nn.Dropout(dropout))
+        
         return nn.Sequential(*layers)
 
     def forward(self, x):
@@ -100,14 +101,14 @@ class TCNBot(nn.Module):
         return 1 + 2 * sum([2**i * (kernel-1) for i in range(n_layers)])
 
 def main():
-    cProfile.run('callback()', sort='cumtime')
-    # config = get_config('config-tcn-bot.yaml')
-    # model = TCN(config.tcnbot)
-    # summary(model, input_size=(32, 12048))
+    # cProfile.run('callback()', sort='cumtime')
+    config = get_config('config-tcn-bot.yaml')
+    model = TCNBot(config.tcnbot)
+    summary(model, input_size=(32, 12048))
 
 def callback():
     config = get_config('config-tcn-bot.yaml')
-    model = TCN(config.tcnbot)
+    model = TCNBot(config.tcnbot)
     summary(model, input_size=(32, 12048))
 
 
