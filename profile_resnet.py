@@ -7,10 +7,10 @@ from utilities import get_config
 def main():
     torch.backends.cudnn.enabled = False # TODO: Also try with cuda
 
-    config = get_config('config-resnet-basic.yaml')
+    config = get_config('config-resnet.yaml')
 
     model = ResNet(config.resnet)
-    inputs = torch.randn(32, 12048)
+    inputs = torch.randn(64, 12048)
 
     # warm-up (to avoid setup overhead in profiling)
     model(inputs)

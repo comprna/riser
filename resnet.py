@@ -65,13 +65,15 @@ class BasicBlock(ResidualBlock):
 
 
 class BottleneckBlock(ResidualBlock):
-    def __init__(self, in_channels, out_channels, stride=1):
+    def __init__(self, in_channels, out_channels, reduction=4, stride=1):
         super().__init__(in_channels, out_channels, stride)
 
+        self.channels = out_channels // reduction
+
         self.blocks = nn.Sequential(
-            self.conv_block(in_channels, in_channels, 1, bias=False),
-            self.conv_block(in_channels, in_channels, 3, stride=stride, padding=1, bias=False), # Downsample here as per line 107 https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
-            self.conv_block(in_channels, out_channels, 1, last=True, bias=False)
+            self.conv_block(in_channels, self.channels, 1, bias=False),
+            self.conv_block(self.channels, self.channels, 3, stride=stride, padding=1, bias=False), # Downsample here as per line 107 https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
+            self.conv_block(self.channels, out_channels, 1, last=True, bias=False)
         )
 
 
@@ -116,7 +118,7 @@ class ResNet(nn.Module):
 
     def _make_layer(self, block, out_channels, n_blocks, stride):
         # First residual block in layer may downsample
-        blocks = [block(self.in_channels, out_channels, stride)]
+        blocks = [block(self.in_channels, out_channels, stride=stride)]
 
         # In channels for next layer will be this layer's out channels
         self.in_channels = out_channels
