@@ -3,8 +3,6 @@ from torchinfo import summary
 
 from utilities import get_config
 
-import torch.autograd.profiler as profiler
-
 
 class ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1):
@@ -39,14 +37,9 @@ class ResidualBlock(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        with profiler.record_function("Calculate residual"):
-            residual = self.shortcut(x) if self.should_apply_shortcut else x
-        
-        with profiler.record_function("Residual blocks"):
-            out = self.blocks(x)
-        
-        with profiler.record_function("Sum output and residual"):
-            out = self.activation(out + residual)
+        residual = self.shortcut(x) if self.should_apply_shortcut else x
+        out = self.blocks(x)
+        out = self.activation(out + residual)
         return out
 
     @property
