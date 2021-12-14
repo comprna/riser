@@ -3,8 +3,6 @@ import torch.nn.functional as F
 from torch.nn.utils import weight_norm
 from torchinfo import summary
 
-import torch.autograd.profiler as profiler
-
 from utilities import get_config
 
 
@@ -27,23 +25,10 @@ class TemporalBlock(nn.Module):
         self.activation = nn.ReLU(inplace=True)
 
         # Causal convolutional blocks
-        # self.blocks = nn.Sequential(
-        #     self.conv_block(in_channels, out_channels, kernel, dilation, padding, dropout),
-        #     self.conv_block(out_channels, out_channels, kernel, dilation, padding, dropout),
-        # )
-
-        # self.block1 = self.conv_block(in_channels, out_channels, kernel, dilation, padding, dropout)
-        self.block1_wn = weight_norm(nn.Conv1d(in_channels, out_channels, kernel, stride=1, padding=padding, dilation=dilation))
-        self.block1_chomp = Chomp1d(padding)
-        self.block1_relu = nn.ReLU()
-        self.block1_d = nn.Dropout(dropout)
-        
-        
-        # self.block2 = self.conv_block(out_channels, out_channels, kernel, dilation, padding, dropout)
-        self.block2_wn = weight_norm(nn.Conv1d(out_channels, out_channels, kernel, stride=1, padding=padding, dilation=dilation))
-        self.block2_chomp = Chomp1d(padding)
-        self.block2_relu = nn.ReLU()
-        self.block2_d = nn.Dropout(dropout)
+        self.blocks = nn.Sequential(
+            self.conv_block(in_channels, out_channels, kernel, dilation, padding, dropout),
+            self.conv_block(out_channels, out_channels, kernel, dilation, padding, dropout),
+        )
 
         # Match dimensions of block's input and output for summation
         self.shortcut = nn.Conv1d(in_channels, out_channels, 1)
@@ -62,29 +47,9 @@ class TemporalBlock(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        with profiler.record_function("Calculate residual"):
-            residual = self.shortcut(x) if self.should_apply_shortcut else x
-
-        # with profiler.record_function("Conv blocks"):
-        #     out = self.blocks(x)
-
-        # with profiler.record_function("Conv block 1"):
-        #     out = self.block1(x)
-
-        with profiler.record_function("Conv block 1"):
-            out = self.block1_wn(x)
-            out = self.block1_chomp(out)
-            out = self.block1_relu(out)
-            out = self.block1_d(out)
-
-        with profiler.record_function("Conv block 2"):
-            out = self.block2_wn(out)
-            out = self.block2_chomp(out)
-            out = self.block2_relu(out)
-            out = self.block2_d(out)
-
-        with profiler.record_function("Sum residual and output"):
-            out = self.activation(out + residual)
+        residual = self.shortcut(x) if self.should_apply_shortcut else x
+        out = self.blocks(x)
+        out = self.activation(out + residual)
         return out
 
     # TODO: Move to TCN class
@@ -122,14 +87,9 @@ class TCN(nn.Module):
         print(f"Receptive field: {self.get_receptive_field(c.kernel, c.n_layers)}")
 
     def forward(self, x):
-        with profiler.record_function("Unsqueeze raw input"):
-            x = x.unsqueeze(1)
-        
-        with profiler.record_function("TCN layers"):
-            x = self.layers(x)
-        
-        with profiler.record_function("Linear classifier"):
-            x = self.linear(x[:,:,-1]) # Receptive field of last value covers entire input
+        x = x.unsqueeze(1)
+        x = self.layers(x)
+        x = self.linear(x[:,:,-1]) # Receptive field of last value covers entire input
         return x
 
     def get_receptive_field(self, kernel, n_layers): 
