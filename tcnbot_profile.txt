@@ -1,0 +1,58 @@
+Receptive field: 12277
+----------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                        Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg       CPU Mem  Self CPU Mem    # of Calls  
+----------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+       cudaDeviceSynchronize        58.81%        4.602s        58.81%        4.602s        4.602s           0 b           0 b             1  
+             model_inference         2.27%     177.695ms        41.18%        3.222s        3.222s     881.62 Kb      -7.35 Gb             1  
+                  TCN layers         0.09%       6.787ms        38.90%        3.044s        3.044s       7.35 Gb    -188.25 Mb             1  
+                aten::conv1d         0.01%     657.000us        20.25%        1.584s      38.645ms       3.49 Gb           0 b            41  
+           aten::convolution         0.01%     601.000us        20.24%        1.584s      38.629ms       3.49 Gb           0 b            41  
+          aten::_convolution         0.02%       1.181ms        20.23%        1.583s      38.615ms       3.49 Gb           0 b            41  
+    aten::mkldnn_convolution        19.99%        1.564s        20.04%        1.568s      38.251ms       3.45 Gb           0 b            41  
+             aten::clamp_min         5.94%     464.825ms        10.10%     790.390ms       8.782ms       6.43 Gb       3.22 Gb            90  
+                Conv block 2         0.38%      29.794ms         9.92%     776.312ms      77.631ms       1.38 Gb   -1012.29 Mb            10  
+                Conv block 3         0.36%      28.467ms         8.60%     672.784ms      67.278ms       1.38 Gb    -965.23 Mb            10  
+                Conv block 4         0.02%       1.865ms         7.78%     608.880ms      60.888ms       3.68 Gb        -184 b            10  
+     Sum residual and output         0.68%      53.595ms         6.24%     488.184ms      48.818ms         -40 b      -1.84 Gb            10  
+                Conv block 1         0.05%       3.952ms         5.85%     457.830ms      45.783ms     941.39 Mb        -104 b            10  
+               aten::dropout         0.02%       1.759ms         5.83%     456.203ms      11.405ms       1.84 Gb           0 b            40  
+                  aten::relu         0.02%       1.436ms         4.19%     327.888ms       8.197ms       3.22 Gb           0 b            40  
+                   aten::add         3.77%     294.866ms         3.77%     294.866ms      29.487ms       1.84 Gb       1.84 Gb            10  
+            aten::bernoulli_         3.06%     239.195ms         3.06%     239.488ms      11.974ms           0 b    -941.25 Mb            20  
+                   aten::mul         1.79%     139.945ms         1.79%     139.945ms       2.332ms     942.09 Mb     942.09 Mb            60  
+                 aten::relu_         0.01%     524.000us         1.78%     139.609ms      13.961ms           0 b           0 b            10  
+            aten::clamp_min_         0.00%     187.000us         1.78%     139.085ms      13.909ms           0 b           0 b            10  
+            aten::contiguous         0.01%     403.000us         1.44%     112.532ms       5.359ms     988.31 Mb           0 b            21  
+                 aten::copy_         1.43%     111.787ms         1.43%     111.787ms       2.600ms           0 b           0 b            43  
+                  aten::div_         0.94%      73.930ms         0.96%      74.948ms       3.747ms           0 b         -80 b            20  
+          Calculate residual         0.00%     254.000us         0.38%      30.107ms       3.011ms     188.25 Mb        -200 b            10  
+          aten::_weight_norm         0.01%     759.000us         0.11%       8.529ms     213.225us     881.62 Kb           0 b            40  
+                 aten::empty         0.09%       6.753ms         0.09%       6.753ms      21.714us       6.25 Gb       6.25 Gb           311  
+       aten::norm_except_dim         0.01%     686.000us         0.08%       6.070ms     151.750us       8.75 Kb           0 b            40  
+                  aten::norm         0.03%       1.997ms         0.05%       4.086ms     102.150us       8.75 Kb           0 b            40  
+            aten::as_strided         0.04%       3.490ms         0.04%       3.490ms      15.240us           0 b           0 b           229  
+                 aten::zeros         0.02%       1.467ms         0.04%       3.157ms      49.328us         256 b           0 b            64  
+             aten::unsqueeze         0.02%       1.243ms         0.03%       2.114ms      25.470us           0 b           0 b            83  
+               aten::squeeze         0.02%       1.251ms         0.02%       1.751ms      42.707us           0 b           0 b            41  
+            aten::empty_like         0.01%     515.000us         0.02%       1.732ms      41.238us       1.88 Gb           0 b            42  
+           aten::as_strided_         0.02%       1.512ms         0.02%       1.512ms      36.000us           0 b           0 b            42  
+                 aten::slice         0.01%     770.000us         0.02%       1.362ms      21.968us           0 b           0 b            62  
+                  aten::view         0.02%       1.298ms         0.02%       1.298ms      16.225us           0 b           0 b            80  
+                    aten::to         0.00%     299.000us         0.01%       1.018ms      50.900us          80 b           0 b            20  
+                   aten::div         0.01%     836.000us         0.01%     836.000us      20.900us       8.75 Kb       8.75 Kb            40  
+          cudaGetDeviceCount         0.01%     543.000us         0.01%     543.000us     271.500us           0 b           0 b             2  
+                 aten::zero_         0.01%     535.000us         0.01%     535.000us       8.359us           0 b           0 b            64  
+         aten::empty_strided         0.00%     369.000us         0.00%     369.000us      18.450us          80 b          80 b            20  
+           Linear classifier         0.00%      51.000us         0.00%     309.000us     309.000us         252 b         -20 b             1  
+                aten::linear         0.00%      11.000us         0.00%     211.000us     211.000us         256 b           0 b             1  
+     cudaGetDeviceProperties         0.00%     198.000us         0.00%     198.000us      99.000us           0 b           0 b             2  
+                 aten::addmm         0.00%      38.000us         0.00%     175.000us     175.000us         256 b     -15.75 Kb             1  
+                 aten::clone         0.00%      11.000us         0.00%     102.000us     102.000us      16.00 Kb           0 b             1  
+         Unsqueeze raw input         0.00%      21.000us         0.00%      46.000us      46.000us          -4 b          -4 b             1  
+                     aten::t         0.00%      12.000us         0.00%      25.000us      25.000us           0 b           0 b             1  
+             aten::transpose         0.00%       7.000us         0.00%      13.000us      13.000us           0 b           0 b             1  
+                aten::expand         0.00%       7.000us         0.00%      13.000us      13.000us           0 b           0 b             1  
+                aten::select         0.00%       8.000us         0.00%      12.000us      12.000us           0 b           0 b             1  
+----------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  
+Self CPU time total: 7.825s
+
