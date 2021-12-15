@@ -70,7 +70,7 @@ class TCN(nn.Module):
         # Feature extractor layers
         layers = []
         for i in range(c.n_layers):
-            dilation = 2 ** i
+            dilation = c.dilation ** i
             in_channels = c.in_channels if i == 0 else c.n_filters
             out_channels = c.n_filters
             layers += [TemporalBlock(in_channels,
@@ -84,7 +84,7 @@ class TCN(nn.Module):
         # Classifier
         self.linear = nn.Linear(c.n_filters, c.n_classes)
 
-        print(f"Receptive field: {self.get_receptive_field(c.kernel, c.n_layers)}")
+        print(f"Receptive field: {self.get_receptive_field(c.kernel, c.n_layers, c.dilation)}")
 
     def forward(self, x):
         x = x.unsqueeze(1)
@@ -92,8 +92,8 @@ class TCN(nn.Module):
         x = self.linear(x[:,:,-1]) # Receptive field of last value covers entire input
         return x
 
-    def get_receptive_field(self, kernel, n_layers): 
-        return 1 + 2 * sum([2**i * (kernel-1) for i in range(n_layers)])
+    def get_receptive_field(self, kernel, n_layers, dilation):
+        return 1 + 2 * sum([dilation**i * (kernel-1) for i in range(n_layers)])
 
 def main():
     config = get_config('config-tcn.yaml')
