@@ -29,7 +29,9 @@ def write_tensor(arr, filename):
 
 def main():
     npy_dir = sys.argv[1]
+    out_dir = sys.argv[2]
     print(npy_dir)
+    print(out_dir)
 
     # Build the datasets
 
@@ -66,8 +68,8 @@ def main():
         write_tensor(n_val, "val_noncoding.pt")
 
     else:
-        write_tensor(c_data, f"test_coding.pt")
-        write_tensor(n_data, f"test_noncoding.pt")
+        write_tensor(c_data, f"{out_dir}/test_coding.pt")
+        write_tensor(n_data, f"{out_dir}/test_noncoding.pt")
 
 
 if __name__ == "__main__":
