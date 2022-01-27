@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score
 import torch
+from torch.nn.functional import softmax
 from torch.utils.data import DataLoader
 from torchinfo import summary
 
@@ -74,9 +75,7 @@ def main():
             X = X.to(device)
 
             # Predict class probabilities
-            y_pred_probs = model(X) 
-            # TODO: Check if there are errors downstream - these are the
-            # raw logits, not the softmax probs.
+            y_pred_probs = softmax(model(X), dim=1)
 
             # Convert to class labels
             y_pred = torch.argmax(y_pred_probs, dim=1)
