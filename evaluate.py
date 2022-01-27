@@ -98,6 +98,8 @@ def main():
     all_y_pred = all_y_pred.cpu().numpy()
     all_y_pred_probs = all_y_pred_probs.cpu().numpy()
 
+    ############################# ANALYSIS ############################
+
     # Compute accuracy
 
     n_correct = count_correct(all_y_true, all_y_pred)
@@ -119,7 +121,7 @@ def main():
 
     matrix = confusion_matrix(all_y_true, all_y_pred)
     tn, fp, fn, tp = matrix.ravel()
-    print(f"Confusion matrix:\n------------------\n{matrix}")
+    print(f"Confusion matrix:\n------------------\n{matrix}\n")
 
     # Visualise confusion matrix
 
@@ -160,7 +162,7 @@ def main():
 
     coding_probs = all_y_pred_probs[:, 1]
     cod_auc = roc_auc_score(all_y_true, coding_probs)
-    print(f"Coding AUC: {cod_auc:.3f}\n\n")
+    print(f"Coding AUC: {cod_auc:.3f}\n")
 
     # Plot ROC curve
 
@@ -212,7 +214,7 @@ def main():
 
     noncoding_probs = all_y_pred_probs_nc[:, 1]
     nc_auc = roc_auc_score(all_y_true_nc, noncoding_probs)
-    print(f"Non-coding AUC: {nc_auc:.3f}\n\n")
+    print(f"Non-coding AUC: {nc_auc:.3f}\n")
 
     # Plot ROC curve
 
