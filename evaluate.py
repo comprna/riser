@@ -1,4 +1,6 @@
 import sys
+from statistics import mean
+import time
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -68,6 +70,7 @@ def main():
     all_y_true = torch.tensor([])
     all_y_pred = torch.tensor([], device=device)
     all_y_pred_probs = torch.tensor([], device=device)
+    batch_predict_t = []
     with torch.no_grad():
         for X, y in test_loader:
 
@@ -75,7 +78,10 @@ def main():
             X = X.to(device)
 
             # Predict class probabilities
+            start_t = time.time()
             y_pred_probs = softmax(model(X), dim=1)
+            end_t = time.time()
+            batch_predict_t.append(end_t-start_t)
 
             # Convert to class labels
             y_pred = torch.argmax(y_pred_probs, dim=1)
@@ -96,6 +102,17 @@ def main():
     n_correct = count_correct(all_y_true, all_y_pred)
     acc = n_correct / len(all_y_true) * 100
     print(f"Test accuracy: {acc:>0.1f}%\n")
+
+    # Inference time
+
+    max_t = max(batch_predict_t)
+    min_t = min(batch_predict_t)
+    avg_batch_t = mean(batch_predict_t)
+    avg_pred_t = avg_batch_t / config.batch_size
+    print(f"Max. batch inference time: {max_t}")
+    print(f"Min. batch inference time: {min_t}")
+    print(f"Avg. batch inference time: {avg_batch_t}")
+    print(f"Avg. inference time per signal: {avg_pred_t}\n")
 
     # Compute confusion matrix
 
