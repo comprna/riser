@@ -3,6 +3,7 @@ from statistics import mean
 import time
 
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score
 import torch
@@ -117,6 +118,7 @@ def main():
     # Compute confusion matrix
 
     matrix = confusion_matrix(all_y_true, all_y_pred)
+    tn, fp, fn, tp = matrix.ravel()
     print(f"Confusion matrix:\n------------------\n{matrix}")
 
     # Visualise confusion matrix
@@ -130,11 +132,35 @@ def main():
     plt.savefig(f"{model_id}_conf_matrix.png")
     plt.clf()
 
+    ######################## TARGET: CODING ############################
+
+    print("Metrics for target: CODING")
+
+    # True positive rate (fraction of +ve class predicted correctly)
+
+    cod_tpr = tp / (tp + fn)
+    print(f"Coding TPR: {cod_tpr}")
+
+    # False positive rate AKA recall (fraction of -ve class predicted incorrectly)
+
+    cod_fpr = fp / (fp + tn)
+    print(f"Coding FPR: {cod_fpr}")
+
+    # Precision (fraction of correct +ve predictions)
+
+    cod_prec = tp / (tp + fp)
+    print(f"Coding Precision: {cod_prec}")
+
+    # TP / FP rate
+
+    cod_tp_fp = tp / fp
+    print(f"Coding #TP/#FP: {cod_tp_fp}")
+
     # Compute ROC AUC
 
     coding_probs = all_y_pred_probs[:, 1]
-    auc = roc_auc_score(all_y_true, coding_probs)
-    print(f"AUC: {auc:.3f}")
+    cod_auc = roc_auc_score(all_y_true, coding_probs)
+    print(f"Coding AUC: {cod_auc:.3f}\n\n")
 
     # Plot ROC curve
 
@@ -142,8 +168,62 @@ def main():
     plt.plot(fpr, tpr, marker='.')
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title(f"{model_id} ROC curve, AUC = {auc:.3f}")
-    plt.savefig(f"{model_id}_roc_curve.png")
+    plt.title(f"{model_id} coding ROC curve, AUC = {cod_auc:.3f}")
+    plt.savefig(f"{model_id}_coding_roc_curve.png")
+
+
+    ###################### TARGET: NON-CODING ##########################
+
+    print("Metrics for target: NON-CODING")
+
+    # True positive rate (fraction of +ve class predicted correctly)
+
+    nc_tpr = tn / (tn + fp)
+    print(f"Non-coding TPR: {nc_tpr}")
+
+    # False positive rate AKA recall (fraction of -ve class predicted incorrectly)
+
+    nc_fpr = fn / (fn + tp)
+    print(f"Non-coding FPR: {nc_fpr}")
+
+    # Precision (fraction of correct +ve predictions)
+
+    nc_prec = tn / (tn + fn)
+    print(f"Non-coding Precision: {nc_prec}")
+
+    # TP / FP rate
+
+    nc_tp_fp = tn / fn
+    print(f"Non-coding #TP/#FP: {nc_tp_fp}")
+
+    # Compute ROC AUC
+
+    all_y_pred_probs_nc = []
+    for probs in all_y_pred_probs:
+        all_y_pred_probs_nc.append(list(probs[::-1]))
+    all_y_pred_probs_nc = np.array(all_y_pred_probs_nc)
+
+    all_y_true_nc = []
+    for y in all_y_true:
+        if y == 0:
+            all_y_true_nc.append(1)
+        else:
+            all_y_true_nc.append(0)
+
+    noncoding_probs = all_y_pred_probs_nc[:, 1]
+    nc_auc = roc_auc_score(all_y_true_nc, noncoding_probs)
+    print(f"Non-coding AUC: {nc_auc:.3f}\n\n")
+
+    # Plot ROC curve
+
+    fpr, tpr, _ = roc_curve(all_y_true_nc, noncoding_probs)
+    plt.plot(fpr, tpr, marker='.')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title(f"{model_id} non-coding ROC curve, AUC = {nc_auc:.3f}")
+    plt.savefig(f"{model_id}_noncoding_roc_curve.png")
+
+    print(f"{acc}/t{max_t}\t{min_t}\t{avg_batch_t}\t{avg_pred_t}\t{cod_tpr}\t{cod_fpr}\t{cod_prec}\t{cod_auc}\t{cod_tp_fp}\t{nc_tpr}\t{nc_fpr}\t{nc_prec}\t{nc_auc}\t{nc_tp_fp}")
 
 
 if __name__ == "__main__":
