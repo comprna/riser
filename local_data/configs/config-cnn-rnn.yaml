@@ -1,0 +1,16 @@
+model: cnn_rnn
+# batch_size: 1000
+batch_size: 64
+n_epochs: 50
+learning_rate: 0.001
+
+cnn_rnn:
+  n_conv_layers: 4
+  channels: [20,30,45,67]
+  kernels: [3,3,3,3]
+  n_rec_layers: 2
+  cell: gru
+  hidden: 50
+  dropout: 0.2
+  bidirectional: True
+  n_classes: 2

@@ -7,8 +7,9 @@ import torch
 from torch.utils.data import DataLoader
 from torchinfo import summary
 
-from resnet import ResNet, BottleneckBlock
 from data import SignalDataset
+from resnet import ResNet
+from utilities import get_config
 
 
 def count_correct(y_true, y_pred):
@@ -24,9 +25,16 @@ def main():
 
     # CL args
 
-    model_file = sys.argv[1]
-    data_dir = sys.argv[2]
-    batch_size = int(sys.argv[3])
+    # model_file = sys.argv[1]
+    # data_dir = sys.argv[2]
+    # batch_size = int(sys.argv[3])
+    model_file = './local_data/models/train-resnet-33_0_best_model.pth'
+    data_dir = './local_data/hek293'
+
+    # Load config
+
+    config_file = './local_data/configs/train-resnet-33.yaml'
+    config = get_config(config_file)
 
     # Determine model ID
 
@@ -36,10 +44,10 @@ def main():
 
     print("Creating test dataset...")
 
-    test_cfile = f"{data_dir}/val_coding.pt"
-    test_nfile = f"{data_dir}/val_noncoding.pt"
+    test_cfile = f"{data_dir}/test_coding.pt"
+    test_nfile = f"{data_dir}/test_noncoding.pt"
     test_data = SignalDataset(test_cfile, test_nfile)
-    test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_data, batch_size=config.batch_size, shuffle=False)
 
     # Get device for model evaluation
 
@@ -49,7 +57,7 @@ def main():
 
     # Define model
 
-    model = ResNet(BottleneckBlock, [2,2,2,2]).to(device)
+    model = ResNet(config.resnet).to(device)
     model.load_state_dict(torch.load(model_file))
     summary(model)
 
