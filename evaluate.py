@@ -53,7 +53,6 @@ def main():
     print(f"\n\n\nTesting {arch} with id {model_id} on data {dataset}")
     print("##########################################################")
 
-
     # Create test dataloader
 
     print("Creating test dataset...")
