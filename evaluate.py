@@ -11,8 +11,10 @@ from torch.nn.functional import softmax
 from torch.utils.data import DataLoader
 from torchinfo import summary
 
+from cnn import ConvNet
 from data import SignalDataset
 from resnet import ResNet
+from tcn import TCN
 from utilities import get_config
 
 
@@ -27,6 +29,8 @@ def count_correct(y_true, y_pred):
 
 def main():
 
+    ############################### SETUP ##############################
+
     # CL args
 
     # model_file = sys.argv[1]
@@ -40,9 +44,10 @@ def main():
     config_file = './local_data/configs/train-resnet-33.yaml'
     config = get_config(config_file)
 
-    # Determine model ID
+    # Determine model ID and architecture type
 
     model_id = model_file.split('.pth')[0].split('/')[-1]
+    arch = model_file.split('train-')[-1].split('-')[0]
 
     # Create test dataloader
 
@@ -61,11 +66,18 @@ def main():
 
     # Define model
 
-    model = ResNet(config.resnet).to(device)
+    if arch == 'resnet':
+        model = ResNet(config.resnet).to(device)
+    elif arch == 'tcn':
+        model = TCN(config.tcn).to(device)
+    elif arch == 'cnn':
+        model = ConvNet(config.cnn).to(device)
+    else:
+        print(f"Arch {arch} not defined!")
     model.load_state_dict(torch.load(model_file))
     summary(model)
 
-    # Test
+    ########################## MODEL INFERENCE #########################
 
     model.eval()
     all_y_true = torch.tensor([])
