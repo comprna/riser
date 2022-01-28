@@ -10,3 +10,4 @@ tcn:
   dropout: 0.05
   n_classes: 2
   in_channels: 1
+  dilation: 2

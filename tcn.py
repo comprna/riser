@@ -96,7 +96,7 @@ class TCN(nn.Module):
         return 1 + 2 * sum([dilation**i * (kernel-1) for i in range(n_layers)])
 
 def main():
-    config = get_config('config-tcn.yaml')
+    config = get_config('local_data/configs/train-tcn-13.yaml')
     model = TCN(config.tcn)
     summary(model, input_size=(32, 12048))
 
