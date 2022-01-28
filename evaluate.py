@@ -34,8 +34,8 @@ def main():
     # CL args
 
     model_file = sys.argv[1]
-    data_dir = sys.argv[2]
-    config_file = sys.argv[3]
+    config_file = sys.argv[2]
+    data_dir = sys.argv[3]
     # model_file = './local_data/models/train-resnet-33_0_best_model.pth'
     # data_dir = './local_data/hek293'
     # config_file = './local_data/configs/train-resnet-33.yaml'
@@ -49,7 +49,10 @@ def main():
     model_id = model_file.split('.pth')[0].split('/')[-1]
     arch = model_file.split('train-')[-1].split('-')[0]
     dataset = data_dir.split('gm24385/')[-1]
+    print("##########################################################")
     print(f"\n\n\nTesting {arch} with id {model_id} on data {dataset}")
+    print("##########################################################")
+
 
     # Create test dataloader
 
