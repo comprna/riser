@@ -33,21 +33,23 @@ def main():
 
     # CL args
 
-    # model_file = sys.argv[1]
-    # data_dir = sys.argv[2]
-    # batch_size = int(sys.argv[3])
-    model_file = './local_data/models/train-resnet-33_0_best_model.pth'
-    data_dir = './local_data/hek293'
+    model_file = sys.argv[1]
+    data_dir = sys.argv[2]
+    config_file = sys.argv[3]
+    # model_file = './local_data/models/train-resnet-33_0_best_model.pth'
+    # data_dir = './local_data/hek293'
+    # config_file = './local_data/configs/train-resnet-33.yaml'
 
     # Load config
 
-    config_file = './local_data/configs/train-resnet-33.yaml'
     config = get_config(config_file)
 
-    # Determine model ID and architecture type
+    # Get info about experiment
 
     model_id = model_file.split('.pth')[0].split('/')[-1]
     arch = model_file.split('train-')[-1].split('-')[0]
+    dataset = data_dir.split('gm24385/')[-1]
+    print(f"\n\n\nTesting {arch} with id {model_id} on data {dataset}")
 
     # Create test dataloader
 
