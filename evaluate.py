@@ -241,7 +241,7 @@ def main():
     plt.title(f"{model_id} non-coding ROC curve, AUC = {nc_auc:.3f}")
     plt.savefig(f"{model_id}_noncoding_roc_curve.png")
 
-    print(f"{acc}/t{max_t}\t{min_t}\t{avg_batch_t}\t{avg_pred_t}\t{cod_tpr}\t{cod_fpr}\t{cod_prec}\t{cod_auc}\t{cod_tp_fp}\t{nc_tpr}\t{nc_fpr}\t{nc_prec}\t{nc_auc}\t{nc_tp_fp}")
+    print(f"{acc}\t{max_t}\t{min_t}\t{avg_batch_t}\t{avg_pred_t}\t{cod_tpr}\t{cod_fpr}\t{cod_prec}\t{cod_auc}\t{cod_tp_fp}\t{nc_tpr}\t{nc_fpr}\t{nc_prec}\t{nc_auc}\t{nc_tp_fp}")
 
 
 if __name__ == "__main__":
