@@ -49,6 +49,7 @@ def main():
     # Number of samples to use per signal
 
     n_secs = int(sys.argv[1])
+    # n_secs = 4
     freq   = 3012
     cutoff = freq * n_secs
 
@@ -56,14 +57,14 @@ def main():
     # trimmed with a fixed cutoff value)
 
     npy_dir = sys.argv[2]
+    # npy_dir = '/home/alex/Documents/tmp'
 
     # Iterate through files
 
     for npy_file in Path(npy_dir).glob('*.npy'):
 
         print(f"Processing {npy_file}...")
-        
-        dataset = npy_file.split("/")[-1].split('.npy')[0]
+        dataset = npy_file.stem
     
         data = []
         n_discarded = 0
