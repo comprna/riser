@@ -146,8 +146,8 @@ def main():
                 xticklabels=categories, yticklabels=categories)
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
-    plt.title(f"{model_id} confusion matrix")
-    plt.savefig(f"{model_id}_conf_matrix.png")
+    plt.title(f"{data_dir} {model_id} confusion matrix")
+    plt.savefig(f"{data_dir}_{model_id}_conf_matrix.png")
     plt.clf()
 
     ######################## TARGET: CODING ############################
@@ -186,8 +186,8 @@ def main():
     plt.plot(fpr, tpr, marker='.')
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title(f"{model_id} coding ROC curve, AUC = {cod_auc:.3f}")
-    plt.savefig(f"{model_id}_coding_roc_curve.png")
+    plt.title(f"{data_dir} {model_id} coding ROC curve, AUC = {cod_auc:.3f}")
+    plt.savefig(f"{data_dir}_{model_id}_coding_roc_curve.png")
 
 
     ###################### TARGET: NON-CODING ##########################
@@ -238,8 +238,8 @@ def main():
     plt.plot(fpr, tpr, marker='.')
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title(f"{model_id} non-coding ROC curve, AUC = {nc_auc:.3f}")
-    plt.savefig(f"{model_id}_noncoding_roc_curve.png")
+    plt.title(f"{data_dir} {model_id} non-coding ROC curve, AUC = {nc_auc:.3f}")
+    plt.savefig(f"{data_dir}_{model_id}_noncoding_roc_curve.png")
 
     print(f"{acc}\t{max_t}\t{min_t}\t{avg_batch_t}\t{avg_pred_t}\t{cod_tpr}\t{cod_fpr}\t{cod_prec}\t{cod_auc}\t{cod_tp_fp}\t{nc_tpr}\t{nc_fpr}\t{nc_prec}\t{nc_auc}\t{nc_tp_fp}")
 
