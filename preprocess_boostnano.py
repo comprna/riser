@@ -51,7 +51,7 @@ def main():
     freq   = 3012
     cutoff = freq * n_secs
 
-    # Location of raw signals
+    # Location of raw signals (that have been processed by BoostNano)
 
     f5_dir = sys.argv[2]
     name = f5_dir.split("/")[-1]
