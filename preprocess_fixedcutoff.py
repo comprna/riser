@@ -56,22 +56,21 @@ def main():
     # trimmed with a fixed cutoff value)
 
     npy_dir = sys.argv[2]
-    dataset = npy_dir.split("/")[-1]
-
-    # Store processed data
-
-    data = []
 
     # Iterate through files
 
-    n_discarded = 0
-    n_retained = 0
-
     for npy_file in Path(npy_dir).glob('*.npy'):
+
+        print(f"Processing {npy_file}...")
+        
+        dataset = npy_file.split("/")[-1].split('.npy')[0]
+    
+        data = []
+        n_discarded = 0
+        n_retained = 0
 
         # Iterate through signals in file
 
-        print(f"Processing {npy_file}...")
         signals = np.load(npy_file, allow_pickle=True)
 
         for signal in signals:
@@ -90,14 +89,12 @@ def main():
             normalised = mad_normalise(signal, outlier_lim)
             data.append(normalised)
 
+        print(f"# discarded reads (< {cutoff} samples) in {dataset}: {n_discarded}")
+        print(f"# retained reads (< {cutoff} samples) in {dataset}: {n_retained}")
 
-    print(f"# discarded reads (< {cutoff} samples) in {dataset}: {n_discarded}")
-    print(f"# retained reads (< {cutoff} samples) in {dataset}: {n_retained}")
+        # Write data to file
 
-
-    # Write data to file
-
-    np.save(f"{dataset}_{cutoff}.npy", np.array(data))
+        np.save(f"{dataset}_{cutoff}.npy", np.array(data))
 
 
 if __name__=="__main__":
