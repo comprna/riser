@@ -15,8 +15,11 @@ POLYA_SIGNAL = 6481
 MODEL_INPUT = 12048
 
 def analysis(client, model, device, duration=0.1, throttle=0.4, batch_size=512):
-    # Perform analysis as long as client is running
-    while client.is_running:
+    n_rejected = 0
+    t_start = time.time()
+
+    # Perform analysis for 30 mins
+    while client.is_running and time.time() < t_start + 1800:
 
         # Initialise current batch of reads to reject
         t0 = timer()
@@ -53,6 +56,10 @@ def analysis(client, model, device, duration=0.1, throttle=0.4, batch_size=512):
         if len(unblock_batch_reads) > 0:
             client.unblock_read_batch(unblock_batch_reads, duration=duration)
             client.stop_receiving_batch(stop_receiving_reads)
+
+        # Count number rejected
+        n_rejected += i
+        print(f"Total n reads rejected: {n_rejected}")
 
         # Limit request rate
         t1 = timer()
