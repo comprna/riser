@@ -1,11 +1,9 @@
-from asyncore import read
 import time
 from timeit import default_timer as timer
 
 from concurrent.futures import ThreadPoolExecutor
+import numpy as np
 from read_until import ReadUntilClient
-from read_until.read_cache import AccumulatingCache
-
 
 
 def analysis(client, duration=0.1, throttle=0.4, batch_size=512):
@@ -17,6 +15,10 @@ def analysis(client, duration=0.1, throttle=0.4, batch_size=512):
         for i, (channel, read) in enumerate(
             client.get_read_chunks(batch_size=batch_size, last=True),
             start=1):
+
+            # raw_data = np.frombuffer(read.raw_data, client.signal_dtype)
+            # print(len(raw_data))
+
             unblock_batch_reads.append((channel, read.number))
             stop_receiving_reads.append((channel, read.number))
 
@@ -33,21 +35,26 @@ def analysis(client, duration=0.1, throttle=0.4, batch_size=512):
         print("Client stopped, finished analysis.")
 
 
-# Set one_chunk to false, otherwise client.get_read_chunks will only
-# return very few reads - potentially caused by stop_receiving_read
-# being called too frequently.
-read_until_client = ReadUntilClient(filter_strands=True,
-                                    one_chunk=False)
+def main():
+    # Set one_chunk to false, otherwise client.get_read_chunks will only
+    # return very few reads - potentially caused by stop_receiving_read
+    # being called too frequently.
+    read_until_client = ReadUntilClient(filter_strands=True,
+                                        one_chunk=False)
 
-read_until_client.run(first_channel=1, last_channel=512)
+    read_until_client.run(first_channel=1, last_channel=512)
 
-# Make sure client is running before starting analysis
-while read_until_client.is_running is False:
-    time.sleep(0.1)
+    # Make sure client is running before starting analysis
+    while read_until_client.is_running is False:
+        time.sleep(0.1)
 
-# TODO: Is ThreadPoolExecutor needed? Readfish just calls analysis
-# function directly.
-# with ThreadPoolExecutor() as executor:
-#     executor.submit(analysis, read_until_client)
+    # TODO: Is ThreadPoolExecutor needed? Readfish just calls analysis
+    # function directly.
+    # with ThreadPoolExecutor() as executor:
+    #     executor.submit(analysis, read_until_client)
 
-analysis(read_until_client)
+    analysis(read_until_client)
+
+
+if __name__ == "__main__":
+    main()
