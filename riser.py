@@ -58,7 +58,7 @@ def analysis(client, model, device, duration=0.1, throttle=0.4, batch_size=512):
             client.stop_receiving_batch(stop_receiving_reads)
 
         # Count number rejected
-        n_rejected += i
+        n_rejected += len(unblock_batch_reads)
         print(f"Total n reads rejected: {n_rejected}")
 
         # Limit request rate
