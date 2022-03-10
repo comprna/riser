@@ -43,11 +43,11 @@ def analysis(client, model, device, duration=0.1, throttle=0.4, batch_size=512):
 
             # Mark reads to be rejected only if they are long enough
             if len(raw_data) >= POLYA_SIGNAL + MODEL_INPUT:
-                print(f'{len(raw_data)} LONG ENOUGH')
+                print(f'{len(raw_data)} LONG ENOUGH******************')
                 unblock_batch_reads.append((channel, read.number))
                 stop_receiving_reads.append((channel, read.number))
             else:
-                print(len(raw_data))
+                print(f'{len(raw_data)} TOO SHORT')
 
         # Send reject requests
         if len(unblock_batch_reads) > 0:
