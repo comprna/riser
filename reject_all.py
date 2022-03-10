@@ -6,28 +6,31 @@ import numpy as np
 from read_until import ReadUntilClient
 
 
-def analysis(client, duration=0.1, throttle=0.4, batch_size=512):
+def reject_all(client, duration=0.1, throttle=0.4, batch_size=512):
+    # Reject reads as long as client is running
     while client.is_running:
+
+        # Initialise current batch of reads to reject
         t0 = timer()
         i = 0
         unblock_batch_reads = []
         stop_receiving_reads = []
+
+        # Iterate through reads in current batch
         for i, (channel, read) in enumerate(
             client.get_read_chunks(batch_size=batch_size, last=True),
             start=1):
 
-            # raw_data = np.frombuffer(read.raw_data, client.signal_dtype)
-            # print(len(raw_data))
-
             unblock_batch_reads.append((channel, read.number))
             stop_receiving_reads.append((channel, read.number))
 
+        # Reject all reads
         if len(unblock_batch_reads) > 0:
             client.unblock_read_batch(unblock_batch_reads, duration=duration)
             client.stop_receiving_batch(stop_receiving_reads)
 
-        t1 = timer()
         # Limit request rate
+        t1 = timer()
         if t0 + throttle > t1:
             time.sleep(throttle + t0 - t1)
         print(f"Time to unblock batch of {i:3} reads: {t1 - t0:.4f}s")
@@ -36,9 +39,6 @@ def analysis(client, duration=0.1, throttle=0.4, batch_size=512):
 
 
 def main():
-    # Set one_chunk to false, otherwise client.get_read_chunks will only
-    # return very few reads - potentially caused by stop_receiving_read
-    # being called too frequently.
     read_until_client = ReadUntilClient(filter_strands=True,
                                         one_chunk=False)
 
@@ -53,7 +53,7 @@ def main():
     # with ThreadPoolExecutor() as executor:
     #     executor.submit(analysis, read_until_client)
 
-    analysis(read_until_client)
+    reject_all(read_until_client)
 
 
 if __name__ == "__main__":
