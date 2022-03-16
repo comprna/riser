@@ -2,6 +2,7 @@ import time
 from timeit import default_timer as timer
 
 from concurrent.futures import ThreadPoolExecutor
+from matplotlib import pyplot as plt
 import numpy as np
 from read_until import ReadUntilClient
 from read_until.read_cache import AccumulatingCache
@@ -11,8 +12,73 @@ from torchinfo import summary
 from cnn import ConvNet
 from utilities import get_config
 
-POLYA_SIGNAL = 6481
-MODEL_INPUT = 12048
+POLYA_SIGNAL = 6481 # TODO: Remove globals
+MODEL_INPUT = 12048 # TODO: Remove globals
+
+
+def mad_normalise(signal, outlier_lim):
+    if signal.shape[0] == 0:
+        raise ValueError("Signal must not be empty")
+    median = np.median(signal)
+    mad = calculate_mad(signal, median)
+    vnormalise = np.vectorize(normalise)
+    normalised = vnormalise(np.array(signal), median, mad)
+    return smooth_outliers(normalised, outlier_lim)
+
+
+def smooth_outliers(arr, outlier_lim):
+    # Replace outliers with average of neighbours
+    outlier_idx = np.asarray(np.abs(arr) > outlier_lim).nonzero()[0]
+    for i in outlier_idx:
+        if i == 0:
+            arr[i] = arr[i+1]
+        elif i == len(arr)-1:
+            arr[i] = arr[i-1]
+        else:
+            arr[i] = (arr[i-1] + arr[i+1])/2
+            # Clip any outliers that still remain after smoothing
+            if arr[i] > outlier_lim:
+                arr[i] = outlier_lim
+            elif arr[i] < -1 * outlier_lim:
+                arr[i] = -1 * outlier_lim
+    return arr
+
+
+def calculate_mad(signal, median):
+    f = lambda x, median: np.abs(x - median)
+    distances_from_median = f(signal, median)
+    return np.median(distances_from_median)
+
+
+def normalise(x, median, mad):
+    return (x - median) / (1.4826 * mad)
+
+
+def preprocess(signal):
+    # Trim polyA + sequencing adapter from start of signal
+    trimmed = signal[POLYA_SIGNAL:]
+
+    # Retain the first 4 seconds of transcript signal
+    signal_input = trimmed[:MODEL_INPUT]
+
+    # Normalise signal
+    outlier_lim = 3.5
+    normalised = mad_normalise(signal_input, outlier_lim)
+    
+    fig, axs = plt.subplots(4)
+    axs[0].plot(signal)
+    axs[0].set_title('Original signal retrieved from RU API')
+    axs[1].plot(trimmed)
+    axs[1].set_title('PolyA + sequencing adapter removed')
+    axs[2].plot(signal_input)
+    axs[2].set_title('First 4 seconds of transcript signal')
+    axs[3].plot(normalised)
+    axs[3].set_title('Normalised to input to model')
+    plt.suptitle('RISER signal processing')
+    plt.show()
+
+    return normalised
+    
 
 def analysis(client, model, device, duration=0.1, throttle=0.4, batch_size=512):
     n_rejected = 0
@@ -33,25 +99,26 @@ def analysis(client, model, device, duration=0.1, throttle=0.4, batch_size=512):
             start=1):
 
             # Get raw signal
-            raw_data = np.frombuffer(read.raw_data, client.signal_dtype)
+            raw_signal = np.frombuffer(read.raw_data, client.signal_dtype)
 
             # Classify signal if it is long enough
-            if len(raw_data) >= POLYA_SIGNAL + MODEL_INPUT:
-                X = raw_data[:MODEL_INPUT]
+            if len(raw_signal) >= POLYA_SIGNAL + MODEL_INPUT:
+                input_signal = preprocess(raw_signal)
+
                 with torch.no_grad():
-                    X = torch.from_numpy(X)
-                    X = X.unsqueeze(0) # Create mini-batch as expected by model
-                    X = X.to(device, dtype=torch.float)
-                    y = model(X)
+                    input_signal = torch.from_numpy(input_signal)
+                    input_signal = input_signal.unsqueeze(0) # Create mini-batch as expected by model
+                    input_signal = input_signal.to(device, dtype=torch.float)
+                    y = model(input_signal)
                     print(y)
 
             # Mark reads to be rejected only if they are long enough
-            if len(raw_data) >= POLYA_SIGNAL + MODEL_INPUT:
-                print(f'{len(raw_data)} LONG ENOUGH******************')
-                unblock_batch_reads.append((channel, read.number))
-                stop_receiving_reads.append((channel, read.number))
-            else:
-                print(f'{len(raw_data)} TOO SHORT')
+            # if len(raw_data) >= POLYA_SIGNAL + MODEL_INPUT:
+            #     print(f'{len(raw_data)} LONG ENOUGH******************')
+            #     unblock_batch_reads.append((channel, read.number))
+            #     stop_receiving_reads.append((channel, read.number))
+            # else:
+            #     print(f'{len(raw_data)} TOO SHORT')
 
         # Send reject requests
         if len(unblock_batch_reads) > 0:
