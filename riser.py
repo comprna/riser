@@ -13,8 +13,6 @@ from cnn import ConvNet
 from utilities import get_config
 from preprocess import SignalProcessor
 
-POLYA_LENGTH = 6481 # TODO: Remove globals
-INPUT_LENGTH = 12048 # TODO: Remove globals
 
 
 def analysis(client, model, device, processor, duration=0.1, throttle=0.4, batch_size=512):
@@ -34,8 +32,8 @@ def analysis(client, model, device, processor, duration=0.1, throttle=0.4, batch
             raw_signal = np.frombuffer(read.raw_data, client.signal_dtype)
 
             # Classify signal if it is long enough
-            if len(raw_signal) >= POLYA_LENGTH + INPUT_LENGTH:
-                input_signal = processor.preprocess(raw_signal)
+            if len(raw_signal) >= processor.get_required_length():
+                input_signal = processor.process(raw_signal)
                 with torch.no_grad():
                     input_signal = torch.from_numpy(input_signal)
                     input_signal = input_signal.unsqueeze(0) # Create mini-batch as expected by model
@@ -62,16 +60,18 @@ def analysis(client, model, device, processor, duration=0.1, throttle=0.4, batch
 
 
 def setup_client():
-    read_until_client = ReadUntilClient(filter_strands=True,
-                                        one_chunk=False,
-                                        cache_type=AccumulatingCache)
+    client = ReadUntilClient(filter_strands=True,
+                             one_chunk=False,
+                             cache_type=AccumulatingCache)
 
     # Start communication with MinKNOW
-    read_until_client.run(first_channel=1, last_channel=512)
+    client.run(first_channel=1, last_channel=512)
 
     # Make sure client is running
-    while read_until_client.is_running is False:
+    while client.is_running is False:
         time.sleep(0.1)
+    
+    return client
 
 
 def setup_device():
@@ -87,29 +87,27 @@ def setup_model(model_file, config_file, device):
     model.load_state_dict(torch.load(model_file))
     summary(model)
     model.eval()
+    return model
 
 
 def main():
     # CL args
     config_file = './local_data/configs/train-cnn-20.yaml'
     model_file = 'local_data/models/train-cnn-20_0_best_model.pth'
+    polyA_length = 6481
+    input_length = 12048
 
-    # Set up ReadUntil client
+    # Set up
     client = setup_client()
-
-    # Set up device to use for running model
     device = setup_device()
-
-    # Set up model
     model = setup_model(model_file, config_file, device)
+    processor = SignalProcessor(polyA_length, input_length)
 
+    # Run analysis
     # TODO: Is ThreadPoolExecutor needed? Readfish just calls analysis
     # function directly.
     # with ThreadPoolExecutor() as executor:
     #     executor.submit(analysis, read_until_client)
-
-    processor = SignalProcessor(POLYA_LENGTH, INPUT_LENGTH)
-
     analysis(client, model, device, processor)
 
     # TODO: Close connection to client.
