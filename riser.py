@@ -24,14 +24,11 @@ def analysis(client, model, device, processor, duration=0.1, throttle=0.4, batch
 
         # Initialise current batch of reads
         t0 = timer()
-        i = 0
         unblock_batch_reads = []
         stop_receiving_reads = []
 
         # Iterate through reads in current batch
-        for i, (channel, read) in enumerate(
-            client.get_read_chunks(batch_size=batch_size, last=True),
-            start=1):
+        for (_, read) in client.get_read_chunks(batch_size=batch_size, last=True):
 
             # Get raw signal
             raw_signal = np.frombuffer(read.raw_data, client.signal_dtype)
@@ -64,34 +61,47 @@ def analysis(client, model, device, processor, duration=0.1, throttle=0.4, batch
         print("Client stopped, finished analysis.")
 
 
-def main():
-    # Set up ReadUntil client
+def setup_client():
     read_until_client = ReadUntilClient(filter_strands=True,
                                         one_chunk=False,
                                         cache_type=AccumulatingCache)
 
-    # Start client communication with MinKNOW
+    # Start communication with MinKNOW
     read_until_client.run(first_channel=1, last_channel=512)
 
-    # Make sure client is running before starting analysis
+    # Make sure client is running
     while read_until_client.is_running is False:
         time.sleep(0.1)
 
-    # Set up device to use for running model
+
+def setup_device():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     device = torch.device(device)
     print(f"Using {device} device")
+    return device
 
-    # Load model config
-    config_file = './local_data/configs/train-cnn-20.yaml'
+
+def setup_model(model_file, config_file, device):
     config = get_config(config_file)
-    
-    # Set up model
-    model_file = 'local_data/models/train-cnn-20_0_best_model.pth'
     model = ConvNet(config.cnn).to(device)
     model.load_state_dict(torch.load(model_file))
     summary(model)
     model.eval()
+
+
+def main():
+    # CL args
+    config_file = './local_data/configs/train-cnn-20.yaml'
+    model_file = 'local_data/models/train-cnn-20_0_best_model.pth'
+
+    # Set up ReadUntil client
+    client = setup_client()
+
+    # Set up device to use for running model
+    device = setup_device()
+
+    # Set up model
+    model = setup_model(model_file, config_file, device)
 
     # TODO: Is ThreadPoolExecutor needed? Readfish just calls analysis
     # function directly.
@@ -100,7 +110,7 @@ def main():
 
     processor = SignalProcessor(POLYA_LENGTH, INPUT_LENGTH)
 
-    analysis(read_until_client, model, device, processor)
+    analysis(client, model, device, processor)
 
     # TODO: Close connection to client.
 
