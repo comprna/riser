@@ -9,7 +9,7 @@ class SignalProcessor():
         self.polya_length = polya_length
         self.input_length = input_length
 
-    def preprocess(self, signal):
+    def process(self, signal):
         """
         Trim polyA + sequencing adapter from start of signal
         Retain the first 4 seconds of transcript signal
@@ -18,6 +18,9 @@ class SignalProcessor():
         signal = signal[self.polya_length:]
         signal = signal[:self.input_length]
         return self._mad_normalise(signal)
+
+    def get_required_length(self):
+        return self.polya_length + self.input_length
 
     def _mad_normalise(self, signal):
         if signal.shape[0] == 0:
