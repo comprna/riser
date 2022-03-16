@@ -11,71 +11,18 @@ from torchinfo import summary
 
 from cnn import ConvNet
 from utilities import get_config
+from preprocess import SignalProcessor
 
 POLYA_LENGTH = 6481 # TODO: Remove globals
 INPUT_LENGTH = 12048 # TODO: Remove globals
 
 
-def mad_normalise(signal, outlier_lim):
-    if signal.shape[0] == 0:
-        raise ValueError("Signal must not be empty")
-    median = np.median(signal)
-    mad = calculate_mad(signal, median)
-    vnormalise = np.vectorize(normalise)
-    normalised = vnormalise(np.array(signal), median, mad)
-    return smooth_outliers(normalised, outlier_lim)
-
-
-def smooth_outliers(arr, outlier_lim):
-    # Replace outliers with average of neighbours
-    outlier_idx = np.asarray(np.abs(arr) > outlier_lim).nonzero()[0]
-    for i in outlier_idx:
-        if i == 0:
-            arr[i] = arr[i+1]
-        elif i == len(arr)-1:
-            arr[i] = arr[i-1]
-        else:
-            arr[i] = (arr[i-1] + arr[i+1])/2
-            # Clip any outliers that still remain after smoothing
-            if arr[i] > outlier_lim:
-                arr[i] = outlier_lim
-            elif arr[i] < -1 * outlier_lim:
-                arr[i] = -1 * outlier_lim
-    return arr
-
-
-def calculate_mad(signal, median):
-    f = lambda x, median: np.abs(x - median)
-    distances_from_median = f(signal, median)
-    return np.median(distances_from_median)
-
-
-def normalise(x, median, mad):
-    return (x - median) / (1.4826 * mad) # TODO: Remove hardcoding
-
-
-def preprocess(signal):
-    # Trim polyA + sequencing adapter from start of signal
-    signal = signal[POLYA_LENGTH:]
-
-    # Retain the first 4 seconds of transcript signal
-    signal = signal[:INPUT_LENGTH]
-
-    # Normalise signal
-    outlier_lim = 3.5 # TODO: Remove hardcoding
-    normalised = mad_normalise(signal, outlier_lim)
-
-    return normalised
-    
-
-def analysis(client, model, device, duration=0.1, throttle=0.4, batch_size=512):
+def analysis(client, model, device, processor, duration=0.1, throttle=0.4, batch_size=512):
     n_rejected = 0
-    t_start = time.time()
 
-    # Perform analysis for 30 mins
-    while client.is_running and time.time() < t_start + 1800: # TODO: Remove
+    while client.is_running:
 
-        # Initialise current batch of reads to reject
+        # Initialise current batch of reads
         t0 = timer()
         i = 0
         unblock_batch_reads = []
@@ -90,23 +37,14 @@ def analysis(client, model, device, duration=0.1, throttle=0.4, batch_size=512):
             raw_signal = np.frombuffer(read.raw_data, client.signal_dtype)
 
             # Classify signal if it is long enough
-            if len(raw_signal) >= POLYA_SIGNAL + MODEL_INPUT:
-                input_signal = preprocess(raw_signal)
-
+            if len(raw_signal) >= POLYA_LENGTH + INPUT_LENGTH:
+                input_signal = processor.preprocess(raw_signal)
                 with torch.no_grad():
                     input_signal = torch.from_numpy(input_signal)
                     input_signal = input_signal.unsqueeze(0) # Create mini-batch as expected by model
                     input_signal = input_signal.to(device, dtype=torch.float)
                     y = model(input_signal)
                     print(y)
-
-            # Mark reads to be rejected only if they are long enough
-            # if len(raw_data) >= POLYA_SIGNAL + MODEL_INPUT:
-            #     print(f'{len(raw_data)} LONG ENOUGH******************')
-            #     unblock_batch_reads.append((channel, read.number))
-            #     stop_receiving_reads.append((channel, read.number))
-            # else:
-            #     print(f'{len(raw_data)} TOO SHORT')
 
         # Send reject requests
         if len(unblock_batch_reads) > 0:
@@ -160,7 +98,9 @@ def main():
     # with ThreadPoolExecutor() as executor:
     #     executor.submit(analysis, read_until_client)
 
-    analysis(read_until_client, model, device)
+    processor = SignalProcessor(POLYA_LENGTH, INPUT_LENGTH)
+
+    analysis(read_until_client, model, device, processor)
 
     # TODO: Close connection to client.
 
