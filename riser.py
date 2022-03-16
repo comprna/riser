@@ -110,8 +110,7 @@ def main():
     #     executor.submit(analysis, read_until_client)
     analysis(client, model, device, processor)
 
-    # TODO: Close connection to client.
-
+    client.reset()
 
 if __name__ == "__main__":
     main()
