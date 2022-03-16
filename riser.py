@@ -12,8 +12,8 @@ from torchinfo import summary
 from cnn import ConvNet
 from utilities import get_config
 
-POLYA_SIGNAL = 6481 # TODO: Remove globals
-MODEL_INPUT = 12048 # TODO: Remove globals
+POLYA_LENGTH = 6481 # TODO: Remove globals
+INPUT_LENGTH = 12048 # TODO: Remove globals
 
 
 def mad_normalise(signal, outlier_lim):
@@ -51,31 +51,19 @@ def calculate_mad(signal, median):
 
 
 def normalise(x, median, mad):
-    return (x - median) / (1.4826 * mad)
+    return (x - median) / (1.4826 * mad) # TODO: Remove hardcoding
 
 
 def preprocess(signal):
     # Trim polyA + sequencing adapter from start of signal
-    trimmed = signal[POLYA_SIGNAL:]
+    signal = signal[POLYA_LENGTH:]
 
     # Retain the first 4 seconds of transcript signal
-    signal_input = trimmed[:MODEL_INPUT]
+    signal = signal[:INPUT_LENGTH]
 
     # Normalise signal
-    outlier_lim = 3.5
-    normalised = mad_normalise(signal_input, outlier_lim)
-    
-    fig, axs = plt.subplots(4)
-    axs[0].plot(signal)
-    axs[0].set_title('Original signal retrieved from RU API')
-    axs[1].plot(trimmed)
-    axs[1].set_title('PolyA + sequencing adapter removed')
-    axs[2].plot(signal_input)
-    axs[2].set_title('First 4 seconds of transcript signal')
-    axs[3].plot(normalised)
-    axs[3].set_title('Normalised to input to model')
-    plt.suptitle('RISER signal processing')
-    plt.show()
+    outlier_lim = 3.5 # TODO: Remove hardcoding
+    normalised = mad_normalise(signal, outlier_lim)
 
     return normalised
     
