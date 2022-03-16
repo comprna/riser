@@ -19,7 +19,7 @@ def analysis(client, model, device, duration=0.1, throttle=0.4, batch_size=512):
     t_start = time.time()
 
     # Perform analysis for 30 mins
-    while client.is_running and time.time() < t_start + 1800:
+    while client.is_running and time.time() < t_start + 1800: # TODO: Remove
 
         # Initialise current batch of reads to reject
         t0 = timer()
@@ -35,14 +35,15 @@ def analysis(client, model, device, duration=0.1, throttle=0.4, batch_size=512):
             # Get raw signal
             raw_data = np.frombuffer(read.raw_data, client.signal_dtype)
 
-            # with torch.no_grad():
-            #     raw_data = np.frombuffer(read.raw_data,
-            #                              client.signal_dtype)
-                
-            #     print(raw_data)
-            #     X = torch.from_numpy(raw_data)
-            #     X = X.to(device)
-            #     print(model(X))
+            # Classify signal if it is long enough
+            if len(raw_data) >= POLYA_SIGNAL + MODEL_INPUT:
+                X = raw_data[:MODEL_INPUT]
+                with torch.no_grad():
+                    X = torch.from_numpy(X)
+                    X = X.unsqueeze(0) # Create mini-batch as expected by model
+                    X = X.to(device, dtype=torch.float)
+                    y = model(X)
+                    print(y)
 
             # Mark reads to be rejected only if they are long enough
             if len(raw_data) >= POLYA_SIGNAL + MODEL_INPUT:
@@ -84,27 +85,29 @@ def main():
         time.sleep(0.1)
 
     # Set up device to use for running model
-    # device = "cuda" if torch.cuda.is_available() else "cpu"
-    # device = torch.device(device)
-    # print(f"Using {device} device")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = torch.device(device)
+    print(f"Using {device} device")
 
     # Load model config
-    # config_file = './local_data/configs/train-cnn-20.yaml'
-    # config = get_config(config_file)
+    config_file = './local_data/configs/train-cnn-20.yaml'
+    config = get_config(config_file)
     
     # Set up model
-    # model_file = 'local_data/models/train-cnn-20_0_best_model.pth'
-    # model = ConvNet(config.cnn).to(device)
-    # model.load_state_dict(torch.load(model_file))
-    # summary(model)
-    # model.eval()
+    model_file = 'local_data/models/train-cnn-20_0_best_model.pth'
+    model = ConvNet(config.cnn).to(device)
+    model.load_state_dict(torch.load(model_file))
+    summary(model)
+    model.eval()
 
     # TODO: Is ThreadPoolExecutor needed? Readfish just calls analysis
     # function directly.
     # with ThreadPoolExecutor() as executor:
     #     executor.submit(analysis, read_until_client)
 
-    analysis(read_until_client, None, None)
+    analysis(read_until_client, model, device)
+
+    # TODO: Close connection to client.
 
 
 if __name__ == "__main__":
