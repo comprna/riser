@@ -14,55 +14,52 @@ from utilities import get_config
 from preprocess import SignalProcessor
 
 
+# TODO: Logging
+# TODO: Multithreading
+# TODO: Annotate function signatures (arg types, return type)
+# TODO: Comments
 
-def analysis(client, model, device, processor, target, duration=0.1, throttle=0.4, batch_size=512):
-    n_rejected = 0
 
+def classify(signal, device, model):
+    with torch.no_grad():
+        X = torch.from_numpy(signal).unsqueeze(0)
+        X = X.to(device, dtype=torch.float)
+        logits = model(X)
+        return torch.argmax(logits, dim=1)
+
+
+def analysis(client, model, device, processor, target, duration=0.1, throttle=0.4, batch_size=512):    
     while client.is_running:
-
-        # Initialise current batch of reads
-        t0 = timer()
+        # Pass through current batch of reads retrieved from client
+        start_t = time.time()
         unblock_batch_reads = []
         stop_receiving_reads = []
-
-        # Iterate through reads in current batch
-        for (channel, read) in client.get_read_chunks(batch_size=batch_size, last=True):
-
-            # Get raw signal
-            raw_signal = np.frombuffer(read.raw_data, client.signal_dtype)
-
-            # Classify signal if it is long enough
-            if len(raw_signal) < processor.get_required_length():
+        for (channel, read) in client.get_read_chunks(batch_size=batch_size,
+                                                      last=True):
+            # Preprocess raw signal if it's long enough
+            signal = np.frombuffer(read.raw_data, client.signal_dtype)
+            if len(signal) < processor.get_required_length():
                 continue
-            input_signal = processor.process(raw_signal)
-            with torch.no_grad():
-                x = torch.from_numpy(input_signal).unsqueeze(0)
-                x = x.to(device, dtype=torch.float)
-                pred_probs = model(x)
-                pred_class = torch.argmax(pred_probs, dim=1)
-                print(pred_probs)
-                print(pred_class)
-            
-            # Determine whether to accept or reject read
-            target_class = 1 if target == 'protein-coding' else 0 # TODO: primitive obsession
-            if pred_class != target_class:
+            signal = processor.process(signal)
+
+            # Accept or reject read
+            prediction = classify(signal, device, model)
+            if prediction != target:
                 unblock_batch_reads.append((channel, read.number))
-                stop_receiving_reads.append((channel, read.number))
+
+            # Don't need to assess the same read twice
+            stop_receiving_reads.append((channel, read.number))
 
         # Send reject requests
         if len(unblock_batch_reads) > 0:
             client.unblock_read_batch(unblock_batch_reads, duration=duration)
+        if len(stop_receiving_reads) > 0:
             client.stop_receiving_batch(stop_receiving_reads)
 
-        # Count number rejected
-        n_rejected += len(unblock_batch_reads)
-        print(f"Total n reads rejected: {n_rejected}")
-
         # Limit request rate
-        t1 = timer()
-        if t0 + throttle > t1:
-            time.sleep(throttle + t0 - t1)
-        print(f"Time to unblock batch of {len(unblock_batch_reads):3} reads: {t1 - t0:.4f}s")
+        end_t = time.time()
+        if start_t + throttle > end_t:
+            time.sleep(throttle + start_t - end_t)
     else:
         print("Client stopped, finished analysis.")
 
@@ -104,12 +101,15 @@ def main():
     model_file = 'local_data/models/train-cnn-20_0_best_model.pth'
     polyA_length = 6481
     input_length = 12048
+    target = 'protein-coding'
+    
 
     # Set up
     client = setup_client()
     device = setup_device()
     model = setup_model(model_file, config_file, device)
     processor = SignalProcessor(polyA_length, input_length)
+    target_class = 1 if target == 'protein-coding' else 0 # TODO: primitive obsession
 
     # Run analysis
     # TODO: Is ThreadPoolExecutor needed? Readfish just calls analysis
