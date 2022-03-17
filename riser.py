@@ -1,3 +1,5 @@
+from datetime import datetime
+import logging
 import time
 from timeit import default_timer as timer
 
@@ -28,7 +30,8 @@ def classify(signal, device, model):
         return torch.argmax(logits, dim=1)
 
 
-def analysis(client, model, device, processor, target, duration=0.1, throttle=0.4, batch_size=512):    
+def analysis(client, model, device, processor, target, duration=0.1, throttle=0.4, batch_size=512):       
+    logging.info('Inside analysis')
     while client.is_running:
         # Pass through current batch of reads retrieved from client
         start_t = time.time()
@@ -68,14 +71,11 @@ def setup_client():
     client = ReadUntilClient(filter_strands=True,
                              one_chunk=False,
                              cache_type=AccumulatingCache)
-
-    # Start communication with MinKNOW
     client.run(first_channel=1, last_channel=512)
-
-    # Make sure client is running
     while client.is_running is False:
         time.sleep(0.1)
-    
+        logging.info('Waiting for client to start streaming read data.')
+    logging.info('Client is running.')
     return client
 
 
@@ -95,6 +95,15 @@ def setup_model(model_file, config_file, device):
     return model
 
 
+def setup_logging():
+    dt_format = '%Y-%m-%dT%H:%M:%S'
+    now = datetime.now().strftime(dt_format)
+    logging.basicConfig(filename=f'riser_{now}.log',
+                        level=logging.DEBUG,
+                        format='%(asctime)s %(levelname)s: %(message)s',
+                        datefmt=dt_format)
+
+
 def main():
     # CL args
     config_file = './local_data/configs/train-cnn-20.yaml'
@@ -105,18 +114,23 @@ def main():
     
 
     # Set up
+    setup_logging()
     client = setup_client()
     device = setup_device()
     model = setup_model(model_file, config_file, device)
     processor = SignalProcessor(polyA_length, input_length)
     target_class = 1 if target == 'protein-coding' else 0 # TODO: primitive obsession
 
+    # Log initial setup
+    # logging.info(" ".join(sys.argv))
+
+
     # Run analysis
     # TODO: Is ThreadPoolExecutor needed? Readfish just calls analysis
     # function directly.
     # with ThreadPoolExecutor() as executor:
     #     executor.submit(analysis, read_until_client)
-    analysis(client, model, device, processor)
+    analysis(client, model, device, processor, target_class)
 
     client.reset()
 
