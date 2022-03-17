@@ -63,8 +63,8 @@ def analysis(client, model, device, processor, target, logger, duration=0.1, thr
         end_t = time.time()
         if start_t + throttle > end_t:
             time.sleep(throttle + start_t - end_t)
-        logger.info('Time to unblock batch of %d reads: %fs',
-                     len(unblock_batch_reads),
+        logger.info('Time to process batch of %d reads: %fs',
+                     len(stop_receiving_reads),
                      end_t - start_t)
     else:
         logger.info("Client stopped, finished analysis.")
