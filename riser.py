@@ -1,3 +1,4 @@
+from enum import Enum
 from datetime import datetime
 import logging
 import time
@@ -30,8 +31,32 @@ def classify(signal, device, model):
         return torch.argmax(logits, dim=1)
 
 
+# TODO: Switch/enum (target)
+# 0=non-coding, 1=protein-coding
+
+class Severity(Enum):
+    """
+    This matches the severity values expected for messages received by the 
+    MinKNOW API.
+    """
+    INFO = 1
+    WARNING = 2
+    ERROR = 3
+
+
+def send_message_to_minknow(client, severity, message):
+    """
+    severity: Severity enum (value sent to API)
+    """
+    client.connection.log.send_user_message(user_message=message,
+                                            severity=severity.value)
+
+
 def analysis(client, model, device, processor, target, logger, duration=0.1, throttle=4.0, batch_size=512):
-    # TODO: Send message to minKNOW (as per ReadFish)
+    send_message_to_minknow(client,
+                            Severity.WARNING,
+                            f'RISER will reject reads that are not {target}. '
+                            'This will affect the sequencing run.')
     while client.is_running:
         # Iterate through current batch of reads retrieved from client
         start_t = time.time()
@@ -67,7 +92,10 @@ def analysis(client, model, device, processor, target, logger, duration=0.1, thr
                      len(stop_receiving_reads),
                      end_t - start_t)
     else:
-        logger.info("Client stopped, finished analysis.")
+        send_message_to_minknow(client,
+                                Severity.WARNING,
+                                f'RISER has stopped running.')
+        logger.info("ReadUntil client stopped.")
 
 
 def setup_client(logger):
