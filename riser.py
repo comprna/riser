@@ -31,14 +31,17 @@ def classify(signal, device, model):
         return torch.argmax(logits, dim=1)
 
 
-# TODO: Switch/enum (target)
-# 0=non-coding, 1=protein-coding
+class Target(Enum):
+    NONCODING = 0
+    CODING = 1
+
 
 class Severity(Enum):
     """
     This matches the severity values expected for messages received by the 
     MinKNOW API.
     """
+    TRACE = 0
     INFO = 1
     WARNING = 2
     ERROR = 3
@@ -88,8 +91,9 @@ def analysis(client, model, device, processor, target, logger, duration=0.1, thr
         end_t = time.time()
         if start_t + throttle > end_t:
             time.sleep(throttle + start_t - end_t)
-        logger.info('Time to process batch of %d reads: %fs',
+        logger.info('Time to process batch of %d reads (%d rejected): %fs',
                      len(stop_receiving_reads),
+                     len(unblock_batch_reads),
                      end_t - start_t)
     else:
         send_message_to_minknow(client,
@@ -151,7 +155,7 @@ def main():
     model_file = 'local_data/models/train-cnn-20_0_best_model.pth'
     polyA_length = 6481
     input_length = 12048
-    target = 'protein-coding'
+    target = Target.NONCODING
     
     # TODO: Riser class??
     # Handles setting up logger, client, device, model
@@ -163,7 +167,7 @@ def main():
     device = setup_device()
     model = setup_model(model_file, config_file, device)
     processor = SignalProcessor(polyA_length, input_length)
-    target_class = 1 if target == 'protein-coding' else 0 # TODO: primitive obsession
+    target_class = target.value
 
     # Log initial setup
     # logger.info(" ".join(sys.argv)) # TODO: Replace below with this
@@ -172,6 +176,7 @@ def main():
     logger.info('PolyA + seq adapter length: %s', polyA_length)
     logger.info('Input length: %s', input_length)
     logger.info('Target: %s', target)
+    logger.info('Target class: %s', target_class)
 
     # Run analysis
     # TODO: Is ThreadPoolExecutor needed? Readfish just calls analysis
