@@ -15,7 +15,7 @@ from preprocess import SignalProcessor
 
 
 
-def analysis(client, model, device, processor, duration=0.1, throttle=0.4, batch_size=512):
+def analysis(client, model, device, processor, target, duration=0.1, throttle=0.4, batch_size=512):
     n_rejected = 0
 
     while client.is_running:
@@ -26,20 +26,28 @@ def analysis(client, model, device, processor, duration=0.1, throttle=0.4, batch
         stop_receiving_reads = []
 
         # Iterate through reads in current batch
-        for (_, read) in client.get_read_chunks(batch_size=batch_size, last=True):
+        for (channel, read) in client.get_read_chunks(batch_size=batch_size, last=True):
 
             # Get raw signal
             raw_signal = np.frombuffer(read.raw_data, client.signal_dtype)
 
             # Classify signal if it is long enough
-            if len(raw_signal) >= processor.get_required_length():
-                input_signal = processor.process(raw_signal)
-                with torch.no_grad():
-                    input_signal = torch.from_numpy(input_signal)
-                    input_signal = input_signal.unsqueeze(0) # Create mini-batch as expected by model
-                    input_signal = input_signal.to(device, dtype=torch.float)
-                    y = model(input_signal)
-                    print(y)
+            if len(raw_signal) < processor.get_required_length():
+                continue
+            input_signal = processor.process(raw_signal)
+            with torch.no_grad():
+                x = torch.from_numpy(input_signal).unsqueeze(0)
+                x = x.to(device, dtype=torch.float)
+                pred_probs = model(x)
+                pred_class = torch.argmax(pred_probs, dim=1)
+                print(pred_probs)
+                print(pred_class)
+            
+            # Determine whether to accept or reject read
+            target_class = 1 if target == 'protein-coding' else 0 # TODO: primitive obsession
+            if pred_class != target_class:
+                unblock_batch_reads.append((channel, read.number))
+                stop_receiving_reads.append((channel, read.number))
 
         # Send reject requests
         if len(unblock_batch_reads) > 0:
