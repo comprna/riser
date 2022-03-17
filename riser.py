@@ -30,7 +30,7 @@ def classify(signal, device, model):
         return torch.argmax(logits, dim=1)
 
 
-def analysis(client, model, device, processor, target, duration=0.1, throttle=4.0, batch_size=512):       
+def analysis(client, model, device, processor, target, logger, duration=0.1, throttle=4.0, batch_size=512):
     # TODO: Send message to minKNOW (as per ReadFish)
     while client.is_running:
         # Iterate through current batch of reads retrieved from client
@@ -63,22 +63,22 @@ def analysis(client, model, device, processor, target, duration=0.1, throttle=4.
         end_t = time.time()
         if start_t + throttle > end_t:
             time.sleep(throttle + start_t - end_t)
-        logging.info('Time to unblock batch of %d reads: %fs',
+        logger.info('Time to unblock batch of %d reads: %fs',
                      len(unblock_batch_reads),
                      end_t - start_t)
     else:
-        logging.info("Client stopped, finished analysis.")
+        logger.info("Client stopped, finished analysis.")
 
 
-def setup_client():
+def setup_client(logger):
     client = ReadUntilClient(filter_strands=True, #TODO: Is this needed?
                              one_chunk=False,
                              cache_type=AccumulatingCache)
     client.run(first_channel=1, last_channel=512)
     while client.is_running is False:
         time.sleep(0.1)
-        logging.info('Waiting for client to start streaming live reads.')
-    logging.info('Client is running.')
+        logger.info('Waiting for client to start streaming live reads.')
+    logger.info('Client is running.')
     return client
 
 
@@ -103,13 +103,18 @@ def setup_logging():
     now = datetime.now().strftime(dt_format)
     logging.basicConfig(filename=f'riser_{now}.log',
                         level=logging.DEBUG,
-                        format='%(asctime)s %(levelname)s: %(message)s',
+                        format='%(asctime)s [%(name)s] %(levelname)s: %(message)s',
                         datefmt=dt_format)
 
     # Also write INFO-level or higher messages to sys.stderr
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
     logging.getLogger().addHandler(console)
+
+    # Turn off ReadUntil logging, which clogs up the logs
+    logging.getLogger("ReadUntil").disabled = True
+
+    return logging.getLogger("RISER")
 
 
 def main():
@@ -120,34 +125,36 @@ def main():
     input_length = 12048
     target = 'protein-coding'
     
+    # TODO: Riser class??
+    # Handles setting up logger, client, device, model
+    # Give it a processor
 
     # Set up
-    setup_logging()
-    client = setup_client()
+    logger = setup_logging()
+    client = setup_client(logger)
     device = setup_device()
     model = setup_model(model_file, config_file, device)
     processor = SignalProcessor(polyA_length, input_length)
     target_class = 1 if target == 'protein-coding' else 0 # TODO: primitive obsession
 
     # Log initial setup
-    # logging.info(" ".join(sys.argv)) # TODO: Replace below with this
-    logging.info('Config file: %s', config_file)
-    logging.info('Model file: %s', model_file)
-    logging.info('PolyA + seq adapter length: %s', polyA_length)
-    logging.info('Input length: %s', input_length)
-    logging.info('Target: %s', target)
-
+    # logger.info(" ".join(sys.argv)) # TODO: Replace below with this
+    logger.info('Config file: %s', config_file)
+    logger.info('Model file: %s', model_file)
+    logger.info('PolyA + seq adapter length: %s', polyA_length)
+    logger.info('Input length: %s', input_length)
+    logger.info('Target: %s', target)
 
     # Run analysis
     # TODO: Is ThreadPoolExecutor needed? Readfish just calls analysis
     # function directly.
     # with ThreadPoolExecutor() as executor:
     #     executor.submit(analysis, read_until_client)
-    analysis(client, model, device, processor, target_class)
+    analysis(client, model, device, processor, target_class, logger)
 
     # Close read stream
     client.reset()
-    logging.info('Client reset and live read stream ended.')
+    logger.info('Client reset and live read stream ended.')
 
 
 if __name__ == "__main__":
