@@ -30,10 +30,10 @@ def classify(signal, device, model):
         return torch.argmax(logits, dim=1)
 
 
-def analysis(client, model, device, processor, target, duration=0.1, throttle=0.4, batch_size=512):       
-    logging.info('Inside analysis')
+def analysis(client, model, device, processor, target, duration=0.1, throttle=4.0, batch_size=512):       
+    # TODO: Send message to minKNOW (as per ReadFish)
     while client.is_running:
-        # Pass through current batch of reads retrieved from client
+        # Iterate through current batch of reads retrieved from client
         start_t = time.time()
         unblock_batch_reads = []
         stop_receiving_reads = []
@@ -63,18 +63,21 @@ def analysis(client, model, device, processor, target, duration=0.1, throttle=0.
         end_t = time.time()
         if start_t + throttle > end_t:
             time.sleep(throttle + start_t - end_t)
+        logging.info('Time to unblock batch of %d reads: %fs',
+                     len(unblock_batch_reads),
+                     end_t - start_t)
     else:
-        print("Client stopped, finished analysis.")
+        logging.info("Client stopped, finished analysis.")
 
 
 def setup_client():
-    client = ReadUntilClient(filter_strands=True,
+    client = ReadUntilClient(filter_strands=True, #TODO: Is this needed?
                              one_chunk=False,
                              cache_type=AccumulatingCache)
     client.run(first_channel=1, last_channel=512)
     while client.is_running is False:
         time.sleep(0.1)
-        logging.info('Waiting for client to start streaming read data.')
+        logging.info('Waiting for client to start streaming live reads.')
     logging.info('Client is running.')
     return client
 
@@ -103,6 +106,11 @@ def setup_logging():
                         format='%(asctime)s %(levelname)s: %(message)s',
                         datefmt=dt_format)
 
+    # Also write INFO-level or higher messages to sys.stderr
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    logging.getLogger().addHandler(console)
+
 
 def main():
     # CL args
@@ -122,7 +130,12 @@ def main():
     target_class = 1 if target == 'protein-coding' else 0 # TODO: primitive obsession
 
     # Log initial setup
-    # logging.info(" ".join(sys.argv))
+    # logging.info(" ".join(sys.argv)) # TODO: Replace below with this
+    logging.info('Config file: %s', config_file)
+    logging.info('Model file: %s', model_file)
+    logging.info('PolyA + seq adapter length: %s', polyA_length)
+    logging.info('Input length: %s', input_length)
+    logging.info('Target: %s', target)
 
 
     # Run analysis
@@ -132,8 +145,10 @@ def main():
     #     executor.submit(analysis, read_until_client)
     analysis(client, model, device, processor, target_class)
 
+    # Close read stream
     client.reset()
+    logging.info('Client reset and live read stream ended.')
+
 
 if __name__ == "__main__":
     main()
-
