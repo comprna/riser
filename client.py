@@ -43,7 +43,7 @@ class Client():
     def is_running(self):
         return self.ru_client.is_running
     
-    def get_read_chunks(self): # TODO: Rename
+    def get_read_batch(self): # TODO: Rename
         return self.ru_client.get_read_chunks(batch_size=N_CHANNELS, last=True)
     
     def get_raw_signal(self, read):
@@ -54,7 +54,7 @@ class Client():
             self.ru_client.unblock_read_batch(reads,
                                               duration=unblock_duration)
 
-    def track_assessed_reads(self, reads):
+    def track_reads_processed(self, reads):
         if reads: # TODO: What if this is omitted?
             self.ru_client.stop_receiving_batch(reads)
     
