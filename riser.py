@@ -10,9 +10,8 @@ import numpy as np
 from read_until import ReadUntilClient
 from read_until.read_cache import AccumulatingCache
 import torch
-from torchinfo import summary
 
-from cnn import ConvNet
+from model import Model
 from utilities import get_config
 from preprocess import SignalProcessor
 
@@ -22,13 +21,6 @@ from preprocess import SignalProcessor
 # TODO: Extract model class to encapsulate PyTorch code
 
 DT_FORMAT = '%Y-%m-%dT%H:%M:%S'
-
-def classify(signal, device, model):
-    with torch.no_grad():
-        X = torch.from_numpy(signal).unsqueeze(0)
-        X = X.to(device, dtype=torch.float)
-        logits = model(X)
-        return torch.argmax(logits, dim=1)
 
 
 class Target(Enum):
@@ -55,7 +47,7 @@ def send_message_to_minknow(client, severity, message):
                                             severity=severity.value)
 
 
-def analysis(client, model, device, processor, target, logger, duration=0.1, throttle=4.0, batch_size=512):
+def analysis(client, model, processor, target, logger, duration=0.1, throttle=4.0, batch_size=512):
     send_message_to_minknow(client,
                             Severity.WARNING,
                             ('RISER will accept reads that are %s and reject '
@@ -78,8 +70,7 @@ def analysis(client, model, device, processor, target, logger, duration=0.1, thr
                 signal = processor.process(signal)
 
                 # Accept or reject read
-                # TODO: Return prediction as enum value
-                prediction = classify(signal, device, model) # TODO: Return accept/reject as well
+                prediction = model.classify(signal) # TODO: Return prediction as enum value
                 if prediction != target.value:
                     unblock_batch_reads.append((channel, read.number))
                 f.write(f'{channel},{read.number}')
@@ -120,22 +111,6 @@ def setup_client(logger):
     return client
 
 
-def setup_device():
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    device = torch.device(device)
-    print(f"Using {device} device")
-    return device
-
-
-def setup_model(model_file, config_file, device):
-    config = get_config(config_file)
-    model = ConvNet(config.cnn).to(device)
-    model.load_state_dict(torch.load(model_file))
-    summary(model)
-    model.eval()
-    return model
-
-
 def get_datetime_now():
     return datetime.now().strftime(DT_FORMAT)
 
@@ -172,8 +147,8 @@ def main():
     # Set up
     logger = setup_logging()
     client = setup_client(logger)
-    device = setup_device()
-    model = setup_model(model_file, config_file, device)
+    config = get_config(config_file)
+    model = Model(model_file, config)
     processor = SignalProcessor(polyA_length, input_length)
 
     # Log initial setup
@@ -189,7 +164,7 @@ def main():
     # function directly.
     # with ThreadPoolExecutor() as executor:
     #     executor.submit(analysis, read_until_client)
-    analysis(client, model, device, processor, target, logger)
+    analysis(client, model, processor, target, logger)
 
     # Close read stream
     client.reset()
