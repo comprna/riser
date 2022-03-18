@@ -49,8 +49,8 @@ def analysis(client, model, processor, target, logger, duration=0.1, throttle=4.
         while client.is_running():
             # Iterate through current batch of reads retrieved from client
             start_t = time.time()
-            unblock_batch_reads = []
-            stop_receiving_reads = []
+            assessed_reads = []
+            reads_to_reject = []
             for (channel, read) in client.get_read_chunks():
                 # Preprocess raw signal if it's long enough
                 signal = client.get_raw_signal(read)
@@ -61,23 +61,23 @@ def analysis(client, model, processor, target, logger, duration=0.1, throttle=4.
                 # Accept or reject read
                 prediction = model.classify(signal) # TODO: Return prediction as enum value
                 if prediction != target.value:
-                    unblock_batch_reads.append((channel, read.number))
+                    reads_to_reject.append((channel, read.number))
                 f.write(f'{channel},{read.number}')
 
                 # Don't need to assess the same read twice
-                stop_receiving_reads.append((channel, read.number))
+                assessed_reads.append((channel, read.number))
 
             # Send reject requests
-            client.reject_reads(unblock_batch_reads, duration)
-            client.track_assessed_reads(stop_receiving_reads)
+            client.reject_reads(reads_to_reject, duration)
+            client.track_assessed_reads(assessed_reads)
 
             # Limit request rate
             end_t = time.time()
             if start_t + throttle > end_t:
                 time.sleep(throttle + start_t - end_t)
             logger.info('Time to process batch of %d reads (%d rejected): %fs',
-                        len(stop_receiving_reads),
-                        len(unblock_batch_reads),
+                        len(assessed_reads),
+                        len(reads_to_reject),
                         end_t - start_t)
         else:
             client.send_message_to_minknow(Severity.WARNING,
