@@ -58,8 +58,9 @@ def send_message_to_minknow(client, severity, message):
 def analysis(client, model, device, processor, target, logger, duration=0.1, throttle=4.0, batch_size=512):
     send_message_to_minknow(client,
                             Severity.WARNING,
-                            f'RISER will reject reads that are not {target}. '
-                            'This will affect the sequencing run.')
+                            ('RISER will accept reads that are %s and reject '
+                            'all others. This will affect the sequencing run.' %
+                            (target.name.lower())))
     while client.is_running:
         # Iterate through current batch of reads retrieved from client
         start_t = time.time()
@@ -75,7 +76,7 @@ def analysis(client, model, device, processor, target, logger, duration=0.1, thr
 
             # Accept or reject read
             prediction = classify(signal, device, model)
-            if prediction != target:
+            if prediction != target.value:
                 unblock_batch_reads.append((channel, read.number))
 
             # Don't need to assess the same read twice
@@ -167,7 +168,6 @@ def main():
     device = setup_device()
     model = setup_model(model_file, config_file, device)
     processor = SignalProcessor(polyA_length, input_length)
-    target_class = target.value
 
     # Log initial setup
     # logger.info(" ".join(sys.argv)) # TODO: Replace below with this
@@ -176,14 +176,13 @@ def main():
     logger.info('PolyA + seq adapter length: %s', polyA_length)
     logger.info('Input length: %s', input_length)
     logger.info('Target: %s', target)
-    logger.info('Target class: %s', target_class)
 
     # Run analysis
     # TODO: Is ThreadPoolExecutor needed? Readfish just calls analysis
     # function directly.
     # with ThreadPoolExecutor() as executor:
     #     executor.submit(analysis, read_until_client)
-    analysis(client, model, device, processor, target_class, logger)
+    analysis(client, model, device, processor, target, logger)
 
     # Close read stream
     client.reset()
