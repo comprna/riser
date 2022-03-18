@@ -1,13 +1,7 @@
 from datetime import datetime
 import time
 
-
-DT_FORMAT = '%Y-%m-%dT%H:%M:%S'
-
-
-# TODO: Move inside RISER, private class method
-def _get_datetime_now():
-    return datetime.now().strftime(DT_FORMAT)
+from utilities import get_datetime_now
 
 
 class Riser():
@@ -16,53 +10,59 @@ class Riser():
         self.model = model
         self.processor = processor
         self.logger = logger
-        self.out_file = f'riser_{_get_datetime_now()}.csv'
+        self.out_file = open(f'riser_{get_datetime_now()}.csv', 'a')
 
-    def enrich_sequencing_run(self, target, duration=0.1, throttle=4.0):
+    def enrich(self, target, duration=0.1, interval=4.0):
         self.client.send_warning(
             'The sequencing run is being controlled by RISER, reads that are '
             'not in the target class will be ejected from the pore.')
 
-        with open(self.out_file, 'a') as f: # TODO: Refactor, nested code ugly
+        while self.client.is_running():
+            # Get batch of reads to process
+            start = time.time()
+            reads_processed = []
+            reads_to_reject = []
+            for (channel, read) in self.client.get_read_batch():
 
-            while self.client.is_running():
+                # Only process read if it's long enough
+                signal = self.client.get_raw_signal(read)
+                if len(signal) < self.processor.get_min_length(): continue
 
-                # Get batch of reads to process
-                start_t = time.time()
-                reads_processed = []
-                reads_to_reject = []
-                for (channel, read) in self.client.get_read_batch():
-                    # Only process read if it's long enough
-                    signal = self.client.get_raw_signal(read)
-                    if len(signal) < self.processor.get_required_length(): # TODO: Rename get_min_length
-                        continue
+                # Classify the RNA species to which the read belongs
+                prediction = self._classify_signal(signal)
+                if prediction != target:
+                    reads_to_reject.append((channel, read.number))
+                reads_processed.append((channel, read.number))
+                self.out_file.write(f'{channel},{read.number}') # TODO: Do in batch?
 
-                    prediction = self.classify_signal(signal)
-                    if prediction != target.value:
-                       reads_to_reject.append((channel, read.number))
+            # Send reject requests
+            self.client.reject_reads(reads_to_reject, duration)
+            self.client.finish_processing_reads(reads_processed)
 
-                    # Don't need to assess the same read twice
-                    reads_processed.append((channel, read.number))
+            # Get ready for the next batch
+            end = time.time()
+            self.rest(start, end, interval)
+            self.logger.info('Time to process batch of %d reads (%d rejected): %fs',
+                len(reads_processed),
+                len(reads_to_reject),
+                end - start)
+        else:
+            self.client.send_warning('RISER has stopped running.')
+            self.logger.info('Client stopped.')
+            self.out_file.close()
 
-                    f.write(f'{channel},{read.number}')
+    def finish(self):
+        response = input("Are you sure you want to stop running RISER? y/n ")
+        if response == 'y' or 'Y':
+            if not self.out_file.closed:
+                self.out_file.close()
+            self.client.reset()
+            exit(0)
 
-
-                # Send reject requests
-                self.client.reject_reads(reads_to_reject, duration)
-                self.client.track_reads_processed(reads_processed)
-
-                # Limit request rate
-                end_t = time.time()
-                if start_t + throttle > end_t:
-                    time.sleep(throttle + start_t - end_t)
-                self.logger.info('Time to process batch of %d reads (%d rejected): %fs',
-                            len(reads_processed),
-                            len(reads_to_reject),
-                            end_t - start_t)
-            else:
-                self.client.send_warning('RISER has stopped running.')
-                self.logger.info('Client stopped.')
+    def rest(self, start, end, interval):
+        if start + interval > end:
+            time.sleep(interval + start - end)
     
-    def classify_signal(self, signal):
+    def _classify_signal(self, signal):
         signal = self.processor.process(signal)
         return self.model.classify(signal) # TODO: Return prediction as enum value

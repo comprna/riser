@@ -54,10 +54,13 @@ class Client():
             self.ru_client.unblock_read_batch(reads,
                                               duration=unblock_duration)
 
-    def track_reads_processed(self, reads):
+    def finish_processing_reads(self, reads):
         if reads: # TODO: What if this is omitted?
             self.ru_client.stop_receiving_batch(reads)
     
+    def reset(self):
+        self.ru_client.reset()
+
     def send_warning(self, message):
         self._send_message(Severity.WARNING, message)
 
@@ -67,3 +70,4 @@ class Client():
         """
         self.ru_client.connection.log.send_user_message(user_message=message,
                                                         severity=severity.value)
+                                

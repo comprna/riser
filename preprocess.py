@@ -19,7 +19,7 @@ class SignalProcessor():
         signal = signal[:self.input_length]
         return self._mad_normalise(signal)
 
-    def get_required_length(self):
+    def get_min_length(self):
         return self.polya_length + self.input_length
 
     def _mad_normalise(self, signal):
