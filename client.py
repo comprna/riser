@@ -1,3 +1,4 @@
+from enum import Enum
 import time
 
 import numpy as np
@@ -10,6 +11,18 @@ Advantages: https://softwareengineering.stackexchange.com/questions/298145/wrapp
 """
 
 N_CHANNELS = 512
+
+
+class Severity(Enum):
+    """
+    This matches the severity values expected for messages received by the 
+    MinKNOW API.
+    """
+    TRACE = 0
+    INFO = 1
+    WARNING = 2
+    ERROR = 3
+
 
 class Client():
     def __init__(self, logger):
@@ -26,13 +39,7 @@ class Client():
             self.logger.info('Waiting for client to start streaming live reads.')
         self.logger.info('Client is running.')
     
-    def send_message_to_minknow(self, severity, message):
-        """
-        severity: Severity enum (value sent to API)
-        """
-        self.ru_client.connection.log.send_user_message(user_message=message,
-                                                severity=severity.value)
-    
+    # TODO: Can this be a property instead??
     def is_running(self):
         return self.ru_client.is_running
     
@@ -50,3 +57,13 @@ class Client():
     def track_assessed_reads(self, reads):
         if reads: # TODO: What if this is omitted?
             self.ru_client.stop_receiving_batch(reads)
+    
+    def send_warning(self, message):
+        self._send_message(Severity.WARNING, message)
+
+    def _send_message(self, severity, message):
+        """
+        severity: Severity enum (value sent to API)
+        """
+        self.ru_client.connection.log.send_user_message(user_message=message,
+                                                        severity=severity.value)
