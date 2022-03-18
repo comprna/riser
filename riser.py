@@ -17,11 +17,11 @@ from utilities import get_config
 from preprocess import SignalProcessor
 
 
-# TODO: Logging
-# TODO: Multithreading
 # TODO: Annotate function signatures (arg types, return type)
 # TODO: Comments
+# TODO: Extract model class to encapsulate PyTorch code
 
+DT_FORMAT = '%Y-%m-%dT%H:%M:%S'
 
 def classify(signal, device, model):
     with torch.no_grad():
@@ -61,46 +61,51 @@ def analysis(client, model, device, processor, target, logger, duration=0.1, thr
                             ('RISER will accept reads that are %s and reject '
                             'all others. This will affect the sequencing run.' %
                             (target.name.lower())))
-    while client.is_running:
-        # Iterate through current batch of reads retrieved from client
-        start_t = time.time()
-        unblock_batch_reads = []
-        stop_receiving_reads = []
-        for (channel, read) in client.get_read_chunks(batch_size=batch_size,
-                                                      last=True):
-            # Preprocess raw signal if it's long enough
-            signal = np.frombuffer(read.raw_data, client.signal_dtype)
-            if len(signal) < processor.get_required_length():
-                continue
-            signal = processor.process(signal)
+    
+    out_file = f'riser_{get_datetime_now()}.csv'
+    with open(out_file, 'a') as f: # TODO: Refactor, nested code ugly
+        while client.is_running:
+            # Iterate through current batch of reads retrieved from client
+            start_t = time.time()
+            unblock_batch_reads = []
+            stop_receiving_reads = []
+            for (channel, read) in client.get_read_chunks(batch_size=batch_size,
+                                                        last=True):
+                # Preprocess raw signal if it's long enough
+                signal = np.frombuffer(read.raw_data, client.signal_dtype)
+                if len(signal) < processor.get_required_length():
+                    continue
+                signal = processor.process(signal)
 
-            # Accept or reject read
-            prediction = classify(signal, device, model)
-            if prediction != target.value:
-                unblock_batch_reads.append((channel, read.number))
+                # Accept or reject read
+                # TODO: Return prediction as enum value
+                prediction = classify(signal, device, model) # TODO: Return accept/reject as well
+                if prediction != target.value:
+                    unblock_batch_reads.append((channel, read.number))
+                f.write(f'{channel},{read.number}')
 
-            # Don't need to assess the same read twice
-            stop_receiving_reads.append((channel, read.number))
+                # Don't need to assess the same read twice
+                stop_receiving_reads.append((channel, read.number))
 
-        # Send reject requests
-        if len(unblock_batch_reads) > 0:
-            client.unblock_read_batch(unblock_batch_reads, duration=duration)
-        if len(stop_receiving_reads) > 0:
-            client.stop_receiving_batch(stop_receiving_reads)
+            # Send reject requests
+            if len(unblock_batch_reads) > 0: # TODO: What happens if this is omitted?
+                client.unblock_read_batch(unblock_batch_reads, duration=duration)
+            if len(stop_receiving_reads) > 0:
+                client.stop_receiving_batch(stop_receiving_reads)
 
-        # Limit request rate
-        end_t = time.time()
-        if start_t + throttle > end_t:
-            time.sleep(throttle + start_t - end_t)
-        logger.info('Time to process batch of %d reads (%d rejected): %fs',
-                     len(stop_receiving_reads),
-                     len(unblock_batch_reads),
-                     end_t - start_t)
-    else:
-        send_message_to_minknow(client,
-                                Severity.WARNING,
-                                f'RISER has stopped running.')
-        logger.info("ReadUntil client stopped.")
+            # Limit request rate
+            end_t = time.time()
+            if start_t + throttle > end_t:
+                time.sleep(throttle + start_t - end_t)
+            logger.info('Time to process batch of %d reads (%d rejected): %fs',
+                        len(stop_receiving_reads),
+                        len(unblock_batch_reads),
+                        end_t - start_t)
+        else:
+            send_message_to_minknow(client,
+                                    Severity.WARNING,
+                                    f'RISER has stopped running.')
+            logger.info("ReadUntil client stopped.")
 
 
 def setup_client(logger):
@@ -131,13 +136,15 @@ def setup_model(model_file, config_file, device):
     return model
 
 
+def get_datetime_now():
+    return datetime.now().strftime(DT_FORMAT)
+
+
 def setup_logging():
-    dt_format = '%Y-%m-%dT%H:%M:%S'
-    now = datetime.now().strftime(dt_format)
-    logging.basicConfig(filename=f'riser_{now}.log',
+    logging.basicConfig(filename=f'riser_{get_datetime_now()}.log',
                         level=logging.DEBUG,
                         format='%(asctime)s [%(name)s] %(levelname)s: %(message)s',
-                        datefmt=dt_format)
+                        datefmt=DT_FORMAT)
 
     # Also write INFO-level or higher messages to sys.stderr
     console = logging.StreamHandler()
