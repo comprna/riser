@@ -10,7 +10,7 @@ class Riser():
         self.model = model
         self.processor = processor
         self.logger = logger
-        self.out_file = open(f'riser_{get_datetime_now()}.csv', 'a')
+        self.out_file = open(f'riser_{get_datetime_now()}.csv', 'a') # TODO: Move outside
 
     def enrich(self, target, duration=0.1, interval=4.0):
         self.client.send_warning(
@@ -33,7 +33,7 @@ class Riser():
                 if prediction != target:
                     reads_to_reject.append((channel, read.number))
                 reads_processed.append((channel, read.number))
-                self.out_file.write(f'{channel},{read.number}') # TODO: Do in batch?
+                self.out_file.write(f'{channel},{read.number}\n') # TODO: Do in batch?
 
             # Send reject requests
             self.client.reject_reads(reads_to_reject, duration)
@@ -52,12 +52,9 @@ class Riser():
             self.out_file.close()
 
     def finish(self):
-        response = input("Are you sure you want to stop running RISER? y/n ")
-        if response == 'y' or 'Y':
-            if not self.out_file.closed:
-                self.out_file.close()
-            self.client.reset()
-            exit(0)
+        if not self.out_file.closed:
+            self.out_file.close()
+        self.client.reset()
 
     def rest(self, start, end, interval):
         if start + interval > end:

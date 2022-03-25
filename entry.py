@@ -29,6 +29,11 @@ def setup_logging():
     return logging.getLogger("RISER")
 
 
+def graceful_exit(riser):
+    riser.finish()
+    exit(0)
+
+
 def main():
     # CL args
     config_file = './local_data/configs/train-cnn-20.yaml'
@@ -54,7 +59,7 @@ def main():
     logger.info('Species: %s', target)
 
     # Set up graceful exit
-    signal(SIGINT, riser.finish)
+    signal(SIGINT, lambda *x: graceful_exit(riser))
 
     # Run analysis
     client.start_streaming_reads()
