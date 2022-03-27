@@ -10,7 +10,7 @@ class SequencerControl():
         self.model = model
         self.processor = processor
         self.logger = logger
-        self.out_file = open(f'riser_{get_datetime_now()}.csv', 'a') # TODO: Move outside
+        self.out_file = open(f'riser_{get_datetime_now()}.csv', 'a')
 
     def enrich(self, target, duration=0.1, interval=4.0):
         self.client.send_warning(
