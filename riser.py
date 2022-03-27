@@ -1,5 +1,5 @@
 import logging
-from signal import signal, SIGINT
+from signal import signal, SIGINT, SIGTERM
 
 from client import Client
 from model import Model
@@ -60,6 +60,7 @@ def main():
 
     # Set up graceful exit
     signal(SIGINT, lambda *x: graceful_exit(control))
+    signal(SIGTERM, lambda *x: graceful_exit(control))
 
     # Run analysis
     client.start_streaming_reads()
