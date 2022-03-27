@@ -29,8 +29,8 @@ def setup_logging():
     return logging.getLogger("RISER")
 
 
-def graceful_exit(riser):
-    riser.finish()
+def graceful_exit(control):
+    control.finish()
     exit(0)
 
 

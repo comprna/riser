@@ -41,7 +41,7 @@ class SequencerControl():
 
             # Get ready for the next batch
             end = time.time()
-            self.rest(start, end, interval)
+            self._rest(start, end, interval)
             self.logger.info('Time to process batch of %d reads (%d rejected): %fs',
                 len(reads_processed),
                 len(reads_to_reject),
@@ -56,7 +56,7 @@ class SequencerControl():
             self.out_file.close()
         self.client.reset()
 
-    def rest(self, start, end, interval):
+    def _rest(self, start, end, interval):
         if start + interval > end:
             time.sleep(interval + start - end)
     
