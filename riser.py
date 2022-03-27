@@ -1,65 +1,74 @@
-from datetime import datetime
-import time
+import logging
+from signal import signal, SIGINT
 
-from utilities import get_datetime_now
+from client import Client
+from model import Model
+from control import SequencerControl
+from utilities import get_config, get_datetime_now, DT_FORMAT, Species #TODO: Catch-all class ugly
+from preprocess import SignalProcessor
 
 
-class Riser():
-    def __init__(self, client, model, processor, logger):
-        self.client = client
-        self.model = model
-        self.processor = processor
-        self.logger = logger
-        self.out_file = open(f'riser_{get_datetime_now()}.csv', 'a') # TODO: Move outside
+# TODO: Annotate function signatures (arg types, return type)
+# TODO: Comments
 
-    def enrich(self, target, duration=0.1, interval=4.0):
-        self.client.send_warning(
-            'The sequencing run is being controlled by RISER, reads that are '
-            'not in the target class will be ejected from the pore.')
 
-        while self.client.is_running():
-            # Get batch of reads to process
-            start = time.time()
-            reads_processed = []
-            reads_to_reject = []
-            for (channel, read) in self.client.get_read_batch():
+def setup_logging():
+    logging.basicConfig(filename=f'riser_{get_datetime_now()}.log',
+                        level=logging.DEBUG,
+                        format='%(asctime)s [%(name)s] %(levelname)s: %(message)s',
+                        datefmt=DT_FORMAT)
 
-                # Only process read if it's long enough
-                signal = self.client.get_raw_signal(read)
-                if len(signal) < self.processor.get_min_length(): continue
+    # Also write INFO-level or higher messages to sys.stderr
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    logging.getLogger().addHandler(console)
 
-                # Classify the RNA species to which the read belongs
-                prediction = self._classify_signal(signal)
-                if prediction != target:
-                    reads_to_reject.append((channel, read.number))
-                reads_processed.append((channel, read.number))
-                self.out_file.write(f'{channel},{read.number}\n') # TODO: Do in batch?
+    # Turn off ReadUntil logging, which clogs up the logs
+    logging.getLogger("ReadUntil").disabled = True
 
-            # Send reject requests
-            self.client.reject_reads(reads_to_reject, duration)
-            self.client.finish_processing_reads(reads_processed)
+    return logging.getLogger("RISER")
 
-            # Get ready for the next batch
-            end = time.time()
-            self.rest(start, end, interval)
-            self.logger.info('Time to process batch of %d reads (%d rejected): %fs',
-                len(reads_processed),
-                len(reads_to_reject),
-                end - start)
-        else:
-            self.client.send_warning('RISER has stopped running.')
-            self.logger.info('Client stopped.')
-            self.out_file.close()
 
-    def finish(self):
-        if not self.out_file.closed:
-            self.out_file.close()
-        self.client.reset()
+def graceful_exit(riser):
+    riser.finish()
+    exit(0)
 
-    def rest(self, start, end, interval):
-        if start + interval > end:
-            time.sleep(interval + start - end)
-    
-    def _classify_signal(self, signal):
-        signal = self.processor.process(signal)
-        return self.model.classify(signal) # TODO: Return prediction as enum value
+
+def main():
+    # CL args
+    config_file = './local_data/configs/train-cnn-20.yaml'
+    model_file = 'local_data/models/train-cnn-20_0_best_model.pth'
+    polyA_length = 6481
+    input_length = 12048
+    target = Species.NONCODING
+
+    # Set up
+    logger = setup_logging()
+    client = Client(logger)
+    config = get_config(config_file)
+    model = Model(model_file, config, logger)
+    processor = SignalProcessor(polyA_length, input_length)
+    control = SequencerControl(client, model, processor, logger)
+
+    # Log initial setup
+    # logger.info(" ".join(sys.argv)) # TODO: Replace below with this
+    logger.info('Config file: %s', config_file)
+    logger.info('Model file: %s', model_file)
+    logger.info('PolyA + seq adapter length: %s', polyA_length)
+    logger.info('Input length: %s', input_length)
+    logger.info('Species: %s', target)
+
+    # Set up graceful exit
+    signal(SIGINT, lambda *x: graceful_exit(control))
+
+    # Run analysis
+    client.start_streaming_reads()
+    control.enrich(target)
+
+    # Close read stream
+    client.reset()
+    logger.info('Client reset and live read stream ended.')
+
+
+if __name__ == "__main__":
+    main()
