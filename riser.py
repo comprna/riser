@@ -57,7 +57,7 @@ def main():
     logger.info('Model file: %s', model_file)
     logger.info('PolyA + seq adapter length: %s', polyA_length)
     logger.info('Input length: %s', input_length)
-    logger.info('Species: %s', target)
+    logger.info('Target: %s', target.name)
 
     # Set up graceful exit
     signal(SIGINT, lambda *x: graceful_exit(control))
