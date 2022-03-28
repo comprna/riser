@@ -41,6 +41,7 @@ def main():
     polyA_length = 6481
     input_length = 12048
     target = Species.NONCODING
+    duration_h = 0.03
 
     # Set up
     out_file = f'riser_{get_datetime_now()}'
@@ -65,11 +66,8 @@ def main():
 
     # Run analysis
     client.start_streaming_reads()
-    control.enrich(target)
-
-    # Close read stream
-    client.reset()
-    logger.info('Client reset and live read stream ended.')
+    control.enrich(target, duration_h)
+    control.finish()
 
 
 if __name__ == "__main__":
