@@ -1,3 +1,4 @@
+import argparse
 import logging
 from signal import signal, SIGINT, SIGTERM
 
@@ -10,6 +11,8 @@ from preprocess import SignalProcessor
 
 # TODO: Annotate function signatures (arg types, return type)
 # TODO: Comments
+
+SAMPLING_HZ = 3012
 
 
 def setup_logging(out_file):
@@ -35,13 +38,36 @@ def graceful_exit(control):
 
 
 def main():
+
+    # up to nargs https://docs.python.org/3/library/argparse.html 
+
     # CL args
-    config_file = './local_data/configs/train-cnn-20.yaml'
-    model_file = 'local_data/models/train-cnn-20_0_best_model.pth'
-    polyA_length = 6481
-    input_length = 12048
-    target = Species.NONCODING
-    duration_h = 0.03
+    parser.add_argument('target', # 2 options only. Compulsory.
+                        help='RNA species to enrich for.')
+    parser.add_argument('duration', # Compulsory
+                        help='Length of time (in hours) to run RISER for. This'
+                             'should be the same as your MinKNOW run length.')
+    parser = argparse.ArgumentParser(description='Enrich a Nanopore sequencing run for RNA of a given species.')
+    parser.add_argument('-c', '--config', # Optional, default
+                        help='Config file for model hyperparameters.')
+    parser.add_argument('-m', '--model', # Optional, default
+                        help='File containing saved model weights.')
+    parser.add_argument('-p', '--polya', # Optional, default
+                        action='store_const',
+                        const=6481,
+                        help='Length of polyA + sequencing adapter to trim from start of signal.')
+    parser.add_argument('-s', '--secs', # Optional, default.
+                        action='store_const',
+                        const=4,
+                        help='Number of seconds of transcript signal to use for decision.') # TODO: Convert to # signal values
+    args = parser.parse_args()
+
+    # config_file = './local_data/configs/train-cnn-20.yaml'
+    # model_file = 'local_data/models/train-cnn-20_0_best_model.pth'
+    # polyA_length = 6481
+    # input_length = 12048
+    # target = Species.NONCODING
+    # duration_h = 0.03
 
     # Set up
     out_file = f'riser_{get_datetime_now()}'
@@ -49,6 +75,7 @@ def main():
     client = Client(logger)
     config = get_config(config_file)
     model = Model(model_file, config, logger)
+    input_length = args.secs * SAMPLING_HZ
     processor = SignalProcessor(polyA_length, input_length)
     control = SequencerControl(client, model, processor, logger, out_file)
 
