@@ -1,7 +1,6 @@
 import torch
 
 from cnn import ConvNet
-from utilities import Species
 
 
 class Model():
@@ -23,9 +22,8 @@ class Model():
             X = torch.from_numpy(signal).unsqueeze(0)
             X = X.to(self.device, dtype=torch.float)
             logits = self.model(X)
-            species = Species(torch.argmax(logits, dim=1).item())
-            probability = torch.nn.functional.softmax(logits, dim=1)
-        return species, probability
+            probs = torch.nn.functional.softmax(logits, dim=1)
+        return probs
 
     def _get_device(self):
         device = 'cuda' if torch.cuda.is_available() else 'cpu'

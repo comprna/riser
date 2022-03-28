@@ -1,7 +1,8 @@
-from datetime import datetime
 import time
 
-from utilities import get_datetime_now
+import torch
+
+from utilities import Species
 
 
 class SequencerControl():
@@ -18,6 +19,7 @@ class SequencerControl():
             'not in the target class will be ejected from the pore.')
 
         with open(f'{self.out_file}.csv', 'a') as out_file:
+            self._write_header(out_file)
 
             while self.client.is_running():
                 # Get batch of reads to process
@@ -31,11 +33,11 @@ class SequencerControl():
                     if len(signal) < self.processor.get_min_length(): continue
 
                     # Classify the RNA species to which the read belongs
-                    prediction, probability = self._classify_signal(signal)
-                    if prediction != target:
+                    pred, probs = self._classify_signal(signal)
+                    if self._reject(pred, target):
                         reads_to_reject.append((channel, read.number))
                     reads_processed.append((channel, read.number))
-                    out_file.write(f'{channel},{read.number}\n') # TODO: Do in batch?
+                    self._write(out_file, channel, read.id, probs, pred, target)
 
                 # Send reject requests
                 self.client.reject_reads(reads_to_reject, duration)
@@ -54,11 +56,28 @@ class SequencerControl():
 
     def finish(self):
         self.client.reset()
+        self.logger.info('Client reset and live read stream ended.')
 
     def _rest(self, start, end, interval):
         if start + interval > end:
             time.sleep(interval + start - end)
-    
+
     def _classify_signal(self, signal):
         signal = self.processor.process(signal)
-        return self.model.classify(signal) # TODO: Return prediction as enum value
+        probs = self.model.classify(signal)
+        prediction = Species(torch.argmax(probs, dim=1).item())
+        return prediction, probs
+    
+    def _reject(self, prediction, target):
+        return prediction != target
+
+    def _write_header(self, csv_file):
+        csv_file.write('channel,read_id,probability_noncoding,'
+                       'probability_coding,prediction,target,decision\n')
+
+    def _write(self, csv_file, channel, read, probs, prediction, target):
+        noncod_prob = probs[0][0]
+        coding_prob = probs[0][1]
+        decision = 'REJECT' if self._reject(prediction, target) else 'ACCEPT'
+        csv_file.write(f'{read},{channel},{noncod_prob:.2f},{coding_prob:.2f},'
+                       f'{prediction.name},{target.name},{decision}\n')
