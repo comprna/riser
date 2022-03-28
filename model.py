@@ -23,7 +23,9 @@ class Model():
             X = torch.from_numpy(signal).unsqueeze(0)
             X = X.to(self.device, dtype=torch.float)
             logits = self.model(X)
-        return Species(torch.argmax(logits, dim=1).item())
+            species = Species(torch.argmax(logits, dim=1).item())
+            probability = torch.nn.functional.softmax(logits, dim=1)
+        return species, probability
 
     def _get_device(self):
         device = 'cuda' if torch.cuda.is_available() else 'cpu'

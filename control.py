@@ -31,7 +31,7 @@ class SequencerControl():
                     if len(signal) < self.processor.get_min_length(): continue
 
                     # Classify the RNA species to which the read belongs
-                    prediction = self._classify_signal(signal)
+                    prediction, probability = self._classify_signal(signal)
                     if prediction != target:
                         reads_to_reject.append((channel, read.number))
                     reads_processed.append((channel, read.number))
