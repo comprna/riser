@@ -12,8 +12,8 @@ from preprocess import SignalProcessor
 # TODO: Comments
 
 
-def setup_logging():
-    logging.basicConfig(filename=f'riser_{get_datetime_now()}.log',
+def setup_logging(out_file):
+    logging.basicConfig(filename=f'{out_file}.log',
                         level=logging.DEBUG,
                         format='%(asctime)s [%(name)s] %(levelname)s: %(message)s',
                         datefmt=DT_FORMAT)
@@ -43,12 +43,13 @@ def main():
     target = Species.NONCODING
 
     # Set up
-    logger = setup_logging()
+    out_file = f'riser_{get_datetime_now()}'
+    logger = setup_logging(out_file)
     client = Client(logger)
     config = get_config(config_file)
     model = Model(model_file, config, logger)
     processor = SignalProcessor(polyA_length, input_length)
-    control = SequencerControl(client, model, processor, logger)
+    control = SequencerControl(client, model, processor, logger, out_file)
 
     # Log initial setup
     # logger.info(" ".join(sys.argv)) # TODO: Replace below with this
