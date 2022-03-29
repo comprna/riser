@@ -3,11 +3,12 @@ from matplotlib import pyplot as plt
 
 _OUTLIER_LIMIT = 3.5
 _SCALING_FACTOR = 1.4826
+_SAMPLING_HZ = 3012
 
 class SignalProcessor():
-    def __init__(self, polya_length, input_length):
+    def __init__(self, polya_length, secs):
         self.polya_length = polya_length
-        self.input_length = input_length
+        self.input_length = secs * _SAMPLING_HZ
 
     def process(self, signal):
         """

@@ -14,8 +14,6 @@ from preprocess import SignalProcessor
 # TODO: Annotate function signatures (arg types, return type)
 # TODO: Comments
 
-SAMPLING_HZ = 3012
-
 
 def setup_logging(out_file):
     logging.basicConfig(filename=f'{out_file}.log',
@@ -39,6 +37,17 @@ def graceful_exit(control):
     exit(0)
 
 
+class TargetAction(argparse.Action):
+    """
+    Argparse action for handling Target
+    """
+    def __init__(self, **kwargs):
+        super(TargetAction, self).__init__(**kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        value = Species.CODING if values == 'coding' else Species.NONCODING
+        setattr(namespace, self.dest, value)
+
 def main():
     # CL args
     parser = argparse.ArgumentParser(description=('Enrich a Nanopore sequencing'
@@ -46,6 +55,7 @@ def main():
                                                   ' species.'))
     parser.add_argument('-t', '--target',
                         choices=['coding', 'noncoding'],
+                        action=TargetAction,
                         help='RNA species to enrich for. This must be either '
                              '{%(choices)s}. (required)',
                         required=True,
@@ -102,9 +112,7 @@ def main():
     client = Client(logger)
     config = get_config(args.config_file)
     model = Model(args.model_file, config, logger)
-    input_length = args.secs * SAMPLING_HZ # TODO: Argparse action
-    target = Species.CODING if args.target == 'coding' else Species.NONCODING # TODO: Argparse action
-    processor = SignalProcessor(args.polyA_length, input_length)
+    processor = SignalProcessor(args.polyA_length, args.secs)
     control = SequencerControl(client, model, processor, logger, out_file)
 
     # Log CL args
@@ -118,7 +126,7 @@ def main():
 
     # Run analysis
     client.start_streaming_reads()
-    control.enrich(target, args.duration)
+    control.enrich(args.target, args.duration)
     control.finish()
 
 
