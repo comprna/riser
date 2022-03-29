@@ -1,6 +1,7 @@
 import argparse
 import logging
 from signal import signal, SIGINT, SIGTERM
+import sys
 
 from client import Client
 from model import Model
@@ -39,29 +40,54 @@ def graceful_exit(control):
 
 def main():
 
-    # up to nargs https://docs.python.org/3/library/argparse.html 
-
     # CL args
-    parser.add_argument('target', # 2 options only. Compulsory.
-                        help='RNA species to enrich for.')
-    parser.add_argument('duration', # Compulsory
-                        help='Length of time (in hours) to run RISER for. This'
-                             'should be the same as your MinKNOW run length.')
-    parser = argparse.ArgumentParser(description='Enrich a Nanopore sequencing run for RNA of a given species.')
-    parser.add_argument('-c', '--config', # Optional, default
-                        help='Config file for model hyperparameters.')
-    parser.add_argument('-m', '--model', # Optional, default
-                        help='File containing saved model weights.')
-    parser.add_argument('-p', '--polya', # Optional, default
-                        action='store_const',
-                        const=6481,
-                        help='Length of polyA + sequencing adapter to trim from start of signal.')
-    parser.add_argument('-s', '--secs', # Optional, default.
-                        action='store_const',
-                        const=4,
-                        help='Number of seconds of transcript signal to use for decision.') # TODO: Convert to # signal values
+    parser = argparse.ArgumentParser(description=('Enrich a Nanopore sequencing'
+                                                  ' run for RNA of a given'
+                                                  ' species.'))
+    parser.add_argument('-t', '--target',
+                        choices=['coding', 'noncoding'],
+                        help='RNA species to enrich for. This must be either '
+                             '{%(choices)s}. (required)',
+                        required=True,
+                        metavar='')
+    parser.add_argument('-d', '--duration',
+                        type=int,
+                        help='Length of time (in hours) to run RISER for. '
+                             'This should be the same as the MinKNOW run '
+                             'length. (required)',
+                        required=True,
+                        metavar='')
+    parser.add_argument('-c', '--config',
+                        dest='config_file',
+                        default='models/cnn_best_model.yaml',
+                        help='Config file for model hyperparameters. (default: '
+                             '%(default)s)',
+                        metavar='')
+    parser.add_argument('-m', '--model',
+                        dest='model_file',
+                        default='models/cnn_best_model.pth',
+                        help='File containing saved model weights. (default: '
+                             '%(default)s)',
+                        metavar='')
+    parser.add_argument('-p', '--polya',
+                        dest='polyA_length',
+                        default=6481,
+                        type=int,
+                        help='Number of values to remove from the start of the '
+                             'raw signal to exclude the polyA tail and '
+                             'sequencing adapter signal from analysis. '
+                             '(default: %(default)s)',
+                        metavar='')
+    parser.add_argument('-s', '--secs',
+                        default=4,
+                        type=int,
+                        choices=range(1,10),
+                        help='Number of seconds of transcript signal to use '
+                             'for decision. (default: %(default)s)',
+                        metavar='') # TODO: Convert to # signal values
     args = parser.parse_args()
 
+    ## Local testing
     # config_file = './local_data/configs/train-cnn-20.yaml'
     # model_file = 'local_data/models/train-cnn-20_0_best_model.pth'
     # polyA_length = 6481
@@ -72,29 +98,26 @@ def main():
     # Set up
     out_file = f'riser_{get_datetime_now()}'
     logger = setup_logging(out_file)
-    client = Client(logger)
-    config = get_config(config_file)
-    model = Model(model_file, config, logger)
-    input_length = args.secs * SAMPLING_HZ
-    processor = SignalProcessor(polyA_length, input_length)
-    control = SequencerControl(client, model, processor, logger, out_file)
+    # client = Client(logger)
+    # config = get_config(args.config_file)
+    # model = Model(args.model_file, config, logger)
+    # input_length = args.secs * SAMPLING_HZ
+    # processor = SignalProcessor(args.polyA_length, input_length)
+    # control = SequencerControl(client, model, processor, logger, out_file)
 
-    # Log initial setup
-    # logger.info(" ".join(sys.argv)) # TODO: Replace below with this
-    logger.info('Config file: %s', config_file)
-    logger.info('Model file: %s', model_file)
-    logger.info('PolyA + seq adapter length: %s', polyA_length)
-    logger.info('Input length: %s', input_length)
-    logger.info('Target: %s', target.name)
+    # Log CL args
+    logger.info(f'Usage: {" ".join(sys.argv)}')
+    logger.info('All settings used (including those set by default):')
+    for k,v in vars(args).items(): logger.info(f'--{k:14}: {v}')
 
     # Set up graceful exit
-    signal(SIGINT, lambda *x: graceful_exit(control))
-    signal(SIGTERM, lambda *x: graceful_exit(control))
+    # signal(SIGINT, lambda *x: graceful_exit(control))
+    # signal(SIGTERM, lambda *x: graceful_exit(control))
 
-    # Run analysis
-    client.start_streaming_reads()
-    control.enrich(target, duration_h)
-    control.finish()
+    # # Run analysis
+    # client.start_streaming_reads()
+    # control.enrich(target, duration_h)
+    # control.finish()
 
 
 if __name__ == "__main__":
