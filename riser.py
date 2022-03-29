@@ -2,6 +2,7 @@ import argparse
 import logging
 from signal import signal, SIGINT, SIGTERM
 import sys
+from types import SimpleNamespace
 
 from client import Client
 from model import Model
@@ -39,7 +40,6 @@ def graceful_exit(control):
 
 
 def main():
-
     # CL args
     parser = argparse.ArgumentParser(description=('Enrich a Nanopore sequencing'
                                                   ' run for RNA of a given'
@@ -87,23 +87,25 @@ def main():
                         metavar='') # TODO: Convert to # signal values
     args = parser.parse_args()
 
-    ## Local testing
-    # config_file = './local_data/configs/train-cnn-20.yaml'
-    # model_file = 'local_data/models/train-cnn-20_0_best_model.pth'
-    # polyA_length = 6481
-    # input_length = 12048
-    # target = Species.NONCODING
-    # duration_h = 0.03
+    # Local testing
+    # args = SimpleNamespace()
+    # args.target = Species.NONCODING
+    # args.duration = 0.03
+    # args.config_file = 'models/cnn_best_model.yaml'
+    # args.model_file = 'models/cnn_best_model.pth'
+    # args.polyA_length = 6481
+    # args.secs = 4
 
     # Set up
     out_file = f'riser_{get_datetime_now()}'
     logger = setup_logging(out_file)
-    # client = Client(logger)
-    # config = get_config(args.config_file)
-    # model = Model(args.model_file, config, logger)
-    # input_length = args.secs * SAMPLING_HZ
-    # processor = SignalProcessor(args.polyA_length, input_length)
-    # control = SequencerControl(client, model, processor, logger, out_file)
+    client = Client(logger)
+    config = get_config(args.config_file)
+    model = Model(args.model_file, config, logger)
+    input_length = args.secs * SAMPLING_HZ # TODO: Argparse action
+    target = Species.CODING if args.target == 'coding' else Species.NONCODING # TODO: Argparse action
+    processor = SignalProcessor(args.polyA_length, input_length)
+    control = SequencerControl(client, model, processor, logger, out_file)
 
     # Log CL args
     logger.info(f'Usage: {" ".join(sys.argv)}')
@@ -111,13 +113,13 @@ def main():
     for k,v in vars(args).items(): logger.info(f'--{k:14}: {v}')
 
     # Set up graceful exit
-    # signal(SIGINT, lambda *x: graceful_exit(control))
-    # signal(SIGTERM, lambda *x: graceful_exit(control))
+    signal(SIGINT, lambda *x: graceful_exit(control))
+    signal(SIGTERM, lambda *x: graceful_exit(control))
 
-    # # Run analysis
-    # client.start_streaming_reads()
-    # control.enrich(target, duration_h)
-    # control.finish()
+    # Run analysis
+    client.start_streaming_reads()
+    control.enrich(target, args.duration)
+    control.finish()
 
 
 if __name__ == "__main__":
