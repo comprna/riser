@@ -28,8 +28,9 @@ class SequencerControl():
                 batch_start = time()
                 reads_processed = []
                 reads_to_reject = []
-                for (channel, read) in self.client.get_read_batch():
-
+                i = 0
+                for i, (channel, read) in enumerate(self.client.get_read_batch(),
+                                                    start=1):
                     # Only process read if it's long enough
                     signal = self.client.get_raw_signal(read)
                     if len(signal) < self.processor.get_min_length(): continue
@@ -48,7 +49,10 @@ class SequencerControl():
                 # Get ready for the next batch
                 batch_end = time()
                 self._rest(batch_start, batch_end, interval)
-                self.logger.info('Time to process batch of %d reads (%d rejected): %fs',
+                self.logger.info('Batch of %3d reads received: %2d long enough '
+                                 'to assess, %2d of which were rejected (took '
+                                 '%.4fs)',
+                    i,
                     len(reads_processed),
                     len(reads_to_reject),
                     batch_end - batch_start)
