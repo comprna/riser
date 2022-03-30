@@ -61,6 +61,7 @@ def main():
                         required=True,
                         metavar='')
     parser.add_argument('-d', '--duration',
+                        dest='duration_h',
                         type=int,
                         help='Length of time (in hours) to run RISER for. '
                              'This should be the same as the MinKNOW run '
@@ -94,13 +95,13 @@ def main():
                         choices=range(1,10),
                         help='Number of seconds of transcript signal to use '
                              'for decision. (default: %(default)s)',
-                        metavar='') # TODO: Convert to # signal values
+                        metavar='')
     args = parser.parse_args()
 
     # Local testing
     # args = SimpleNamespace()
     # args.target = Species.NONCODING
-    # args.duration = 0.03
+    # args.duration_h = 1
     # args.config_file = 'models/cnn_best_model.yaml'
     # args.model_file = 'models/cnn_best_model.pth'
     # args.polyA_length = 6481
@@ -126,7 +127,7 @@ def main():
 
     # Run analysis
     client.start_streaming_reads()
-    control.enrich(args.target, args.duration)
+    control.enrich(args.target, args.duration_h)
     control.finish()
 
 
