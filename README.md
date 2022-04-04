@@ -13,34 +13,34 @@ TODO: Summary of software + diagram + paper reference
 
 ## Environment
 
-* Operating System: Linux
-** Tested on Ubuntu v18.04 (other versions and distros need to be tested before use)
-* MinKNOW Core: >= 4.0
-** To determine MinKNOW core version on Ubuntu:
-```
-dpkg -s minion-nc
-```
+* **Operating System:** Linux
+  Tested on Ubuntu v18.04 (other versions and distros need to be tested before use)
+* **MinKNOW Core:** >= 4.0
+  To determine MinKNOW core version on Ubuntu:
+  ```
+  dpkg -s minion-nc
+  ```
 
 
 ## Dependencies
 
 1. Set up virtual environment
 
-```
-cd <path/to/riser>
-mkdir .riser-venv
-cd .riser-venv
-python3 -m venv .
-source bin/activate
-```
+   ```
+   cd <path/to/riser>
+   mkdir .riser-venv
+   cd .riser-venv
+   python3 -m venv .
+   source bin/activate
+   ```
 
 2. Install dependencies
 
-```
-cd <path/to/riser>
-pip install --upgrade pip
-pip install -r requirements.txt
-```
+   ```
+   cd <path/to/riser>
+   pip install --upgrade pip
+   pip install -r requirements.txt
+   ```
 
 
 # Testing
@@ -54,9 +54,9 @@ pip install -r requirements.txt
 2. Open the sequencing TOML file *sequencing_MIN106_RNA.toml*, found in `/opt/ont/minknow/conf/package/sequencing`.
 
 3. In the **[custom_settings]** section, add a field:
-```
-simulation = "/full/path/to/bulk.fast5"
-```
+   ```
+   simulation = "/full/path/to/bulk.fast5"
+   ```
 
 4. In the **[analysis_configuration.read_detection]** section, set the value of `break_reads_after_seconds` to 4.0
 
@@ -79,10 +79,10 @@ To check that RISER is able to communicate with MinKNOW and enact sequencing dec
 
 2. Run the reject-all script.
 
-```
-cd <path/to/riser>
-python3 reject_all.py
-```
+   ```
+   cd <path/to/riser>
+   python3 reject_all.py
+   ```
 
 3. Wait for a few minutes and then observe the read length histogram.  You should see a growing peak at ~200-300 b.  If you check "Split by read end reason" you should see that the peak corresponds to "Adaptive sampling voltage reversal."
 
@@ -95,10 +95,10 @@ Now you can check that RISER is able to selectively sequence a desired RNA speci
 
 2. Run RISER.  The below will selectively sequence reads that RISER predicts to be protein-coding and will reject reads predicted to be non-coding.  The script will run for 6 hours (this can be modified as desired with the `--duration` parameter).
 
-```
-cd <path/to/riser>
-python3 riser.py --target coding --duration 6
-```
+   ```
+   cd <path/to/riser>
+   python3 riser.py --target coding --duration 6
+   ```
 
 3. You should see a message in the System Messages page on MinKNOW stating that RISER is now controlling the run.
 
