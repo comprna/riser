@@ -13,10 +13,10 @@ TODO: Summary of software + diagram + paper reference
 
 ## Environment
 
-* OS: Linux (tested on Ubuntu v18.04 - other versions and distros need to be tested before use)
-* MinKNOW core >= 4.0
-
-*To determine MinKNOW core version on Ubuntu, run:*
+* Operating System: Linux
+** Tested on Ubuntu v18.04 (other versions and distros need to be tested before use)
+* MinKNOW Core: >= 4.0
+** To determine MinKNOW core version on Ubuntu:
 ```
 dpkg -s minion-nc
 ```
@@ -26,7 +26,6 @@ dpkg -s minion-nc
 
 1. Set up virtual environment
 
-Example: python3 virtual environment
 ```
 cd <path/to/riser>
 mkdir .riser-venv
@@ -92,18 +91,18 @@ python3 reject_all.py
 
 Now you can check that RISER is able to selectively sequence a desired RNA species.
 
-1. Run the RISER script.  The below will selectively sequence reads that RISER predicts to be protein-coding and will reject reads predicted to be non-coding.  The script will run for 6 hours (this can be modified as desired with the `--duration` parameter).
+1. Start a new sequencing run (remember to select the **_mod** script to enable playback) and wait for the initial MUX scan to complete.
+
+2. Run RISER.  The below will selectively sequence reads that RISER predicts to be protein-coding and will reject reads predicted to be non-coding.  The script will run for 6 hours (this can be modified as desired with the `--duration` parameter).
 
 ```
 cd <path/to/riser>
 python3 riser.py --target coding --duration 6
 ```
 
-2. You should see a message in the System Messages page on MinKNOW stating that RISER is now controlling the run.
+3. You should see a message in the System Messages page on MinKNOW stating that RISER is now controlling the run.
 
-3. Since a playback run simply replays the signals recorded in the bulk fast5 file, it is not able to mimic reads being physically rejected from the nanopore.  Instead, the signal recorded for a read is simply clipped upon receiving a reject command.  Therefore, to test whether RISER is having an effect you will need to assess the average length of reads that are protein-coding and non-coding.  The expectation is that the average length of reads in the target species will be longer than those that are off target.
-
-A script to automate this test will be provided in a future release of RISER.
+4. Since a playback run simply replays the signals recorded in the bulk fast5 file, it is not able to mimic reads being physically rejected from the nanopore.  Instead, the signal recorded for a read is simply clipped upon receiving a reject command.  Therefore, to test whether RISER is having an effect you will need to assess the average length of reads that are protein-coding and non-coding.  The expectation is that the average length of reads in the target species will be longer than those that are off target. *A script to automate this test will be provided in a future release of RISER.*
 
 
 # Usage in real sequencing run
@@ -112,7 +111,7 @@ A script to automate this test will be provided in a future release of RISER.
 
 1. Open the sequencing TOML file *sequencing_MIN106_RNA.toml*, found in `/opt/ont/minknow/conf/package/sequencing`.
 
-2. In the [analysis_configuration.read_detection] section, set the value of `break_reads_after_seconds` to 4.0
+2. In the **[analysis_configuration.read_detection]** section, set the value of `break_reads_after_seconds` to 4.0
 
 3. Save the toml file under a new name, e.g. *sequencing_MIN106_RNA_mod.toml*.  **Important: If you do not follow this step, remember to revert the changes made in step 3 after you have finished using RISER to allow regular sequencing runs again!**
 
@@ -121,6 +120,8 @@ A script to automate this test will be provided in a future release of RISER.
 5. Start a sequencing run as usual, using flowcell FLO-MIN106.  If you have followed Step 5, then after selecting a kit you will be presented with a choice "Select the script you would like to run."  Make sure you select your **_mod** file to enable RISER.
 
 6. Once the initial MUX scan has completed, run RISER using the commands below.
+
+7. You should see a message in the System Messages page on MinKNOW stating that RISER is now controlling the run.
 
 ## Command structure
 
@@ -179,12 +180,12 @@ Batch of 107 reads received: 32 long enough to assess, 24 of which were rejected
 
 ### Logs
 
-A log file named 'riser_<date-time>.log' will be generated in `<path/to/riser>` each time you run RISER.  It will contain a more detailed version of the information sent to your console window.
+A log file named *riser_\[datetime\].log* will be generated in `<path/to/riser>` each time you run RISER.  It will contain a more detailed version of the information sent to your console window.
 
 
 ### CSV file with read decisions
 
-A CSV file named 'riser_<date-time>.csv' will be generated in `<path/to/riser>` each time you run RISER.  It will contain details of the accept/reject decision made for each read.
+A CSV file named *riser_\[datetime\].csv* will be generated in `<path/to/riser>` each time you run RISER.  It will contain details of the accept/reject decision made for each read.
 
 E.g.:
 
