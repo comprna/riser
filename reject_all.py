@@ -1,8 +1,6 @@
 import time
 from timeit import default_timer as timer
 
-from concurrent.futures import ThreadPoolExecutor
-import numpy as np
 from read_until import ReadUntilClient
 
 
@@ -47,11 +45,6 @@ def main():
     # Make sure client is running before starting analysis
     while read_until_client.is_running is False:
         time.sleep(0.1)
-
-    # TODO: Is ThreadPoolExecutor needed? Readfish just calls analysis
-    # function directly.
-    # with ThreadPoolExecutor() as executor:
-    #     executor.submit(analysis, read_until_client)
 
     reject_all(read_until_client)
 

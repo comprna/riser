@@ -1,5 +1,4 @@
 import numpy as np
-from matplotlib import pyplot as plt
 
 _OUTLIER_LIMIT = 3.5
 _SCALING_FACTOR = 1.4826
