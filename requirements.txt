@@ -1,0 +1,16 @@
+attrdict==2.0.1
+grpcio==1.44.0
+minknow-api==4.5.0
+numpy==1.17.4
+packaging==21.3
+pkg_resources==0.0.0
+protobuf==3.20.0
+pyparsing==3.0.7
+pyRFC3339==1.1
+pytz==2022.1
+PyYAML==6.0
+read-until==3.0.0
+six==1.16.0
+torch==1.11.0
+torchinfo==1.6.5
+typing_extensions==4.1.1
