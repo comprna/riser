@@ -1,6 +1,6 @@
 # RISER
 
-Real-Time In-Silico Enrichment of RNA species from Nanopore signals.
+**R**eal-Time **I**n-**S**ilico **E**nrichment of **R**NA species from Nanopore signals.
 
 # Overview
 
@@ -50,6 +50,8 @@ TODO: Summary of software + diagram + paper reference
 **Acknowledgement:** These testing instructions have been adapted from the "Testing" section of ReadFish (https://github.com/LooseLab/readfish)
 
 ## Configure MinKNOW bulk fast5 file playback
+
+To test RISER without wasting resources on a live sequencing run, the "playback" mechanism in MinKNOW can be utilised.  This allows a bulk fast5 file recorded from a previous sequencing run to be replayed so that data is streamed as though a real sequencing device were connected.
 
 1. Obtain a bulk fast5 file (generated with flowcell FLO-MIN106) for playback in MinKNOW.
 
