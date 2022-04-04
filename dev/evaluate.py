@@ -11,10 +11,10 @@ from torch.nn.functional import softmax
 from torch.utils.data import DataLoader
 from torchinfo import summary
 
-from cnn import ConvNet
-from data import SignalDataset
-from resnet import ResNet
-from tcn import TCN
+from models.cnn import ConvNet
+from dev.data import SignalDataset
+from models.resnet import ResNet
+from models.tcn import TCN
 from utilities import get_config
 
 

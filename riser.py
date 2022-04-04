@@ -70,13 +70,13 @@ def main():
                         metavar='')
     parser.add_argument('-c', '--config',
                         dest='config_file',
-                        default='models/cnn_best_model.yaml',
+                        default='defaults/cnn_best_model.yaml',
                         help='Config file for model hyperparameters. (default: '
                              '%(default)s)',
                         metavar='')
     parser.add_argument('-m', '--model',
                         dest='model_file',
-                        default='models/cnn_best_model.pth',
+                        default='defaults/cnn_best_model.pth',
                         help='File containing saved model weights. (default: '
                              '%(default)s)',
                         metavar='')

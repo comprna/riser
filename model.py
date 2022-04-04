@@ -1,6 +1,6 @@
 import torch
 
-from cnn import ConvNet
+from models.cnn import ConvNet
 
 
 class Model():

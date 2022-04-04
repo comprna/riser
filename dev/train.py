@@ -7,11 +7,11 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchinfo import summary
 
-from cnn import ConvNet
-from resnet import ResNet
-from tcn import TCN
-from tcn_bot import TCNBot
-from data import SignalDataset
+from models.cnn import ConvNet
+from models.resnet import ResNet
+from models.tcn import TCN
+from models.tcn_bot import TCNBot
+from dev.data import SignalDataset
 from utilities import get_config
 
 
