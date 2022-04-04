@@ -115,7 +115,7 @@ Now you can check that RISER is able to selectively sequence a desired RNA speci
 
 1. Open the sequencing TOML file *sequencing_MIN106_RNA.toml*, found in `/opt/ont/minknow/conf/package/sequencing`.
 
-2. In the **[analysis_configuration.read_detection]** section, set the value of `break_reads_after_seconds` to 4.0
+2. In the **[analysis_configuration.read_detection]** section, set the value of `break_reads_after_seconds` to 4.0.  **Important: If you followed the Testing steps above, make sure that the "simulation" field you added is now removed!**
 
 3. Save the toml file under a new name, e.g. *sequencing_MIN106_RNA_mod.toml*.  **Important: If you do not follow this step, remember to revert the changes made in step 3 after you have finished using RISER to allow regular sequencing runs again!**
 
