@@ -14,8 +14,10 @@ TODO: Summary of software + diagram + paper reference
 ## Environment
 
 * **Operating System:** Linux
+
   Tested on Ubuntu v18.04 (other versions and distros need to be tested before use)
 * **MinKNOW Core:** >= 4.0
+
   To determine MinKNOW core version on Ubuntu:
   ```
   dpkg -s minion-nc
