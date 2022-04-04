@@ -85,7 +85,7 @@ class SequencerControl():
         return prediction != target
 
     def _write_header(self, csv_file):
-        csv_file.write('channel,read_id,probability_noncoding,'
+        csv_file.write('read_id,channel,probability_noncoding,'
                        'probability_coding,prediction,target,decision\n')
 
     def _write(self, csv_file, channel, read, probs, prediction, target):
