@@ -62,17 +62,15 @@ To test RISER without wasting resources on a live sequencing run, the "playback"
    simulation = "/full/path/to/bulk.fast5"
    ```
 
-4. In the **[analysis_configuration.read_detection]** section, set the value of `break_reads_after_seconds` to 4.0
+4. Save the toml file under a new name, e.g. *sequencing_MIN106_RNA_mod.toml*.  **Important: If you do not follow this step, remember to revert the changes made in steps 3 and 4 after you have finished using RISER to allow regular sequencing runs again!**
 
-5. Save the toml file under a new name, e.g. *sequencing_MIN106_RNA_mod.toml*.  **Important: If you do not follow this step, remember to revert the changes made in steps 3 and 4 after you have finished using RISER to allow regular sequencing runs again!**
+5. To apply the above changes and enable playback you will need to select "Reload Scripts" found on the Start Sequencing page (top right-hand corner menu).
 
-6. To apply the above changes and enable playback you will need to select "Reload Scripts" found on the Start Sequencing page (top right-hand corner menu).
+6. Insert a configuration test flowcell into the sequencing device.
 
-7. Insert a configuration test flowcell into the sequencing device.
+7. Start a sequencing run as usual, using flowcell FLO-MIN106.  If you have followed Step 5, then after selecting a kit you will be presented with a choice "Select the script you would like to run."  Make sure you select your **_mod** file to enable playback.
 
-8. Start a sequencing run as usual, using flowcell FLO-MIN106.  If you have followed Step 5, then after selecting a kit you will be presented with a choice "Select the script you would like to run."  Make sure you select your **_mod** file to enable playback.
-
-9. Once the run starts, a MUX scan will take about 5 minutes.  Once this is complete, observe the read length histogram.
+8. Once the run starts, a MUX scan will take about 5 minutes.  Once this is complete, observe the read length histogram.
 
 
 ## Test reject command
@@ -113,19 +111,13 @@ Now you can check that RISER is able to selectively sequence a desired RNA speci
 
 ## Configure MinKNOW
 
-1. Open the sequencing TOML file *sequencing_MIN106_RNA.toml*, found in `/opt/ont/minknow/conf/package/sequencing`.
+1. **Important: If you followed the Testing steps above, make sure that the "simulation" field you added to the sequencing TOML file *sequencing_MIN106_RNA.toml*, found in `/opt/ont/minknow/conf/package/sequencing` is now removed!**  To apply the changes and enable RISER you will need to select "Reload Scripts" found on the Start Sequencing page (top right-hand corner menu).
 
-2. In the **[analysis_configuration.read_detection]** section, set the value of `break_reads_after_seconds` to 4.0.  **Important: If you followed the Testing steps above, make sure that the "simulation" field you added is now removed!**
+2. Start a sequencing run as usual, using flowcell FLO-MIN106.  If you have followed Step 5, then after selecting a kit you will be presented with a choice "Select the script you would like to run."  Make sure you select your **_mod** file to enable RISER.
 
-3. Save the toml file under a new name, e.g. *sequencing_MIN106_RNA_mod.toml*.  **Important: If you do not follow this step, remember to revert the changes made in step 3 after you have finished using RISER to allow regular sequencing runs again!**
+3. Once the initial MUX scan has completed, run RISER using the commands below.
 
-4. To apply the above changes and enable RISER you will need to select "Reload Scripts" found on the Start Sequencing page (top right-hand corner menu).
-
-5. Start a sequencing run as usual, using flowcell FLO-MIN106.  If you have followed Step 5, then after selecting a kit you will be presented with a choice "Select the script you would like to run."  Make sure you select your **_mod** file to enable RISER.
-
-6. Once the initial MUX scan has completed, run RISER using the commands below.
-
-7. You should see a message in the System Messages page on MinKNOW stating that RISER is now controlling the run.
+4. You should see a message in the System Messages page on MinKNOW stating that RISER is now controlling the run.
 
 ## Command structure
 

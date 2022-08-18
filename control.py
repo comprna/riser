@@ -13,7 +13,7 @@ class SequencerControl():
         self.logger = logger
         self.out_file = out_file
 
-    def enrich(self, target, duration_h, unblock_duration=0.1, interval=4.0):
+    def enrich(self, target, duration_h, unblock_duration=0.1, interval=1.0):
         self.client.send_warning(
             'The sequencing run is being controlled by RISER, reads that are '
             'not in the target class will be ejected from the pore.')
@@ -52,10 +52,10 @@ class SequencerControl():
                 self.logger.info('Batch of %3d reads received: %2d long enough '
                                  'to assess, %2d of which were rejected (took '
                                  '%.4fs)',
-                    i,
-                    len(reads_processed),
-                    len(reads_to_reject),
-                    batch_end - batch_start)
+                                 i,
+                                 len(reads_processed),
+                                 len(reads_to_reject),
+                                 batch_end - batch_start)
             else:
                 self.client.send_warning('RISER has stopped running.')
                 if not self.client.is_running():
