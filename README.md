@@ -4,7 +4,10 @@
 
 # Overview
 
-TODO: Summary of software + diagram + paper reference
+RISER allows the real-time in-silico enrichment of RNA species during nanopore direct RNA sequencing.  RISER accurately classifies raw nanopore signals into protein-coding and non-coding RNA, without the need for basecalling or a reference.  Depending on the user's chosen target for enrichment or depletion, RISER then translates this prediction into the sequencing hardware via Oxford Nanopore's [ReadUntil API](https://github.com/nanoporetech/read_until_api) to eject unwanted RNAs from the pore and make room for more sequencing of the target.
+
+![RISER architecture](architecture.png?raw=true)
+
 
 **Important: Make sure you perform the steps in Testing first to make sure everything is working properly before applying RISER to a live sequencing run.**
 
