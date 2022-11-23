@@ -11,14 +11,14 @@ class SequencerControl():
         self.model = model
         self.processor = processor
         self.logger = logger
-        self.out_file = out_file
+        self.out_filename = out_file
 
     def enrich(self, target, duration_h, unblock_duration=0.1, interval=1.0):
         self.client.send_warning(
             'The sequencing run is being controlled by RISER, reads that are '
             'not in the target class will be ejected from the pore.')
 
-        with open(f'{self.out_file}.csv', 'a') as out_file:
+        with open(f'{self.out_filename}.csv', 'a') as out_file:
             self._write_header(out_file)
 
             run_start = time()
@@ -96,6 +96,5 @@ class SequencerControl():
         noncod_prob = probs[0][0]
         coding_prob = probs[0][1]
         decision = 'REJECT' if self._reject(prediction, target) else 'ACCEPT'
-        # TODO: use self.out_file
         csv_file.write(f'{read},{channel},{noncod_prob:.2f},{coding_prob:.2f},'
                        f'{prediction.name},{target.name},{decision}\n')
