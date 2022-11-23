@@ -64,6 +64,10 @@ class SequencerControl():
                     self.logger.info(f'RISER has timed out after {duration_h} '
                                      'hours as requested.')
 
+    def start(self):
+        self.client.start_streaming_reads()
+        self.logger.info('Live read stream started.')
+
     def finish(self):
         self.client.reset()
         self.logger.info('Client reset and live read stream ended.')
@@ -92,5 +96,6 @@ class SequencerControl():
         noncod_prob = probs[0][0]
         coding_prob = probs[0][1]
         decision = 'REJECT' if self._reject(prediction, target) else 'ACCEPT'
+        # TODO: use self.out_file
         csv_file.write(f'{read},{channel},{noncod_prob:.2f},{coding_prob:.2f},'
                        f'{prediction.name},{target.name},{decision}\n')

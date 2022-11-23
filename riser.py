@@ -126,7 +126,7 @@ def main():
     signal(SIGTERM, lambda *x: graceful_exit(control))
 
     # Run analysis
-    client.start_streaming_reads()
+    control.start()
     control.enrich(args.target, args.duration_h)
     control.finish()
 
