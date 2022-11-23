@@ -6,9 +6,7 @@ import numpy as np
 from read_until import ReadUntilClient
 from read_until.read_cache import AccumulatingCache
 
-"""
-Advantages: https://softwareengineering.stackexchange.com/questions/298145/wrapping-third-party-library-is-best-practice#:~:text=In%20fact%2C%20wrapping%20third%2Dparty,are%20testing%20your%20own%20code.
-"""
+
 
 N_CHANNELS = 512
 

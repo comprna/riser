@@ -36,7 +36,9 @@ TODO: Summary of software + diagram + paper reference
    source bin/activate
    ```
 
-2. Install dependencies
+2. Install PyTorch for your CUDA version: <https://pytorch.org/get-started/locally/>
+
+3. Install RISER dependencies
 
    ```
    cd <path/to/riser>
@@ -77,12 +79,12 @@ To test RISER without wasting resources on a live sequencing run, the "playback"
 
 To check that RISER is able to communicate with MinKNOW and enact sequencing decisions, a simple test is to reject all reads.
 
-1. Continue this test immediately after Step 9 of "Configure MinKNOW bulk fast5 file playback" (do not stop the sequencing run).
+1. Continue this test immediately after Step 8 of "Configure MinKNOW bulk fast5 file playback" (do not stop the sequencing run).
 
 2. Run the reject-all script.
 
    ```
-   cd <path/to/riser>
+   cd <path/to/riser/riser>
    python3 reject_all.py
    ```
 
@@ -95,11 +97,11 @@ Now you can check that RISER is able to selectively sequence a desired RNA speci
 
 1. Start a new sequencing run (remember to select the **_mod** script to enable playback) and wait for the initial MUX scan to complete.
 
-2. Run RISER.  The below will selectively sequence reads that RISER predicts to be protein-coding and will reject reads predicted to be non-coding.  The script will run for 6 hours (this can be modified as desired with the `--duration` parameter).
+2. Run RISER.  The below will selectively sequence reads that RISER predicts to be protein-coding and will reject reads predicted to be non-coding.  The script will run for 1 hour (this can be modified as desired with the `--duration` parameter).
 
    ```
-   cd <path/to/riser>
-   python3 riser.py --target coding --duration 6
+   cd <path/to/riser/riser>
+   python3 riser.py --target noncoding --duration 1
    ```
 
 3. You should see a message in the System Messages page on MinKNOW stating that RISER is now controlling the run.
@@ -147,7 +149,7 @@ optional arguments:
 To enrich for non-coding RNA, RISER can simply be run with the following command (make sure to set the duration `-d` equal to your MinKNOW run length in hours).
 
 ```
-cd <path/to/riser>
+cd <path/to/riser/riser>
 python3 riser.py -t noncoding -d 48
 ```
 
