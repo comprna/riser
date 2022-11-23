@@ -1,6 +1,6 @@
 # RISER
 
-**R**eal-Time **I**n-**S**ilico **E**nrichment of **R**NA species from Nanopore signals.
+**R**eal-Time **I**n-**S**ilico **E**nrichment of **R**NA species during nanopore sequencing.
 
 # Overview
 
