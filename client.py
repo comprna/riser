@@ -28,7 +28,7 @@ class Client():
     def __init__(self, logger):
         self.logger = logger
         
-        self.ru_client = ReadUntilClient(filter_strands=True, #TODO: Is this needed?
+        self.ru_client = ReadUntilClient(filter_strands=True,
                                          one_chunk=False,
                                          cache_type=AccumulatingCache)
 
@@ -39,23 +39,22 @@ class Client():
             self.logger.info('Waiting for client to start streaming live reads.')
         self.logger.info('Client is running.')
     
-    # TODO: Can this be a property instead??
     def is_running(self):
         return self.ru_client.is_running
     
-    def get_read_batch(self): # TODO: Rename
+    def get_read_batch(self):
         return self.ru_client.get_read_chunks(batch_size=N_CHANNELS, last=True)
     
     def get_raw_signal(self, read):
         return np.frombuffer(read.raw_data, self.ru_client.signal_dtype)
     
     def reject_reads(self, reads, unblock_duration):
-        if reads: # TODO: What if this is omitted?
+        if reads:
             self.ru_client.unblock_read_batch(reads,
                                               duration=unblock_duration)
 
     def finish_processing_reads(self, reads):
-        if reads: # TODO: What if this is omitted?
+        if reads:
             self.ru_client.stop_receiving_batch(reads)
     
     def reset(self):

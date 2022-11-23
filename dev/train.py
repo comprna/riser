@@ -15,7 +15,6 @@ from dev.data import SignalDataset
 from utilities import get_config
 
 
-# TODO: Too many params
 def train(dataloader, model, loss_fn, optimizer, device, writer, epoch, log_freq=100):
     model.train()
     n_samples = len(dataloader.dataset)

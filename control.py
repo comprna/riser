@@ -37,7 +37,7 @@ class SequencerControl():
 
                     # Classify the RNA species to which the read belongs
                     pred, probs = self._classify_signal(signal)
-                    if self._reject(pred, target):
+                    if self._should_reject(pred, target):
                         reads_to_reject.append((channel, read.number))
                     reads_processed.append((channel, read.number))
                     self._write(out_file, channel, read.id, probs, pred, target)
@@ -85,7 +85,7 @@ class SequencerControl():
         prediction = Species(torch.argmax(probs, dim=1).item())
         return prediction, probs
     
-    def _reject(self, prediction, target):
+    def _should_reject(self, prediction, target):
         return prediction != target
 
     def _write_header(self, csv_file):
@@ -95,6 +95,6 @@ class SequencerControl():
     def _write(self, csv_file, channel, read, probs, prediction, target):
         noncod_prob = probs[0][0]
         coding_prob = probs[0][1]
-        decision = 'REJECT' if self._reject(prediction, target) else 'ACCEPT'
+        decision = 'REJECT' if self._should_reject(prediction, target) else 'ACCEPT'
         csv_file.write(f'{read},{channel},{noncod_prob:.2f},{coding_prob:.2f},'
                        f'{prediction.name},{target.name},{decision}\n')

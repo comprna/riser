@@ -14,7 +14,6 @@ class Chomp1d(nn.Module):
     def forward(self, x):
         return x[:, :, :-self.chomp_size].contiguous()
 
-# TODO: Inherit ResidualBlock??
 class TemporalBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel, dilation, padding, dropout=0.2):
         super().__init__()
@@ -36,7 +35,6 @@ class TemporalBlock(nn.Module):
         # Initialise weights and biases
         self._init_weights()
 
-    # TODO: Pass config as param
     def conv_block(self, in_channels, out_channels, kernel, dilation, padding, dropout):
         layers = [
             weight_norm(nn.Conv1d(in_channels, out_channels, kernel, stride=1, padding=padding, dilation=dilation)),
@@ -52,7 +50,6 @@ class TemporalBlock(nn.Module):
         out = self.activation(out + residual)
         return out
 
-    # TODO: Move to TCN class
     def _init_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv1d):

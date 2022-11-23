@@ -5,8 +5,8 @@ _SCALING_FACTOR = 1.4826
 _SAMPLING_HZ = 3012
 
 class SignalProcessor():
-    def __init__(self, polya_length, secs):
-        self.polya_length = polya_length
+    def __init__(self, trim_length, secs):
+        self.trim_length = trim_length # TODO: rename trim_length
         self.input_length = secs * _SAMPLING_HZ
 
     def process(self, signal):
@@ -15,12 +15,12 @@ class SignalProcessor():
         Retain the first 4 seconds of transcript signal
         Normalise
         """
-        signal = signal[self.polya_length:]
+        signal = signal[self.trim_length:]
         signal = signal[:self.input_length]
         return self._mad_normalise(signal)
 
     def get_min_length(self):
-        return self.polya_length + self.input_length
+        return self.trim_length + self.input_length
 
     def _mad_normalise(self, signal):
         if signal.shape[0] == 0:
@@ -37,6 +37,7 @@ class SignalProcessor():
         return np.median(distances_from_median)
 
     def _normalise(self, x, median, mad):
+        # TODO: Avoid divide by zero error
         return (x - median) / (_SCALING_FACTOR * mad)
 
     def _smooth_outliers(self, arr):
