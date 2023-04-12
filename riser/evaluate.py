@@ -11,10 +11,10 @@ from torch.nn.functional import softmax
 from torch.utils.data import DataLoader
 from torchinfo import summary
 
-from models.cnn import ConvNet
-from dev.data import SignalDataset
-from models.resnet import ResNet
-from models.tcn import TCN
+from nets.cnn import ConvNet
+from train.data import SignalDataset
+from nets.resnet import ResNet
+from nets.tcn import TCN
 from utilities import get_config
 
 
@@ -36,9 +36,9 @@ def main():
     model_file = sys.argv[1]
     config_file = sys.argv[2]
     data_dir = sys.argv[3]
-    # model_file = './local_data/models/train-resnet-33_0_best_model.pth'
-    # data_dir = './local_data/hek293'
-    # config_file = './local_data/configs/train-resnet-33.yaml'
+    # model_file = '/home/alex/local_testing/models/train-cnn-19_0_best_model.pth'
+    # data_dir = '/home/alex/local_testing/data/all-hela_1sec'
+    # config_file = '/home/alex/local_testing/models/train-cnn-19.yaml'
 
     # Load config
 
@@ -48,7 +48,7 @@ def main():
 
     model_id = model_file.split('.pth')[0].split('/')[-1]
     arch = model_file.split('train-')[-1].split('-')[0]
-    dataset = data_dir.split('gm24385/')[-1]
+    dataset = data_dir.split('/')[-1]
     print("##########################################################")
     print(f"\n\n\nTesting {arch} with id {model_id} on data {dataset}")
     print("##########################################################")
@@ -113,6 +113,21 @@ def main():
     all_y_true = all_y_true.numpy()
     all_y_pred = all_y_pred.cpu().numpy()
     all_y_pred_probs = all_y_pred_probs.cpu().numpy()
+
+    # Store numpy array in text file
+
+    np.savetxt(f"all_y_true_{model_id}_{dataset}.tsv",
+               all_y_true,
+               delimiter="\t",
+               header="truth")
+    np.savetxt(f"all_y_pred_{model_id}_{dataset}.tsv",
+               all_y_pred,
+               delimiter="\t",
+               header="pred")
+    np.savetxt(f"all_y_pred_probs_{model_id}_{dataset}.tsv",
+               all_y_pred_probs,
+               delimiter="\t",
+               header="nc_prob\tc_prob")
 
     ############################# ANALYSIS ############################
 
