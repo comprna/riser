@@ -36,6 +36,7 @@ def main():
     model_file = sys.argv[1]
     config_file = sys.argv[2]
     data_dir = sys.argv[3]
+    input_length = sys.argv[4]
     # model_file = '/home/alex/local_testing/models/train-cnn-19_0_best_model.pth'
     # data_dir = '/home/alex/local_testing/data/all-hela_1sec'
     # config_file = '/home/alex/local_testing/models/train-cnn-19.yaml'
@@ -116,15 +117,15 @@ def main():
 
     # Store numpy array in text file
 
-    np.savetxt(f"all_y_true_{model_id}_{dataset}.tsv",
+    np.savetxt(f"all_y_true_{model_id}_{dataset}_{input_length}s.tsv",
                all_y_true,
                delimiter="\t",
                header="truth")
-    np.savetxt(f"all_y_pred_{model_id}_{dataset}.tsv",
+    np.savetxt(f"all_y_pred_{model_id}_{dataset}_{input_length}s.tsv",
                all_y_pred,
                delimiter="\t",
                header="pred")
-    np.savetxt(f"all_y_pred_probs_{model_id}_{dataset}.tsv",
+    np.savetxt(f"all_y_pred_probs_{model_id}_{dataset}_{input_length}s.tsv",
                all_y_pred_probs,
                delimiter="\t",
                header="nc_prob\tc_prob")
