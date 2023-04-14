@@ -33,13 +33,14 @@ def main():
 
     # CL args
 
-    model_file = sys.argv[1]
-    config_file = sys.argv[2]
-    data_dir = sys.argv[3]
-    input_length = sys.argv[4]
-    # model_file = '/home/alex/local_testing/models/train-cnn-19_0_best_model.pth'
-    # data_dir = '/home/alex/local_testing/data/all-hela_1sec'
-    # config_file = '/home/alex/local_testing/models/train-cnn-19.yaml'
+    # model_file = sys.argv[1]
+    # config_file = sys.argv[2]
+    # data_dir = sys.argv[3]
+    # input_length = sys.argv[4]
+    model_file = '/home/alex/local_testing/models/train-cnn-19_0_best_model.pth'
+    data_dir = '/home/alex/local_testing/data/all-hela_1sec'
+    config_file = '/home/alex/local_testing/models/train-cnn-19.yaml'
+    input_length = 1
 
     # Load config
 
