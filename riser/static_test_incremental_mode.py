@@ -103,8 +103,6 @@ def main():
 
     ########################### PREDICTIONS ###################################
 
-    print("dataset\tf5_file\tread_id\t1_nc\t1_c\t2_nc\t2_c\t3_nc\t3_c\t4_nc\t4_c\t5_nc\t5_c")
-
     # Iterate through files
     for f5_file in Path(f5_dir).glob('*.fast5'):
 
@@ -146,7 +144,7 @@ def main():
 
                     preds[i] = f"{prob_nc}\t{prob_c}"
                 
-                print(f"{dataset}\t{filename}\t{read.read_id}\t{preds[1]}\t{preds[2]}\t{preds[3]}\t{preds[4]}\t{preds[5]}")
+                print(f"{dataset}\t{filename}\t{read.read_id}\t{preds[1]}\t{preds[2]}\t{preds[3]}\t{preds[4]}\t{preds[5]}\n")
 
 
 
