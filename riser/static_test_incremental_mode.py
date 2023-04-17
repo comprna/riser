@@ -144,7 +144,7 @@ def main():
 
                     preds[i] = f"{prob_nc}\t{prob_c}"
                 
-                print(f"{dataset}\t{filename}\t{read.read_id}\t{preds[1]}\t{preds[2]}\t{preds[3]}\t{preds[4]}\t{preds[5]}\n")
+                print(f"PRED\t{model_id}\t{dataset}\t{filename}\t{read.read_id}\t{preds[1]}\t{preds[2]}\t{preds[3]}\t{preds[4]}\t{preds[5]}\n")
 
 
 
