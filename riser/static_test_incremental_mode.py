@@ -75,8 +75,8 @@ def main():
     dataset = f5_dir.split("/")[-1]
 
     # Setup
-    model_file = sys.argv[1]
-    config_file = sys.argv[2]
+    model_file = sys.argv[2]
+    config_file = sys.argv[3]
     # model_file = '/home/alex/local_testing/models/train-cnn-20_0_best_model.pth'
     # config_file = '/home/alex/local_testing/models/train-cnn-20.yaml'
 
