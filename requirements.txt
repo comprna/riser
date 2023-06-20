@@ -5,3 +5,4 @@ torch
 attrdict
 pyyaml
 torchinfo
+tensorboard

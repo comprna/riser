@@ -7,11 +7,11 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchinfo import summary
 
-from models.cnn import ConvNet
-from models.resnet import ResNet
-from models.tcn import TCN
-from models.tcn_bot import TCNBot
-from dev.data import SignalDataset
+from nets.cnn import ConvNet
+from nets.resnet import ResNet
+from nets.tcn import TCN
+from nets.tcn_bot import TCNBot
+from data import SignalDataset
 from utilities import get_config
 
 
@@ -89,10 +89,11 @@ def main():
     config_file = sys.argv[4]
     start_epoch = int(sys.argv[5])
 
-    # exp_dir = "/home/alex/Documents/rnaclassifier/saved_models"
-    # data_dir = '/home/alex/Documents/rnaclassifier/local_data'
+    # exp_dir = "/home/alex/Documents/tmp/globin/train"
+    # data_dir = "/home/alex/Documents/tmp/globin/data"
     # checkpt = None
-    # config_file = 'config.yaml'
+    # config_file = "/home/alex/Documents/tmp/globin/train-cnn-20-local.yaml"
+    # start_epoch = 0
 
     print(f"Experiment dir: {exp_dir}")
     print(f"Data dir: {data_dir}")
@@ -110,12 +111,12 @@ def main():
     # Create datasets
 
     print("Creating datasets...")
-    train_cfile = f"{data_dir}/train_coding.pt"
-    train_nfile = f"{data_dir}/train_noncoding.pt"
-    valid_cfile = f"{data_dir}/val_coding.pt"
-    valid_nfile = f"{data_dir}/val_noncoding.pt"
-    train_data = SignalDataset(train_cfile, train_nfile)
-    valid_data = SignalDataset(valid_cfile, valid_nfile)
+    train_pfile = f"{data_dir}/train_positive.pt"
+    train_nfile = f"{data_dir}/train_negative.pt"
+    valid_pfile = f"{data_dir}/val_positive.pt"
+    valid_nfile = f"{data_dir}/val_negative.pt"
+    train_data = SignalDataset(train_pfile, train_nfile)
+    valid_data = SignalDataset(valid_pfile, valid_nfile)
 
     # Create data loaders
 

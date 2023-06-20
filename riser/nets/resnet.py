@@ -1,7 +1,7 @@
 from torch import nn
 from torchinfo import summary
 
-from utilities import get_config
+# from utilities import get_config
 
 
 class ResidualBlock(nn.Module):
@@ -131,11 +131,11 @@ class ResNet(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
 
-def main():
-    config = get_config('config-resnet.yaml')
-    model = ResNet(config.resnet)
-    summary(model, input_size=(64, 12048))
+# def main():
+#     config = get_config('config-resnet.yaml')
+#     model = ResNet(config.resnet)
+#     summary(model, input_size=(64, 12048))
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

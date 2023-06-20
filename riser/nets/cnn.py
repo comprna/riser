@@ -1,7 +1,7 @@
 from torch import nn
 from torchinfo import summary
 
-from utilities import get_config
+# from utilities import get_config
 
 
 class ConvNet(nn.Module):
@@ -65,11 +65,11 @@ class ConvNet(nn.Module):
         return nn.Sequential(*layers)
 
 
-def main():
-    config = get_config('config-cnn.yaml')
-    model = ConvNet(config.cnn)
-    summary(model, input_size=(config.batch_size, 12048))
+# def main():
+#     config = get_config('config-cnn.yaml')
+#     model = ConvNet(config.cnn)
+#     summary(model, input_size=(config.batch_size, 12048))
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
