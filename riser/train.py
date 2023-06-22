@@ -166,7 +166,7 @@ def main():
     best_acc = 0
     best_epoch = 0
     for t in range(start_epoch, config.n_epochs):
-        print(f"Epoch {t+1}\n-------------------------------")
+        print(f"Epoch {t}\n-------------------------------")
         start_train_t = time.time()
         train_loss = train(train_loader, model, loss_fn, optimizer, device, writer, t)
         end_train_t = time.time()
@@ -186,11 +186,11 @@ def main():
             best_acc = val_acc
             best_epoch = t
             torch.save(model.state_dict(), f"{exp_dir}/{exp_id}_{start_epoch}_best_model.pth")
-            print(f"Saved best model at epoch {t} with accuracy {best_acc}.")
+            print(f"Saved best model at epoch {t} with val accuracy {best_acc}.")
 
         # Always save latest model in case training is interrupted
         torch.save(model.state_dict(), f"{exp_dir}/{exp_id}_latest_model.pth")
-        print(f"Saved latest model at epoch {t} with accuracy {val_acc}.")
+        print(f"Saved latest model at epoch {t} with val accuracy {val_acc}.")
 
     print(f"Best model with validation accuracy {best_acc} saved at epoch {best_epoch}.")
 
