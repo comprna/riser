@@ -1,8 +1,11 @@
-minknow-api==4.5.0
-read-until==3.0.0
-numpy
-torch
 attrdict
+matplotlib
+minknow-api==4.5.0
+numpy
 pyyaml
-torchinfo
+read-until==3.0.0
+scikit-learn
+seaborn
 tensorboard
+torch
+torchinfo

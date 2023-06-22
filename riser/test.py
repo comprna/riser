@@ -32,12 +32,12 @@ def main():
 
     # CL args
 
-    # model_file = sys.argv[1]
-    # config_file = sys.argv[2]
-    # data_dir = sys.argv[3]
-    model_file = '/home/alex/Documents/tmp/globin/retrain-globin_0_best_model.pth'
-    data_dir = '/home/alex/Documents/tmp/globin/globin-data'
-    config_file = '/home/alex/Documents/tmp/globin/train-cnn-20-local.yaml'
+    model_file = sys.argv[1]
+    config_file = sys.argv[2]
+    data_dir = sys.argv[3]
+    # model_file = '/home/alex/Documents/tmp/globin/retrain-globin_0_best_model.pth'
+    # data_dir = '/home/alex/Documents/tmp/globin/globin-data'
+    # config_file = '/home/alex/Documents/tmp/globin/train-cnn-20-local.yaml'
 
     # Load config
 
