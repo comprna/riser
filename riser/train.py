@@ -1,6 +1,7 @@
 import sys
 import time
 
+from pytorch_lightning.trainer.supporters import CombinedLoader
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
@@ -21,8 +22,11 @@ def train(dataloader, model, loss_fn, optimizer, device, writer, epoch, log_freq
     n_batches = len(dataloader)
     total_loss = 0.0
     for batch, (X, y) in enumerate(dataloader):
+        print(batch)
+        print(X)
+        print(y)
 
-        # Move data batch to GPU for propagation through network
+        # Move batch to GPU
         X, y = X.to(device), y.to(device)
 
         # Compute prediction error
@@ -71,12 +75,14 @@ def validate(dataloader, model, loss_fn, device):
     return avg_loss, acc
 
 
-def write_scalars(writer, train_loss, val_loss, val_acc, train_t, val_t, epoch):
-    writer.add_scalar('validation loss', val_loss, epoch)
-    writer.add_scalar('validation acc', val_acc, epoch)
-    writer.add_scalar('train - val loss', train_loss-val_loss, epoch)
-    writer.add_scalar('train time', train_t, epoch)
-    writer.add_scalar('val time', val_t, epoch)
+def write_scalars(writer, metrics, epoch):
+    for metric, value in metrics.items():
+        writer.add_scaler(metric, value, epoch)
+
+
+def build_loader(data_dir, batch_size, shuffle):
+    dataset = SignalDataset(f"{data_dir}/positive.pt", f"{data_dir}/negative.pt")
+    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
 
 def main():
@@ -108,21 +114,24 @@ def main():
 
     exp_id = exp_dir.split('/')[-1]
 
-    # Create datasets
-
-    print("Creating datasets...")
-    train_pfile = f"{data_dir}/train_positive.pt"
-    train_nfile = f"{data_dir}/train_negative.pt"
-    valid_pfile = f"{data_dir}/val_positive.pt"
-    valid_nfile = f"{data_dir}/val_negative.pt"
-    train_data = SignalDataset(train_pfile, train_nfile)
-    valid_data = SignalDataset(valid_pfile, valid_nfile)
-
     # Create data loaders
 
     print("Creating data loaders...")
-    train_loader = DataLoader(train_data, batch_size=config.batch_size, shuffle=True)
-    valid_loader = DataLoader(valid_data, batch_size=config.batch_size, shuffle=False)
+    train_2s_loader = build_loader(f"{data_dir}/2s/train", config.batch_size, True)
+    train_3s_loader = build_loader(f"{data_dir}/3s/train", config.batch_size, True)
+    train_4s_loader = build_loader(f"{data_dir}/4s/train", config.batch_size, True)
+    train_loaders = {'2s': train_2s_loader,
+                     '3s': train_3s_loader,
+                     '4s': train_4s_loader}
+    train_loader = CombinedLoader(train_loaders, mode="max_size")
+    
+    val_2s_loader = build_loader(f"{data_dir}/2s/val", config.batch_size, False)
+    val_3s_loader = build_loader(f"{data_dir}/3s/val", config.batch_size, False)
+    val_4s_loader = build_loader(f"{data_dir}/4s/val", config.batch_size, False)
+    val_loaders = {'2s': val_2s_loader,
+                   '3s': val_3s_loader,
+                   '4s': val_4s_loader}
+    val_loader = CombinedLoader(val_loaders, mode="max_size")
 
     # Get device for training
 
@@ -167,19 +176,38 @@ def main():
     best_epoch = 0
     for t in range(start_epoch, config.n_epochs):
         print(f"Epoch {t}\n-------------------------------")
+        
+        # Training
         start_train_t = time.time()
         train_loss = train(train_loader, model, loss_fn, optimizer, device, writer, t)
         end_train_t = time.time()
+
+        # Validation
         start_val_t = end_train_t
-        val_loss, val_acc = validate(valid_loader, model, loss_fn, device)
+        val_loss, val_acc = validate(val_loader, model, loss_fn, device)
         end_val_t = time.time()
+        val_2s_loss, val_2s_acc = validate(val_2s_loader, model, loss_fn, device)
+        val_3s_loss, val_3s_acc = validate(val_3s_loader, model, loss_fn, device)
+        val_4s_loss, val_4s_acc = validate(val_4s_loader, model, loss_fn, device)
 
         # Compute walltime taken for training and validation loops
         train_t = end_train_t - start_train_t
         val_t = end_val_t - start_val_t
 
         # Update TensorBoard
-        write_scalars(writer, train_loss, val_loss, val_acc, train_t, val_t, t)
+        metrics = {'train_loss': train_loss,
+                   'val_loss': val_loss,
+                   'val_2s_loss': val_2s_loss,
+                   'val_3s_loss': val_3s_loss,
+                   'val_4s_loss': val_4s_loss,
+                   'val_acc': val_acc,
+                   'val_2s_acc': val_2s_acc,
+                   'val_3s_acc': val_3s_acc,
+                   'val_4s_acc': val_4s_acc,
+                   'train_t': train_t,
+                   'val_t': val_t,
+                   'train - val loss': train_loss - val_loss}
+        write_scalars(writer, metrics, t)
         
         # Save model if it is the best so far
         if val_acc > best_acc:
