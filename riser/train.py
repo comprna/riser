@@ -7,11 +7,11 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchinfo import summary
 
-from models.cnn import ConvNet
-from models.resnet import ResNet
-from models.tcn import TCN
-from models.tcn_bot import TCNBot
-from dev.data import SignalDataset
+from nets.cnn import ConvNet
+from nets.resnet import ResNet
+from nets.tcn import TCN
+from nets.tcn_bot import TCNBot
+from data import SignalDataset
 from utilities import get_config
 
 
@@ -89,10 +89,11 @@ def main():
     config_file = sys.argv[4]
     start_epoch = int(sys.argv[5])
 
-    # exp_dir = "/home/alex/Documents/rnaclassifier/saved_models"
-    # data_dir = '/home/alex/Documents/rnaclassifier/local_data'
+    # exp_dir = "/home/alex/Documents/tmp/globin/train"
+    # data_dir = "/home/alex/Documents/tmp/globin/data"
     # checkpt = None
-    # config_file = 'config.yaml'
+    # config_file = "/home/alex/Documents/tmp/globin/train-cnn-20-local.yaml"
+    # start_epoch = 0
 
     print(f"Experiment dir: {exp_dir}")
     print(f"Data dir: {data_dir}")
@@ -110,12 +111,12 @@ def main():
     # Create datasets
 
     print("Creating datasets...")
-    train_cfile = f"{data_dir}/train_coding.pt"
-    train_nfile = f"{data_dir}/train_noncoding.pt"
-    valid_cfile = f"{data_dir}/val_coding.pt"
-    valid_nfile = f"{data_dir}/val_noncoding.pt"
-    train_data = SignalDataset(train_cfile, train_nfile)
-    valid_data = SignalDataset(valid_cfile, valid_nfile)
+    train_pfile = f"{data_dir}/train_positive.pt"
+    train_nfile = f"{data_dir}/train_negative.pt"
+    valid_pfile = f"{data_dir}/val_positive.pt"
+    valid_nfile = f"{data_dir}/val_negative.pt"
+    train_data = SignalDataset(train_pfile, train_nfile)
+    valid_data = SignalDataset(valid_pfile, valid_nfile)
 
     # Create data loaders
 
@@ -165,7 +166,7 @@ def main():
     best_acc = 0
     best_epoch = 0
     for t in range(start_epoch, config.n_epochs):
-        print(f"Epoch {t+1}\n-------------------------------")
+        print(f"Epoch {t}\n-------------------------------")
         start_train_t = time.time()
         train_loss = train(train_loader, model, loss_fn, optimizer, device, writer, t)
         end_train_t = time.time()
@@ -185,11 +186,11 @@ def main():
             best_acc = val_acc
             best_epoch = t
             torch.save(model.state_dict(), f"{exp_dir}/{exp_id}_{start_epoch}_best_model.pth")
-            print(f"Saved best model at epoch {t} with accuracy {best_acc}.")
+            print(f"Saved best model at epoch {t} with val accuracy {best_acc}.")
 
         # Always save latest model in case training is interrupted
         torch.save(model.state_dict(), f"{exp_dir}/{exp_id}_latest_model.pth")
-        print(f"Saved latest model at epoch {t} with accuracy {val_acc}.")
+        print(f"Saved latest model at epoch {t} with val accuracy {val_acc}.")
 
     print(f"Best model with validation accuracy {best_acc} saved at epoch {best_epoch}.")
 

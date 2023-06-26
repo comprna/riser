@@ -11,8 +11,8 @@ from torch.nn.functional import softmax
 from torch.utils.data import DataLoader
 from torchinfo import summary
 
+from data import SignalDataset
 from nets.cnn import ConvNet
-from train.data import SignalDataset
 from nets.resnet import ResNet
 from nets.tcn import TCN
 from utilities import get_config
@@ -33,14 +33,14 @@ def main():
 
     # CL args
 
-    # model_file = sys.argv[1]
-    # config_file = sys.argv[2]
-    # data_dir = sys.argv[3]
-    # input_length = sys.argv[4]
-    model_file = '/home/alex/local_testing/models/train-cnn-19_0_best_model.pth'
-    data_dir = '/home/alex/local_testing/data/all-hela_1sec'
-    config_file = '/home/alex/local_testing/models/train-cnn-19.yaml'
-    input_length = 1
+    model_file = sys.argv[1]
+    config_file = sys.argv[2]
+    data_dir = sys.argv[3]
+    input_length = sys.argv[4]
+    # model_file = '/home/alex/Documents/tmp/globin/retrain-globin_0_best_model.pth'
+    # data_dir = '/home/alex/Documents/tmp/globin/globin-data'
+    # config_file = '/home/alex/Documents/tmp/globin/train-cnn-20-local.yaml'
+    # input_length = 1
 
     # Load config
 
@@ -49,7 +49,7 @@ def main():
     # Get info about experiment
 
     model_id = model_file.split('.pth')[0].split('/')[-1]
-    arch = model_file.split('train-')[-1].split('-')[0]
+    arch = config_file.split('train-')[-1].split('-')[0]
     dataset = data_dir.split('/')[-1]
     print("##########################################################")
     print(f"\n\n\nTesting {arch} with id {model_id} on data {dataset}")
@@ -59,9 +59,9 @@ def main():
 
     print("Creating test dataset...")
 
-    test_cfile = f"{data_dir}/test_coding.pt"
-    test_nfile = f"{data_dir}/test_noncoding.pt"
-    test_data = SignalDataset(test_cfile, test_nfile)
+    test_pfile = f"{data_dir}/test_positive.pt"
+    test_nfile = f"{data_dir}/test_negative.pt"
+    test_data = SignalDataset(test_pfile, test_nfile)
     test_loader = DataLoader(test_data, batch_size=config.batch_size, shuffle=False)
 
     # Get device for model evaluation
@@ -158,7 +158,7 @@ def main():
 
     # Visualise confusion matrix
 
-    categories = ['non-coding', 'coding'] # 0: non-coding, 1: coding
+    categories = ['negative', 'positive'] # 0: negative, 1: positive
     sns.heatmap(matrix, annot=True, fmt='', cmap='Blues', 
                 xticklabels=categories, yticklabels=categories)
     plt.ylabel('True label')
@@ -167,98 +167,40 @@ def main():
     plt.savefig(f"{data_dir}_{model_id}_conf_matrix.png")
     plt.clf()
 
-    ######################## TARGET: CODING ############################
-
-    print("Metrics for target: CODING")
-
     # True positive rate (fraction of +ve class predicted correctly)
 
-    cod_tpr = tp / (tp + fn)
-    print(f"Coding TPR: {cod_tpr}")
+    tpr = tp / (tp + fn)
+    print(f"TPR: {tpr}")
 
-    # False positive rate AKA recall (fraction of -ve class predicted incorrectly)
+    # False positive rate (fraction of -ve class predicted incorrectly)
 
-    cod_fpr = fp / (fp + tn)
-    print(f"Coding FPR: {cod_fpr}")
+    fpr = fp / (fp + tn)
+    print(f"FPR: {fpr}")
 
     # Precision (fraction of correct +ve predictions)
 
-    cod_prec = tp / (tp + fp)
-    print(f"Coding Precision: {cod_prec}")
+    prec = tp / (tp + fp)
+    print(f"Precision: {prec}")
 
     # TP / FP rate
 
-    cod_tp_fp = tp / fp
-    print(f"Coding #TP/#FP: {cod_tp_fp}")
+    tp_fp = tp / fp
+    print(f"#TP/#FP: {tp_fp}")
 
     # Compute ROC AUC
 
-    coding_probs = all_y_pred_probs[:, 1]
-    cod_auc = roc_auc_score(all_y_true, coding_probs)
-    print(f"Coding AUC: {cod_auc:.3f}\n")
+    positive_probs = all_y_pred_probs[:, 1]
+    auc = roc_auc_score(all_y_true, positive_probs)
+    print(f"AUC: {auc:.3f}\n")
 
     # Plot ROC curve
 
-    fpr, tpr, _ = roc_curve(all_y_true, coding_probs)
+    fpr, tpr, _ = roc_curve(all_y_true, positive_probs)
     plt.plot(fpr, tpr, marker='.')
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title(f"{data_dir} {model_id} coding ROC curve, AUC = {cod_auc:.3f}")
-    plt.savefig(f"{data_dir}_{model_id}_coding_roc_curve.png")
-
-
-    ###################### TARGET: NON-CODING ##########################
-
-    print("Metrics for target: NON-CODING")
-
-    # True positive rate (fraction of +ve class predicted correctly)
-
-    nc_tpr = tn / (tn + fp)
-    print(f"Non-coding TPR: {nc_tpr}")
-
-    # False positive rate AKA recall (fraction of -ve class predicted incorrectly)
-
-    nc_fpr = fn / (fn + tp)
-    print(f"Non-coding FPR: {nc_fpr}")
-
-    # Precision (fraction of correct +ve predictions)
-
-    nc_prec = tn / (tn + fn)
-    print(f"Non-coding Precision: {nc_prec}")
-
-    # TP / FP rate
-
-    nc_tp_fp = tn / fn
-    print(f"Non-coding #TP/#FP: {nc_tp_fp}")
-
-    # Compute ROC AUC
-
-    all_y_pred_probs_nc = []
-    for probs in all_y_pred_probs:
-        all_y_pred_probs_nc.append(list(probs[::-1]))
-    all_y_pred_probs_nc = np.array(all_y_pred_probs_nc)
-
-    all_y_true_nc = []
-    for y in all_y_true:
-        if y == 0:
-            all_y_true_nc.append(1)
-        else:
-            all_y_true_nc.append(0)
-
-    noncoding_probs = all_y_pred_probs_nc[:, 1]
-    nc_auc = roc_auc_score(all_y_true_nc, noncoding_probs)
-    print(f"Non-coding AUC: {nc_auc:.3f}\n")
-
-    # Plot ROC curve
-
-    fpr, tpr, _ = roc_curve(all_y_true_nc, noncoding_probs)
-    plt.plot(fpr, tpr, marker='.')
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title(f"{data_dir} {model_id} non-coding ROC curve, AUC = {nc_auc:.3f}")
-    plt.savefig(f"{data_dir}_{model_id}_noncoding_roc_curve.png")
-
-    print(f"{acc}\t{max_t}\t{min_t}\t{avg_batch_t}\t{avg_pred_t}\t{cod_tpr}\t{cod_fpr}\t{cod_prec}\t{cod_auc}\t{cod_tp_fp}\t{nc_tpr}\t{nc_fpr}\t{nc_prec}\t{nc_auc}\t{nc_tp_fp}")
+    plt.title(f"{data_dir} {model_id} ROC curve, AUC = {auc:.3f}")
+    plt.savefig(f"{data_dir}_{model_id}_roc_curve.png")
 
 
 if __name__ == "__main__":
