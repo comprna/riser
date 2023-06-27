@@ -27,8 +27,10 @@ def train(dataloader, model, loss_fn, optimizer, device, writer, epoch, log_freq
         n_batches += len(loader)
     print(f"Number of batches in training set: {n_batches}")
     total_loss = 0.0
-    for batch, (X, y) in enumerate(dataloader):
+    for batch, batch_idx, dataloader_idx in dataloader:
         print(batch)
+        print(batch_idx)
+        print(dataloader_idx)
         print(X)
         print(y)
 
