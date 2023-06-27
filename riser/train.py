@@ -18,8 +18,14 @@ from utilities import get_config
 
 def train(dataloader, model, loss_fn, optimizer, device, writer, epoch, log_freq=100):
     model.train()
-    n_samples = len(dataloader.dataset)
-    n_batches = len(dataloader)
+    n_samples = 0
+    for loader in dataloader.loaders: # dataloader is a CombinedLoader
+        n_samples += len(loader.dataset)
+    print(f"Total size of training set: {n_samples}")
+    n_batches = 0
+    for loader in dataloader.loaders: # dataloader is a CombinedLoader
+        n_batches += len(loader)
+    print(f"Number of batches in training set: {n_batches}")
     total_loss = 0.0
     for batch, (X, y) in enumerate(dataloader):
         print(batch)
