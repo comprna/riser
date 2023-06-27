@@ -1,7 +1,7 @@
 import sys
 import time
 
-from pytorch_lightning.trainer.supporters import CombinedLoader
+from pytorch_lightning.utilities import CombinedLoader
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
