@@ -114,7 +114,7 @@ def validate(dataloader, model, loss_fn, device):
 
 def write_scalars(writer, metrics, epoch):
     for metric, value in metrics.items():
-        writer.add_scaler(metric, value, epoch)
+        writer.add_scalar(metric, value, epoch)
 
 
 def build_loader(data_dir, batch_size, shuffle):
