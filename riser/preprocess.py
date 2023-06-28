@@ -37,7 +37,7 @@ class SignalProcessor():
         return np.median(distances_from_median)
 
     def _normalise(self, x, median, mad):
-        # TODO: Avoid divide by zero error
+        # TODO: Handle divide by zero
         return (x - median) / (_SCALING_FACTOR * mad)
 
     def _smooth_outliers(self, arr):

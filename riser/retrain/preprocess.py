@@ -40,6 +40,7 @@ def calculate_mad(signal, median):
 
 
 def normalise(x, median, mad):
+    # TODO: Handle divide by zero
     return (x - median) / (1.4826 * mad)
 
 

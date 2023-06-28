@@ -217,9 +217,6 @@ def main():
         start_val_t = end_train_t
         val_loss, val_acc = validate(val_loader, model, loss_fn, device)
         end_val_t = time.time()
-        val_2s_loss, val_2s_acc = validate(val_2s_loader, model, loss_fn, device)
-        val_3s_loss, val_3s_acc = validate(val_3s_loader, model, loss_fn, device)
-        val_4s_loss, val_4s_acc = validate(val_4s_loader, model, loss_fn, device)
 
         # Compute walltime taken for training and validation loops
         train_t = end_train_t - start_train_t
@@ -228,13 +225,7 @@ def main():
         # Update TensorBoard
         metrics = {'train_loss': train_loss,
                    'val_loss': val_loss,
-                   'val_2s_loss': val_2s_loss,
-                   'val_3s_loss': val_3s_loss,
-                   'val_4s_loss': val_4s_loss,
                    'val_acc': val_acc,
-                   'val_2s_acc': val_2s_acc,
-                   'val_3s_acc': val_3s_acc,
-                   'val_4s_acc': val_4s_acc,
                    'train_t': train_t,
                    'val_t': val_t,
                    'train - val loss': train_loss - val_loss}
