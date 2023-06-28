@@ -37,10 +37,6 @@ def main():
     config_file = sys.argv[2]
     data_dir = sys.argv[3]
     input_length = sys.argv[4]
-    # model_file = '/home/alex/Documents/tmp/globin/retrain-globin_0_best_model.pth'
-    # data_dir = '/home/alex/Documents/tmp/globin/globin-data'
-    # config_file = '/home/alex/Documents/tmp/globin/train-cnn-20-local.yaml'
-    # input_length = 1
 
     # Load config
 

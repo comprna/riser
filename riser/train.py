@@ -1,3 +1,4 @@
+import random
 import sys
 import time
 
@@ -15,66 +16,94 @@ from nets.tcn_bot import TCNBot
 from data import SignalDataset
 from utilities import get_config
 
+def count_batches_in_combined_loader(combined_loader):
+    n_batches = 0
+    for loader in combined_loader.flattened:
+        n_batches += len(loader)
+    return n_batches
+
+def count_samples_in_combined_loader(combined_loader):
+    n_samples = 0
+    for loader in combined_loader.flattened:
+        n_samples += len(loader.dataset)
+    return n_samples
 
 def train(dataloader, model, loss_fn, optimizer, device, writer, epoch, log_freq=100):
     model.train()
-    n_samples = 0
-    for loader in dataloader.flattened: # dataloader is a CombinedLoader
-        n_samples += len(loader.dataset)
+
+    # Compute number of batches and total number of training instances
+    n_samples = count_samples_in_combined_loader(dataloader)
     print(f"Total size of training set: {n_samples}")
-    n_batches = 0
-    for loader in dataloader.flattened: # dataloader is a CombinedLoader
-        n_batches += len(loader)
+    n_batches = count_batches_in_combined_loader(dataloader)
     print(f"Number of batches in training set: {n_batches}")
+
+    # Training
     total_loss = 0.0
-    for batch, batch_idx, dataloader_idx in dataloader:
-        print(batch)
-        print(batch_idx)
-        print(dataloader_idx)
-        print(X)
-        print(y)
+    input_lengths = ['2s', '3s', '4s']
+    batch_n = 0
+    for combined_batches in dataloader:
+        # Randomise order of input lengths shown to network
+        random.shuffle(input_lengths)
+        for length in input_lengths:
+            # CombinedLoader returns none for a given loader if that loader
+            # has been exhausted (using "max_size" iteration mode)
+            if combined_batches[length] is None:
+                continue
 
-        # Move batch to GPU
-        X, y = X.to(device), y.to(device)
+            X, y = combined_batches[length]
 
-        # Compute prediction error
-        pred = model(X)
-        loss = loss_fn(pred, y)
-        total_loss += loss.item()
+            # Move batch to GPU
+            X, y = X.to(device), y.to(device)
 
-        # Backpropagation
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            # Compute prediction error
+            pred = model(X)
+            loss = loss_fn(pred, y)
+            total_loss += loss.item()
 
-        # Print progress
-        if batch != 0 and batch % log_freq == 0:
-            sample = batch * len(X)
-            global_step = epoch * n_samples + sample
-            avg_loss = total_loss / batch
-            print(f"loss: {avg_loss:>7f} [{sample:>5d}/{n_samples:>5d}]")
-            writer.add_scalar('training loss', avg_loss, global_step)
+            # Backpropagation
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            # Print progress
+            if batch_n != 0 and batch_n % log_freq == 0:
+                sample = batch_n * len(X)
+                global_step = epoch * n_samples + sample
+                avg_loss = total_loss / batch_n
+                print(f"loss: {avg_loss:>7f} [{sample:>5d}/{n_samples:>5d}]")
+                writer.add_scalar('training loss', avg_loss, global_step)
+
+            # Increase batch counter
+            batch_n += 1
 
     avg_loss = total_loss / n_batches
     return avg_loss
 
 
 def validate(dataloader, model, loss_fn, device):
-    n_samples = len(dataloader.dataset)
-    n_batches = len(dataloader)
+    n_samples = count_samples_in_combined_loader(dataloader)
+    n_batches = count_batches_in_combined_loader(dataloader)
     model.eval()
     total_loss, n_correct = 0, 0
+    input_lengths = ['2s', '3s', '4s']
     with torch.no_grad():
-        for X, y in dataloader:
+        for combined_batches in dataloader:
+            for length in input_lengths:
+                # CombinedLoader returns none for a given loader if that loader
+                # has been exhausted (using "max_size" iteration mode)
+                if combined_batches[length] is None:
+                    continue
 
-            # Move batch to GPU
-            X, y = X.to(device), y.to(device)
-            
-            # Compute prediction error
-            pred = model(X)
-            total_loss += loss_fn(pred, y).item()
-            n_correct += (pred.argmax(1) == y).type(torch.float).sum().item()
-    
+                X, y = combined_batches[length]
+
+                # Move batch to GPU
+                X, y = X.to(device), y.to(device)
+
+                # Compute prediction error
+                pred = model(X)
+                total_loss += loss_fn(pred, y).item()
+                n_correct += (pred.argmax(1) == y).type(torch.float).sum().item()
+
     # Compute average loss and accuracy
     avg_loss = total_loss / n_batches
     acc = n_correct / n_samples * 100
@@ -103,12 +132,6 @@ def main():
     config_file = sys.argv[4]
     start_epoch = int(sys.argv[5])
 
-    # exp_dir = "/home/alex/Documents/tmp/globin/train"
-    # data_dir = "/home/alex/Documents/tmp/globin/data"
-    # checkpt = None
-    # config_file = "/home/alex/Documents/tmp/globin/train-cnn-20-local.yaml"
-    # start_epoch = 0
-
     print(f"Experiment dir: {exp_dir}")
     print(f"Data dir: {data_dir}")
     print(f"Checkpoint: {checkpt}")
@@ -132,7 +155,7 @@ def main():
                      '3s': train_3s_loader,
                      '4s': train_4s_loader}
     train_loader = CombinedLoader(train_loaders, mode="max_size")
-    
+
     val_2s_loader = build_loader(f"{data_dir}/2s/val", config.batch_size, False)
     val_3s_loader = build_loader(f"{data_dir}/3s/val", config.batch_size, False)
     val_4s_loader = build_loader(f"{data_dir}/4s/val", config.batch_size, False)
