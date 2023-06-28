@@ -1,204 +1,135 @@
+from pathlib import Path
 import sys
-from statistics import mean
-import time
 
-import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
-from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score
+from ont_fast5_api.fast5_interface import get_fast5_file
 import torch
-from torch.nn.functional import softmax
-from torch.utils.data import DataLoader
 from torchinfo import summary
 
-from data import SignalDataset
 from nets.cnn import ConvNet
 from nets.resnet import ResNet
 from nets.tcn import TCN
 from utilities import get_config
 
+OUTLIER_LIMIT = 3.5
+SCALING_FACTOR = 1.4826
+SAMPLING_HZ = 3012
 
-def count_correct(y_true, y_pred):
-    assert len(y_pred) == len(y_true)
-    n_correct = 0
-    for i, pred in enumerate(y_pred):
-        if pred == y_true[i]:
-            n_correct += 1
-    return n_correct
+def classify(signal, device, model):
+    with torch.no_grad():
+        X = torch.from_numpy(signal).unsqueeze(0)
+        X = X.to(device, dtype=torch.float)
+        logits = model(X)
+        probs = torch.nn.functional.softmax(logits, dim=1)
+    return probs
+
+def mad_normalise(signal):
+    if signal.shape[0] == 0:
+        raise ValueError("Signal must not be empty")
+    median = np.median(signal)
+    mad = calculate_mad(signal, median)
+    vnormalise = np.vectorize(normalise)
+    normalised = vnormalise(np.array(signal), median, mad)
+    return smooth_outliers(normalised)
+
+def calculate_mad(signal, median):
+    f = lambda x, median: np.abs(x - median)
+    distances_from_median = f(signal, median)
+    return np.median(distances_from_median)
+
+def normalise(x, median, mad):
+    # TODO: Handle divide by zero
+    return (x - median) / (SCALING_FACTOR * mad)
+
+def smooth_outliers(arr):
+    # Replace outliers with average of neighbours
+    outlier_idx = np.asarray(np.abs(arr) > OUTLIER_LIMIT).nonzero()[0]
+    for i in outlier_idx:
+        if i == 0:
+            arr[i] = arr[i+1]
+        elif i == len(arr)-1:
+            arr[i] = arr[i-1]
+        else:
+            arr[i] = (arr[i-1] + arr[i+1])/2
+            # Clip any outliers that still remain after smoothing
+            arr[i] = clip_if_outlier(arr[i])
+    return arr
+
+def clip_if_outlier(x):
+    if x > OUTLIER_LIMIT:
+        return OUTLIER_LIMIT
+    elif x < -1 * OUTLIER_LIMIT:
+        return -1 * OUTLIER_LIMIT
+    else:
+        return x
 
 
 def main():
+    # Location of raw signals (that have been processed by BoostNano)
+    f5_dir = sys.argv[1]
+    dataset = f5_dir.split("/")[-1]
 
-    ############################### SETUP ##############################
-
-    # CL args
-
-    model_file = sys.argv[1]
-    config_file = sys.argv[2]
-    data_dir = sys.argv[3]
-    input_length = sys.argv[4]
+    # Setup
+    model_file = sys.argv[2]
+    config_file = sys.argv[3]
 
     # Load config
-
     config = get_config(config_file)
 
-    # Get info about experiment
-
+    # Test info
     model_id = model_file.split('.pth')[0].split('/')[-1]
     arch = config_file.split('train-')[-1].split('-')[0]
-    dataset = data_dir.split('/')[-1]
-    print("##########################################################")
-    print(f"\n\n\nTesting {arch} with id {model_id} on data {dataset}")
-    print("##########################################################")
-
-    # Create test dataloader
-
-    print("Creating test dataset...")
-
-    test_pfile = f"{data_dir}/test_positive.pt"
-    test_nfile = f"{data_dir}/test_negative.pt"
-    test_data = SignalDataset(test_pfile, test_nfile)
-    test_loader = DataLoader(test_data, batch_size=config.batch_size, shuffle=False)
 
     # Get device for model evaluation
-
     device = "cuda" if torch.cuda.is_available() else "cpu"
     device = torch.device(device)
-    print(f"Using {device} device")
 
     # Define model
-
-    if arch == 'resnet':
-        model = ResNet(config.resnet).to(device)
-    elif arch == 'tcn':
-        model = TCN(config.tcn).to(device)
-    elif arch == 'cnn':
+    if arch == 'cnn':
         model = ConvNet(config.cnn).to(device)
     else:
         print(f"Arch {arch} not defined!")
+        exit()
     model.load_state_dict(torch.load(model_file))
     summary(model)
-
-    ########################## MODEL INFERENCE #########################
-
     model.eval()
-    all_y_true = torch.tensor([])
-    all_y_pred = torch.tensor([], device=device)
-    all_y_pred_probs = torch.tensor([], device=device)
-    batch_predict_t = []
-    with torch.no_grad():
-        for X, y in test_loader:
 
-            # Move batch to GPU
-            X = X.to(device)
+    # Iterate through files
+    for f5_file in Path(f5_dir).glob('*.fast5'):
+        filename = f5_file.name.split("/")[-1]
 
-            # Predict class probabilities
-            start_t = time.time()
-            y_pred_probs = softmax(model(X), dim=1)
-            end_t = time.time()
-            batch_predict_t.append(end_t-start_t)
+        # Iterate through signals in file
+        with get_fast5_file(f5_file, mode="r") as f5:
+            for i, read in enumerate(f5.get_reads()):
 
-            # Convert to class labels
-            y_pred = torch.argmax(y_pred_probs, dim=1)
+                # Retrieve raw current measurements
+                signal_pA = read.get_raw_data(scale=True)
 
-            # Store predictions
-            all_y_true = torch.cat((all_y_true, y))
-            all_y_pred = torch.cat((all_y_pred, y_pred))
-            all_y_pred_probs = torch.cat((all_y_pred_probs, y_pred_probs))
+                # Predict for each incremental input signal length
+                preds = {}
+                for i in range(2,5): # 2,3,4
+                    # If the signal isn't long enough
+                    cutoff = SAMPLING_HZ * i
+                    if len(signal_pA) < cutoff:
+                        preds[i] = f"NA\tNA"
+                        continue
 
-    # Convert tensors to numpy arrays for downstream metrics
+                    # Trim to signal length
+                    trimmed = signal_pA[:cutoff]
 
-    all_y_true = all_y_true.numpy()
-    all_y_pred = all_y_pred.cpu().numpy()
-    all_y_pred_probs = all_y_pred_probs.cpu().numpy()
+                    # Normalise signal
+                    normalised = mad_normalise(trimmed)
 
-    # Store numpy array in text file
+                    # Predict
+                    probs = classify(normalised, device, model)
+                    prob_n = probs[0][0].item()
+                    prob_p = probs[0][1].item()
 
-    np.savetxt(f"all_y_true_{model_id}_{dataset}_{input_length}s.tsv",
-               all_y_true,
-               delimiter="\t",
-               header="truth")
-    np.savetxt(f"all_y_pred_{model_id}_{dataset}_{input_length}s.tsv",
-               all_y_pred,
-               delimiter="\t",
-               header="pred")
-    np.savetxt(f"all_y_pred_probs_{model_id}_{dataset}_{input_length}s.tsv",
-               all_y_pred_probs,
-               delimiter="\t",
-               header="nc_prob\tc_prob")
+                    preds[i] = f"{prob_n}\t{prob_p}"
+                
+                print(f"PRED\t{model_id}\t{dataset}\t{filename}\t{read.read_id}\t{preds[2]}\t{preds[3]}\t{preds[4]}\n")
 
-    ############################# ANALYSIS ############################
-
-    # Compute accuracy
-
-    n_correct = count_correct(all_y_true, all_y_pred)
-    acc = n_correct / len(all_y_true) * 100
-    print(f"Test accuracy: {acc:>0.1f}%\n")
-
-    # Inference time
-
-    max_t = max(batch_predict_t)
-    min_t = min(batch_predict_t)
-    avg_batch_t = mean(batch_predict_t)
-    avg_pred_t = avg_batch_t / config.batch_size
-    print(f"Max. batch inference time: {max_t}")
-    print(f"Min. batch inference time: {min_t}")
-    print(f"Avg. batch inference time: {avg_batch_t}")
-    print(f"Avg. inference time per signal: {avg_pred_t}\n")
-
-    # Compute confusion matrix
-
-    matrix = confusion_matrix(all_y_true, all_y_pred)
-    tn, fp, fn, tp = matrix.ravel()
-    print(f"Confusion matrix:\n------------------\n{matrix}\n")
-
-    # Visualise confusion matrix
-
-    categories = ['negative', 'positive'] # 0: negative, 1: positive
-    sns.heatmap(matrix, annot=True, fmt='', cmap='Blues', 
-                xticklabels=categories, yticklabels=categories)
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
-    plt.title(f"{data_dir} {model_id} confusion matrix")
-    plt.savefig(f"{data_dir}_{model_id}_conf_matrix.png")
-    plt.clf()
-
-    # True positive rate (fraction of +ve class predicted correctly)
-
-    tpr = tp / (tp + fn)
-    print(f"TPR: {tpr}")
-
-    # False positive rate (fraction of -ve class predicted incorrectly)
-
-    fpr = fp / (fp + tn)
-    print(f"FPR: {fpr}")
-
-    # Precision (fraction of correct +ve predictions)
-
-    prec = tp / (tp + fp)
-    print(f"Precision: {prec}")
-
-    # TP / FP rate
-
-    tp_fp = tp / fp
-    print(f"#TP/#FP: {tp_fp}")
-
-    # Compute ROC AUC
-
-    positive_probs = all_y_pred_probs[:, 1]
-    auc = roc_auc_score(all_y_true, positive_probs)
-    print(f"AUC: {auc:.3f}\n")
-
-    # Plot ROC curve
-
-    fpr, tpr, _ = roc_curve(all_y_true, positive_probs)
-    plt.plot(fpr, tpr, marker='.')
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title(f"{data_dir} {model_id} ROC curve, AUC = {auc:.3f}")
-    plt.savefig(f"{data_dir}_{model_id}_roc_curve.png")
 
 
 if __name__ == "__main__":
     main()
- 
