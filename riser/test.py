@@ -78,18 +78,13 @@ def main():
 
     # Test info
     model_id = model_file.split('.pth')[0].split('/')[-1]
-    arch = config_file.split('train-')[-1].split('-')[0]
 
     # Get device for model evaluation
     device = "cuda" if torch.cuda.is_available() else "cpu"
     device = torch.device(device)
 
     # Define model
-    if arch == 'cnn':
-        model = ConvNet(config.cnn).to(device)
-    else:
-        print(f"Arch {arch} not defined!")
-        exit()
+    model = ConvNet(config.cnn).to(device)
     model.load_state_dict(torch.load(model_file))
     summary(model)
     model.eval()
