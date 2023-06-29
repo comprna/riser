@@ -65,7 +65,7 @@ def main():
 
     for f5_file in Path(f5_dir).glob('*.fast5'):
 
-        f5_filename = f5_file.split("/")[-1].split(".")[0]
+        f5_filename = str(f5_file).split("/")[-1].split(".")[0]
 
         # Iterate through signals in file
 
