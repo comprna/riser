@@ -65,10 +65,12 @@ def main():
 
     for f5_file in Path(f5_dir).glob('*.fast5'):
 
+        f5_filename = f5_file.split("/")[-1].split(".")[0]
+
         # Iterate through signals in file
 
         n_discarded = 0
-        print(f"Processing {f5_file}...")
+        print(f"Processing {f5_filename}...")
         with get_fast5_file(f5_file, mode="r") as f5:
             for i, read in enumerate(f5.get_reads()):
 
@@ -89,12 +91,13 @@ def main():
                 normalised = mad_normalise(signal_pA, outlier_lim)
                 data.append(normalised)
 
-        print(f"# of discarded reads (< {cutoff} samples) in {f5_file}: {n_discarded}")
+        print(f"# of discarded reads (< {cutoff} samples) in {f5_filename}: {n_discarded}")
 
 
-    # Write data to file
+        # Write data to file
 
-    np.save(f"{name}_{cutoff}.npy", np.array(data))
+        np.save(f"{name}_{cutoff}_{f5_filename}.npy", np.array(data))
+        data = []
 
 
 if __name__=="__main__":
