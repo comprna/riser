@@ -94,10 +94,9 @@ def main():
         print(f"# of discarded reads (< {cutoff} samples) in {f5_filename}: {n_discarded}")
 
 
-        # Write data to file
+    # Write data to file
 
-        np.save(f"{name}_{cutoff}_{f5_filename}.npy", np.array(data))
-        data = []
+    np.save(f"{name}_{cutoff}.npy", np.array(data))
 
 
 if __name__=="__main__":
