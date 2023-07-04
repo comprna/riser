@@ -108,10 +108,10 @@ def main():
                 # Retrieve raw current measurements
                 signal_pA = read.get_raw_data(scale=True)
 
-                # Trim sequencing adapter & polyA with fixed cutoff
-                if len(signal_pA) < trim_length:
-                    continue
-                signal_pA = signal_pA[trim_length:]
+                # # Trim sequencing adapter & polyA with fixed cutoff
+                # if len(signal_pA) < trim_length:
+                #     continue
+                # signal_pA = signal_pA[trim_length:]
 
                 # Randomly select input signal length
                 min_length = min_length_s * SAMPLING_HZ
