@@ -102,11 +102,11 @@ def main():
 
                 # Predict for each incremental input signal length
                 preds = {}
-                for i in range(2,5): # 2,3,4
+                for j in range(2,5): # 2,3,4
                     # If the signal isn't long enough
-                    cutoff = SAMPLING_HZ * i
+                    cutoff = SAMPLING_HZ * j
                     if len(signal_pA) < cutoff:
-                        preds[i] = f"NA\tNA"
+                        preds[j] = f"NA\tNA"
                         continue
 
                     # Trim to signal length
@@ -120,7 +120,7 @@ def main():
                     prob_n = probs[0][0].item()
                     prob_p = probs[0][1].item()
 
-                    preds[i] = f"{prob_n}\t{prob_p}"
+                    preds[j] = f"{prob_n}\t{prob_p}"
                 
                 print(f"PRED\t{model_id}\t{dataset}\t{filename}\t{read.read_id}\t{preds[2]}\t{preds[3]}\t{preds[4]}\n")
 
