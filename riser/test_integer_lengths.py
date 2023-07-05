@@ -65,13 +65,26 @@ def clip_if_outlier(x):
 
 
 def main():
-    # Location of raw signals (that have been processed by BoostNano)
+    # Location of raw signals
     f5_dir = sys.argv[1]
     dataset = f5_dir.split("/")[-1]
 
     # Setup
     model_file = sys.argv[2]
     config_file = sys.argv[3]
+
+    # Have the signals already been trimmed by BoostNano?
+    already_trimmed = sys.argv[4]
+    if already_trimmed == "Y":
+        already_trimmed = True
+    elif already_trimmed == "N":
+        already_trimmed = False
+    else:
+        print(f"already_trimmed value {already_trimmed} invalid!")
+        exit()
+    trim_length = int(sys.argv[5])
+    if not already_trimmed and trim_length < 0:
+        print(f"Invalid trimming configuration")
 
     # Load config
     config = get_config(config_file)
@@ -90,6 +103,7 @@ def main():
     model.eval()
 
     # Iterate through files
+    too_short_for_trimming = []
     for f5_file in Path(f5_dir).glob('*.fast5'):
         filename = f5_file.name.split("/")[-1]
 
@@ -100,6 +114,13 @@ def main():
                 # Retrieve raw current measurements
                 signal_pA = read.get_raw_data(scale=True)
 
+                # If needed, trim sequencing adapter & polyA with fixed cutoff
+                if not already_trimmed:
+                    if len(signal_pA) < trim_length:
+                        too_short_for_trimming.append(read)
+                        continue
+                    signal_pA = signal_pA[trim_length:]
+
                 # Predict for each incremental input signal length
                 preds = {}
                 for j in range(2,5): # 2,3,4
@@ -109,7 +130,7 @@ def main():
                         preds[j] = f"NA\tNA"
                         continue
 
-                    # Trim to signal length
+                    # Trim to input length
                     trimmed = signal_pA[:cutoff]
 
                     # Normalise signal
@@ -124,6 +145,8 @@ def main():
                 
                 print(f"PRED\t{model_id}\t{dataset}\t{filename}\t{read.read_id}\t{preds[2]}\t{preds[3]}\t{preds[4]}\n")
 
+    with open("too_short_for_trimming.tsv", "w") as f:
+        f.writelines(too_short_for_trimming)
 
 
 if __name__ == "__main__":
