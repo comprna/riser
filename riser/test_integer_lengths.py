@@ -103,7 +103,6 @@ def main():
     model.eval()
 
     # Iterate through files
-    too_short_for_trimming = []
     for f5_file in Path(f5_dir).glob('*.fast5'):
         filename = f5_file.name.split("/")[-1]
 
@@ -117,7 +116,7 @@ def main():
                 # If needed, trim sequencing adapter & polyA with fixed cutoff
                 if not already_trimmed:
                     if len(signal_pA) < trim_length:
-                        too_short_for_trimming.append(read)
+                        print(f"PRED\t{model_id}\t{dataset}\t{filename}\t{read.read_id}\tNA\tNA\tNA\tNA\tNA\tNA\n")
                         continue
                     signal_pA = signal_pA[trim_length:]
 
@@ -144,9 +143,6 @@ def main():
                     preds[j] = f"{prob_n}\t{prob_p}"
                 
                 print(f"PRED\t{model_id}\t{dataset}\t{filename}\t{read.read_id}\t{preds[2]}\t{preds[3]}\t{preds[4]}\n")
-
-    with open("too_short_for_trimming.tsv", "w") as f:
-        f.writelines(too_short_for_trimming)
 
 
 if __name__ == "__main__":
