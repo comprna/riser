@@ -9,20 +9,17 @@ class SignalProcessor():
         self.trim_length = trim_length # TODO: rename trim_length
         self.input_length = secs * _SAMPLING_HZ
 
-    def process(self, signal):
+    def trim_polyA(self, signal):
         """
         Trim polyA + sequencing adapter from start of signal
-        Retain the first 4 seconds of transcript signal
-        Normalise
+        using fixed cutoff amount.
         """
-        signal = signal[self.trim_length:]
-        signal = signal[:self.input_length]
-        return self._mad_normalise(signal)
+        return signal[self.trim_length:]
 
     def get_min_length(self):
         return self.trim_length + self.input_length
 
-    def _mad_normalise(self, signal):
+    def mad_normalise(self, signal):
         if signal.shape[0] == 0:
             raise ValueError("Signal must not be empty")
         median = np.median(signal)

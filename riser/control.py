@@ -80,11 +80,12 @@ class SequencerControl():
             sleep(interval + start - end)
 
     def _classify_signal(self, signal):
-        signal = self.processor.process(signal)
+        signal = self.processor.trim_polyA(signal)
+        signal = self.processor.mad_normalise(signal)
         probs = self.model.classify(signal)
         prediction = Species(torch.argmax(probs, dim=1).item())
         return prediction, probs
-    
+
     def _should_reject(self, prediction, target):
         return prediction != target
 
