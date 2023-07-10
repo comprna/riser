@@ -9,7 +9,7 @@ class SequencerControl():
     def __init__(self, client, model, processor, logger, out_file):
         self.client = client
         self.model = model
-        self.processor = processor
+        self.proc = processor
         self.logger = logger
         self.out_filename = out_file
 
@@ -31,9 +31,11 @@ class SequencerControl():
                 i = 0
                 for i, (channel, read) in enumerate(self.client.get_read_batch(),
                                                     start=1):
-                    # Only process read if it's long enough
+                    # Only process read if it's within the assessable length range
                     signal = self.client.get_raw_signal(read)
-                    if len(signal) < self.processor.get_min_length(): continue
+                    if len(signal) < self.proc.get_min_assessable_length() or \
+                        len(signal) > self.proc.get_max_assessable_length():
+                        continue
 
                     # Classify the RNA species to which the read belongs
                     pred, probs = self._classify_signal(signal)
@@ -80,8 +82,8 @@ class SequencerControl():
             sleep(interval + start - end)
 
     def _classify_signal(self, signal):
-        signal = self.processor.trim_polyA(signal)
-        signal = self.processor.mad_normalise(signal)
+        signal = self.proc.trim_polyA(signal)
+        signal = self.proc.mad_normalise(signal)
         probs = self.model.classify(signal)
         prediction = Species(torch.argmax(probs, dim=1).item())
         return prediction, probs

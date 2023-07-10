@@ -5,9 +5,10 @@ _SCALING_FACTOR = 1.4826
 _SAMPLING_HZ = 3012
 
 class SignalProcessor():
-    def __init__(self, trim_length, secs):
+    def __init__(self, trim_length, min_input_s, max_input_s):
         self.trim_length = trim_length # TODO: rename trim_length
-        self.input_length = secs * _SAMPLING_HZ
+        self.min_txt_length = min_input_s * _SAMPLING_HZ
+        self.max_txt_length = max_input_s * _SAMPLING_HZ
 
     def trim_polyA(self, signal):
         """
@@ -15,9 +16,6 @@ class SignalProcessor():
         using fixed cutoff amount.
         """
         return signal[self.trim_length:]
-
-    def get_min_length(self):
-        return self.trim_length + self.input_length
 
     def mad_normalise(self, signal):
         if signal.shape[0] == 0:
@@ -27,6 +25,12 @@ class SignalProcessor():
         vnormalise = np.vectorize(self._normalise)
         normalised = vnormalise(np.array(signal), median, mad)
         return self._smooth_outliers(normalised)
+
+    def get_min_assessable_length(self):
+        return self.trim_length + self.min_txt_length
+
+    def get_max_assessable_length(self):
+        return self.trim_length + self.max_txt_length
 
     def _calculate_mad(self, signal, median):
         f = lambda x, median: np.abs(x - median)
