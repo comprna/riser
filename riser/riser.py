@@ -56,6 +56,17 @@ def probability(x):
         raise argparse.ArgumentTypeError(f"{x} not in range [0,1]")
     return x
 
+def parse_args(parser):
+    args = parser.parse_args()
+
+    # If no trim length specified as arg, set based on target
+    if args.trim_length is None:
+        if args.target == Species.CODING or args.target == Species.NONCODING:
+            args.trim_length = 6481
+
+    return args
+
+
 def main():
     # CL args
     parser = argparse.ArgumentParser(description=('Enrich a Nanopore sequencing'
@@ -86,12 +97,11 @@ def main():
                              '%(default)s)')
     parser.add_argument('-l', '--trim',
                         dest='trim_length',
-                        default=6481, # TODO: Calculate based on --target
                         type=int,
                         help='Number of values to remove from the start of the '
                              'raw signal to exclude the polyA tail and '
                              'sequencing adapter signal from analysis. '
-                             '(default: %(default)s)')
+                             '(default: target-dependent)')
     parser.add_argument('-s', '--secs',
                         default=4,
                         type=int,
@@ -103,7 +113,7 @@ def main():
                         type=probability,
                         help='Probability threshold for classifier [0,1] '
                              '(default: %(default)s)')
-    args = parser.parse_args()
+    args = parse_args(parser)
 
     # Local testing
     # args = SimpleNamespace()
