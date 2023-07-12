@@ -8,10 +8,6 @@ import yaml
 DT_FORMAT = '%Y-%m-%dT%H:%M:%S'
 
 
-class Species(Enum):
-    NONCODING = 0
-    CODING = 1
-
 # TODO: Verify config
 def get_config(filepath):
     with open(filepath) as config_file:

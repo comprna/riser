@@ -2,8 +2,6 @@ from time import time, sleep
 
 import torch
 
-from utilities import Species
-
 
 class SequencerControl():
     def __init__(self, client, model, processor, logger, out_file):
@@ -86,7 +84,7 @@ class SequencerControl():
         signal = self.proc.trim_polyA(signal)
         signal = self.proc.mad_normalise(signal)
         probs = self.model.classify(signal)
-        prediction = Species(torch.argmax(probs, dim=1).item())
+        prediction = torch.argmax(probs, dim=1).item()
         return prediction, probs
 
     def _should_reject(self, prediction, target):
