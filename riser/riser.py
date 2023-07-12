@@ -11,8 +11,7 @@ from utilities import get_config, get_datetime_now, DT_FORMAT, Species #TODO: Ca
 from preprocess import SignalProcessor
 
 
-# TODO: Annotate function signatures (arg types, return type)
-# TODO: Comments
+# TODO: Documentation
 
 
 def setup_logging(out_file):
@@ -48,6 +47,15 @@ class TargetAction(argparse.Action):
         value = Species.CODING if values == 'coding' else Species.NONCODING
         setattr(namespace, self.dest, value)
 
+def probability(x):
+    try:
+        x = float(x)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{x} not a float")
+    if x < 0 or x > 1:
+        raise argparse.ArgumentTypeError(f"{x} not in range [0,1]")
+    return x
+
 def main():
     # CL args
     parser = argparse.ArgumentParser(description=('Enrich a Nanopore sequencing'
@@ -58,44 +66,43 @@ def main():
                         action=TargetAction,
                         help='RNA species to enrich for. This must be either '
                              '{%(choices)s}. (required)',
-                        required=True,
-                        metavar='')
+                        required=True)
     parser.add_argument('-d', '--duration',
                         dest='duration_h',
                         type=int,
                         help='Length of time (in hours) to run RISER for. '
                              'This should be the same as the MinKNOW run '
                              'length. (required)',
-                        required=True,
-                        metavar='')
+                        required=True)
     parser.add_argument('-c', '--config',
                         dest='config_file',
                         default='model/cnn_best_model.yaml',
                         help='Config file for model hyperparameters. (default: '
-                             '%(default)s)',
-                        metavar='')
+                             '%(default)s)')
     parser.add_argument('-m', '--model',
                         dest='model_file',
                         default='model/cnn_best_model.pth',
                         help='File containing saved model weights. (default: '
-                             '%(default)s)',
-                        metavar='')
-    parser.add_argument('-p', '--polya',
-                        dest='polyA_length',
-                        default=6481,
+                             '%(default)s)')
+    parser.add_argument('-l', '--trim',
+                        dest='trim_length',
+                        default=6481, # TODO: Calculate based on --target
                         type=int,
                         help='Number of values to remove from the start of the '
                              'raw signal to exclude the polyA tail and '
                              'sequencing adapter signal from analysis. '
-                             '(default: %(default)s)',
-                        metavar='')
+                             '(default: %(default)s)')
     parser.add_argument('-s', '--secs',
                         default=4,
                         type=int,
-                        choices=range(1,10),
+                        choices=range(2,5),
                         help='Number of seconds of transcript signal to use '
-                             'for decision. (default: %(default)s)',
-                        metavar='')
+                             'for decision [2,4]. (default: %(default)s)')
+    parser.add_argument('-p', '--threshold',
+                        default=0.9,
+                        type=probability,
+                        help='Probability threshold for classifier [0,1] '
+                             '(default: %(default)s)')
     args = parser.parse_args()
 
     # Local testing
@@ -104,7 +111,7 @@ def main():
     # args.duration_h = 1
     # args.config_file = 'models/cnn_best_model.yaml'
     # args.model_file = 'models/cnn_best_model.pth'
-    # args.polyA_length = 6481
+    # args.trim_length = 6481
     # args.secs = 4
 
     # Set up
@@ -113,7 +120,7 @@ def main():
     client = Client(logger)
     config = get_config(args.config_file)
     model = Model(args.model_file, config, logger)
-    processor = SignalProcessor(args.polyA_length, args.secs)
+    processor = SignalProcessor(args.trim_length, args.secs)
     control = SequencerControl(client, model, processor, logger, out_file)
 
     # Log CL args
@@ -127,7 +134,7 @@ def main():
 
     # Run analysis
     control.start()
-    control.enrich(args.target, args.duration_h)
+    control.enrich(args.target, args.duration_h, args.threshold)
     control.finish()
 
 

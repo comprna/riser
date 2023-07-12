@@ -13,7 +13,7 @@ class SequencerControl():
         self.logger = logger
         self.out_filename = out_file
 
-    def enrich(self, target, duration_h, unblock_duration=0.1, interval=1.0):
+    def enrich(self, target, duration_h, threshold, unblock_duration=0.1, interval=1.0):
         self.client.send_warning(
             'The sequencing run is being controlled by RISER, reads that are '
             'not in the target class will be ejected from the pore.')
@@ -31,14 +31,20 @@ class SequencerControl():
                 i = 0
                 for i, (channel, read) in enumerate(self.client.get_read_batch(),
                                                     start=1):
-                    # Only process read if it's within the assessable length range
+                    # Only process signal if it's within the assessable length range
                     signal = self.client.get_raw_signal(read)
                     if len(signal) < self.proc.get_min_assessable_length() or \
                         len(signal) > self.proc.get_max_assessable_length():
                         continue
 
-                    # Classify the RNA species to which the read belongs
+                    # Classify the RNA class to which the read belongs
                     pred, probs = self._classify_signal(signal)
+
+                    # Do nothing if classifier threshold not met
+                    if probs[0] < threshold and probs[1] < threshold:
+                        continue
+
+                    # Determine whether to reject this read
                     if self._should_reject(pred, target):
                         reads_to_reject.append((channel, read.number))
                     reads_processed.append((channel, read.number))
