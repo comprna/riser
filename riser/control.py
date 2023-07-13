@@ -1,6 +1,4 @@
-from time import time, sleep
-
-import torch
+import time
 
 
 class SequencerControl():
@@ -19,18 +17,16 @@ class SequencerControl():
  
         with open(f'{self.out_filename}.csv', 'a') as out_file:
             self._write_header(out_file)
-
-            run_start = time()
+            run_start = time.monotonic()
+            progress_time = run_start + 60
             duration_s = self._hours_to_seconds(duration_h)
-            while self.client.is_running() and time() < run_start + duration_s:
+            n_assessed = 0
+            n_rejected = 0
+            while self.client.is_running() and time.monotonic() < run_start + duration_s:
                 # Get batch of reads to process
-                batch_start = time()
-                reads_processed = []
+                batch_start = time.monotonic()
                 reads_to_reject = []
-                i = 0
-                n_assessed = 0
-                for i, (channel, read) in enumerate(self.client.get_read_batch(),
-                                                    start=1):
+                for channel, read in self.client.get_read_batch():
                     # Only process signal if it's within the assessable length 
                     # range
                     signal = self.client.get_raw_signal(read)
@@ -60,18 +56,21 @@ class SequencerControl():
                 # Send reject requests
                 self.client.reject_reads(reads_to_reject, unblock_duration)
                 self.client.finish_processing_reads(reads_to_reject)
+                n_rejected += len(reads_to_reject)
 
-                # Get ready for the next batch
-                batch_end = time()
-                self.logger.info(f"Batch of {i} reads received: {n_assessed} "
-                                 f"in assessable length range, "
-                                 f"{len(reads_to_reject)} of which were "
-                                 f"rejected (took {batch_end-batch_start:.4f}s)")
+                # Log progress each minute
+                if batch_start > progress_time:
+                    self.logger.info(f"In the last minute {n_assessed} reads "
+                                     f"were assessed & {n_rejected} were "
+                                     f"rejected")
+                    n_assessed = 0
+                    n_rejected = 0
+                    progress_time = batch_start + 60
             else:
                 self.client.send_warning('RISER has stopped running.')
                 if not self.client.is_running():
                     self.logger.info('Client has stopped.')
-                if time () > run_start + duration_s:
+                if time.monotonic() > run_start + duration_s:
                     self.logger.info(f'RISER has timed out after {duration_h} '
                                      'hours as requested.')
 
