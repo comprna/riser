@@ -84,34 +84,42 @@ def main():
                         default='model/cnn_best_model.pth',
                         help='File containing saved model weights. (default: '
                              '%(default)s)')
-    parser.add_argument('-l', '--trim',
+    parser.add_argument('--trim',
                         dest='trim_length',
                         type=int,
                         help='Number of values to remove from the start of the '
                              'raw signal to exclude the polyA tail and '
                              'sequencing adapter signal from analysis. '
                              '(default: target-dependent)')
-    parser.add_argument('-s', '--secs',
+    parser.add_argument('--min',
+                        default=2,
+                        type=int,
+                        help='Minimum number of seconds of transcript signal to'
+                             ' use for decision. (default: %(default)s)')
+    parser.add_argument('--max',
                         default=4,
                         type=int,
-                        choices=range(2,5),
-                        help='Number of seconds of transcript signal to use '
-                             'for decision [2,4]. (default: %(default)s)')
-    parser.add_argument('-p', '--threshold',
+                        help='Maximum number of seconds of transcript signal to '
+                            'try to classify before skipping this read. '
+                            '(default: %(default)s)')
+    parser.add_argument('--threshold',
                         default=0.9,
                         type=probability,
                         help='Probability threshold for classifier [0,1] '
                              '(default: %(default)s)')
-    args = parse_args(parser)
+#     args = parse_args(parser)
 
     # Local testing
-    # args = SimpleNamespace()
-    # args.target = 'noncoding'
-    # args.duration_h = 1
-    # args.config_file = 'models/cnn_best_model.yaml'
-    # args.model_file = 'models/cnn_best_model.pth'
-    # args.trim_length = 6481
-    # args.secs = 4
+    args = SimpleNamespace()
+    args.target = 'noncoding'
+    args.duration_h = 1
+    args.config_file = 'riser/model/cnn_best_model.yaml'
+    args.model_file = 'riser/model/cnn_best_model.pth'
+    if args.target == 'coding' or args.target == 'noncoding':
+        args.trim_length = 6481
+    args.min = 2
+    args.max = 4
+    args.threshold = 0.9
 
     # Set up
     out_file = f'riser_{get_datetime_now()}'
@@ -119,7 +127,7 @@ def main():
     client = Client(logger)
     config = get_config(args.config_file)
     model = Model(args.model_file, config, logger)
-    processor = SignalProcessor(args.trim_length, args.secs)
+    processor = SignalProcessor(args.trim_length, args.min, args.max)
     control = SequencerControl(client, model, processor, logger, out_file)
 
     # Log CL args
