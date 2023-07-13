@@ -11,11 +11,12 @@ class SequencerControl():
         self.logger = logger
         self.out_filename = out_file
 
-    def enrich(self, target, duration_h, threshold, unblock_duration=0.1):
+    # TODO: Expand to enable enrichment or depletion
+    def enrich(self, duration_h, threshold, unblock_duration=0.1):
         self.client.send_warning(
             'The sequencing run is being controlled by RISER, reads that are '
             'not in the target class will be ejected from the pore.')
-
+ 
         with open(f'{self.out_filename}.csv', 'a') as out_file:
             self._write_header(out_file)
 
@@ -27,40 +28,45 @@ class SequencerControl():
                 reads_processed = []
                 reads_to_reject = []
                 i = 0
+                n_assessed = 0
                 for i, (channel, read) in enumerate(self.client.get_read_batch(),
                                                     start=1):
-                    # Only process signal if it's within the assessable length range
+                    # Only process signal if it's within the assessable length 
+                    # range
                     signal = self.client.get_raw_signal(read)
                     if len(signal) < self.proc.get_min_assessable_length() or \
                         len(signal) > self.proc.get_max_assessable_length():
                         continue
 
                     # Classify the RNA class to which the read belongs
-                    pred, probs = self._classify_signal(signal)
+                    p_off_target, p_on_target = self._classify_signal(signal)
+                    n_assessed += 1
 
-                    # Do nothing if classifier threshold not met
-                    if probs[0] < threshold and probs[1] < threshold:
+                    # To enrich the target class, the off-target class gets 
+                    # rejected (if the probability of the off-target class 
+                    # exceeds the classifier threshold).
+                    # If the classifier threshold is not exceeded, a confident
+                    # prediction cannot be made and so we do nothing.
+                    if p_off_target < threshold:
+                        self._write(out_file, channel, read.id, p_on_target,
+                                    threshold, "enrich", "no_decision")
                         continue
 
-                    # Determine whether to reject this read
-                    if self._should_reject(pred, target):
-                        reads_to_reject.append((channel, read.number))
-                    reads_processed.append((channel, read.number))
-                    self._write(out_file, channel, read.id, probs, pred, target)
+                    # Reject
+                    reads_to_reject.append((channel, read.number))
+                    self._write(out_file, channel, read.id, p_on_target,
+                                threshold, "enrich", "reject")
 
                 # Send reject requests
                 self.client.reject_reads(reads_to_reject, unblock_duration)
-                self.client.finish_processing_reads(reads_processed)
+                self.client.finish_processing_reads(reads_to_reject)
 
                 # Get ready for the next batch
                 batch_end = time()
-                self.logger.info('Batch of %3d reads received: %2d long enough '
-                                 'to assess, %2d of which were rejected (took '
-                                 '%.4fs)',
-                                 i,
-                                 len(reads_processed),
-                                 len(reads_to_reject),
-                                 batch_end - batch_start)
+                self.logger.info(f"Batch of {i} reads received: {n_assessed} "
+                                 f"in assessable length range, "
+                                 f"{len(reads_to_reject)} of which were "
+                                 f"rejected (took {batch_end-batch_start:.4f}s)")
             else:
                 self.client.send_warning('RISER has stopped running.')
                 if not self.client.is_running():
@@ -84,19 +90,11 @@ class SequencerControl():
         signal = self.proc.trim_polyA(signal)
         signal = self.proc.mad_normalise(signal)
         probs = self.model.classify(signal)
-        prediction = torch.argmax(probs).item()
-        return prediction, probs
-
-    def _should_reject(self, prediction, target):
-        return prediction != target
+        return probs
 
     def _write_header(self, csv_file):
-        csv_file.write('read_id,channel,probability_noncoding,'
-                       'probability_coding,prediction,target,decision\n')
+        csv_file.write('read_id,channel,prob_target,threshold,objective,decision\n')
 
-    def _write(self, csv_file, channel, read, probs, prediction, target):
-        noncod_prob = probs[0]
-        coding_prob = probs[1]
-        decision = 'REJECT' if self._should_reject(prediction, target) else 'ACCEPT'
-        csv_file.write(f'{read},{channel},{noncod_prob:.2f},{coding_prob:.2f},'
-                       f'{prediction},{target},{decision}\n')
+    def _write(self, csv_file, channel, read, p_on_target, threshold, objective, decision):
+        csv_file.write(f'{read},{channel},{p_on_target:.2f},{threshold},'
+                       f'{objective},{decision}\n')

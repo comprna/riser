@@ -51,7 +51,7 @@ def parse_args(parser):
 
     # If no trim length specified as arg, set based on target
     if args.trim_length is None:
-        if args.target == 'coding' or args.target == 'noncoding':
+        if args.target == 'mRNA':
             args.trim_length = 6481
 
     return args
@@ -63,7 +63,7 @@ def main():
                                                   ' run for RNA of a given'
                                                   ' class.'))
     parser.add_argument('-t', '--target',
-                        choices=['coding', 'noncoding'],
+                        choices=['mRNA'],
                         help='RNA class to enrich for. This must be either '
                              '{%(choices)s}. (required)',
                         required=True)
@@ -111,11 +111,11 @@ def main():
 
     # Local testing
     args = SimpleNamespace()
-    args.target = 'noncoding'
+    args.target = 'mRNA'
     args.duration_h = 1
     args.config_file = 'riser/model/cnn_best_model.yaml'
     args.model_file = 'riser/model/cnn_best_model.pth'
-    if args.target == 'coding' or args.target == 'noncoding':
+    if args.target == 'mRNA':
         args.trim_length = 6481
     args.min = 2
     args.max = 4
@@ -141,7 +141,7 @@ def main():
 
     # Run analysis
     control.start()
-    control.enrich(args.target, args.duration_h, args.threshold)
+    control.enrich(args.duration_h, args.threshold)
     control.finish()
 
 
