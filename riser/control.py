@@ -84,7 +84,7 @@ class SequencerControl():
         signal = self.proc.trim_polyA(signal)
         signal = self.proc.mad_normalise(signal)
         probs = self.model.classify(signal)
-        prediction = torch.argmax(probs, dim=1).item()
+        prediction = torch.argmax(probs).item()
         return prediction, probs
 
     def _should_reject(self, prediction, target):
@@ -95,8 +95,8 @@ class SequencerControl():
                        'probability_coding,prediction,target,decision\n')
 
     def _write(self, csv_file, channel, read, probs, prediction, target):
-        noncod_prob = probs[0][0]
-        coding_prob = probs[0][1]
+        noncod_prob = probs[0]
+        coding_prob = probs[1]
         decision = 'REJECT' if self._should_reject(prediction, target) else 'ACCEPT'
         csv_file.write(f'{read},{channel},{noncod_prob:.2f},{coding_prob:.2f},'
-                       f'{prediction.name},{target.name},{decision}\n')
+                       f'{prediction},{target},{decision}\n')

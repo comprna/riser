@@ -22,7 +22,7 @@ class Model():
             X = torch.from_numpy(signal).unsqueeze(0)
             X = X.to(self.device, dtype=torch.float)
             logits = self.model(X)
-            probs = torch.nn.functional.softmax(logits, dim=1)
+            probs = torch.nn.functional.softmax(logits, dim=1)[0]
         return probs
 
     def _get_device(self):
