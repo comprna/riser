@@ -67,6 +67,11 @@ def main():
                         help='RNA class to enrich for. This must be either '
                              '{%(choices)s}. (required)',
                         required=True)
+    parser.add_argument('-m', '--mode',
+                        choices=['enrich', 'deplete'],
+                        help='Whether to enrich or deplete the target class.'
+                             ' (required)',
+                        required=True)
     parser.add_argument('-d', '--duration',
                         dest='duration_h',
                         type=int,
@@ -74,12 +79,12 @@ def main():
                              'This should be the same as the MinKNOW run '
                              'length. (required)',
                         required=True)
-    parser.add_argument('-c', '--config',
+    parser.add_argument('--config',
                         dest='config_file',
                         default='model/cnn_best_model.yaml',
                         help='Config file for model hyperparameters. (default: '
                              '%(default)s)')
-    parser.add_argument('-m', '--model',
+    parser.add_argument('--model',
                         dest='model_file',
                         default='model/cnn_best_model.pth',
                         help='File containing saved model weights. (default: '
@@ -112,14 +117,15 @@ def main():
     # Local testing
     args = SimpleNamespace()
     args.target = 'mRNA'
-    args.duration_h = 1
+    args.mode = 'enrich'
+    args.duration_h = 0.05
     args.config_file = 'riser/model/cnn_best_model.yaml'
     args.model_file = 'riser/model/cnn_best_model.pth'
     if args.target == 'mRNA':
         args.trim_length = 6481
     args.min = 2
     args.max = 4
-    args.threshold = 0.9
+    args.threshold = 0.7
 
     # Set up
     out_file = f'riser_{get_datetime_now()}'
@@ -141,7 +147,7 @@ def main():
 
     # Run analysis
     control.start()
-    control.enrich(args.duration_h, args.threshold)
+    control.target(args.mode, args.duration_h, args.threshold)
     control.finish()
 
 

@@ -9,8 +9,7 @@ class SequencerControl():
         self.logger = logger
         self.out_filename = out_file
 
-    # TODO: Expand to enable enrichment or depletion
-    def enrich(self, duration_h, threshold, unblock_duration=0.1):
+    def target(self, mode, duration_h, threshold, unblock_duration=0.1):
         self.client.send_warning(
             'The sequencing run is being controlled by RISER, reads that are '
             'not in the target class will be ejected from the pore.')
@@ -38,20 +37,30 @@ class SequencerControl():
                     p_off_target, p_on_target = self._classify_signal(signal)
                     n_assessed += 1
 
+                    # To deplete the target class, the target class gets
+                    # rejected (if the probability of the target class exceeds)
+                    # the classifier threshold).
+                    # If the classifier threshold is not exceeded, a confident
+                    # prediction cannot be made and so we do nothing.
+                    if mode == "deplete" and p_on_target < threshold:
+                        self._write(out_file, channel, read.id, len(signal), p_on_target,
+                                    threshold, mode, "no_decision")
+                        continue
+
                     # To enrich the target class, the off-target class gets 
                     # rejected (if the probability of the off-target class 
                     # exceeds the classifier threshold).
                     # If the classifier threshold is not exceeded, a confident
                     # prediction cannot be made and so we do nothing.
-                    if p_off_target < threshold:
-                        self._write(out_file, channel, read.id, p_on_target,
-                                    threshold, "enrich", "no_decision")
+                    elif mode == "enrich" and p_off_target < threshold:
+                        self._write(out_file, channel, read.id, len(signal), p_on_target,
+                                    threshold, mode, "no_decision")
                         continue
 
                     # Reject
                     reads_to_reject.append((channel, read.number))
-                    self._write(out_file, channel, read.id, p_on_target,
-                                threshold, "enrich", "reject")
+                    self._write(out_file, channel, read.id, len(signal), p_on_target,
+                                threshold, mode, "reject")
 
                 # Send reject requests
                 self.client.reject_reads(reads_to_reject, unblock_duration)
@@ -92,8 +101,8 @@ class SequencerControl():
         return probs
 
     def _write_header(self, csv_file):
-        csv_file.write('read_id,channel,prob_target,threshold,objective,decision\n')
+        csv_file.write('read_id,channel,sig_length,prob_target,threshold,objective,decision\n')
 
-    def _write(self, csv_file, channel, read, p_on_target, threshold, objective, decision):
-        csv_file.write(f'{read},{channel},{p_on_target:.2f},{threshold},'
+    def _write(self, csv_file, channel, read, sig_length, p_on_target, threshold, objective, decision):
+        csv_file.write(f'{read},{channel},{sig_length},{p_on_target:.2f},{threshold},'
                        f'{objective},{decision}\n')
