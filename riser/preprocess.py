@@ -6,7 +6,7 @@ _SAMPLING_HZ = 3012
 
 class SignalProcessor():
     def __init__(self, trim_length, min_input_s, max_input_s):
-        self.trim_length = trim_length # TODO: rename trim_length
+        self.trim_length = trim_length
         self.min_txt_length = min_input_s * _SAMPLING_HZ
         self.max_txt_length = max_input_s * _SAMPLING_HZ
 
@@ -16,6 +16,11 @@ class SignalProcessor():
         using fixed cutoff amount.
         """
         return signal[self.trim_length:]
+
+    def clip_transcript(self, signal):
+        if len(signal) > self.max_txt_length:
+            return signal[:self.max_txt_length]
+        return signal
 
     def mad_normalise(self, signal):
         if signal.shape[0] == 0:

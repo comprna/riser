@@ -1,6 +1,5 @@
 import time
 
-
 class SequencerControl():
     def __init__(self, client, model, processor, logger, out_file):
         self.client = client
@@ -29,8 +28,7 @@ class SequencerControl():
                     # Only process signal if it's within the assessable length 
                     # range
                     signal = self.client.get_raw_signal(read)
-                    if len(signal) < self.proc.get_min_assessable_length() or \
-                        len(signal) > self.proc.get_max_assessable_length():
+                    if len(signal) < self.proc.get_min_assessable_length():
                         continue
 
                     # Classify the RNA class to which the read belongs
@@ -96,6 +94,7 @@ class SequencerControl():
 
     def _classify_signal(self, signal):
         signal = self.proc.trim_polyA(signal)
+        signal = self.proc.clip_transcript(signal)
         signal = self.proc.mad_normalise(signal)
         probs = self.model.classify(signal)
         return probs

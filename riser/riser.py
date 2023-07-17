@@ -53,6 +53,8 @@ def parse_args(parser):
     if args.trim_length is None:
         if args.target == 'mRNA':
             args.trim_length = 6481
+        elif args.target == 'globin':
+            args.trim_length = 6474
 
     return args
 
@@ -63,7 +65,7 @@ def main():
                                                   ' run for RNA of a given'
                                                   ' class.'))
     parser.add_argument('-t', '--target',
-                        choices=['mRNA'],
+                        choices=['mRNA','globin'],
                         help='RNA class to enrich for. This must be either '
                              '{%(choices)s}. (required)',
                         required=True)
@@ -117,15 +119,17 @@ def main():
     # Local testing
     args = SimpleNamespace()
     args.target = 'mRNA'
-    args.mode = 'enrich'
+    args.mode = 'deplete'
     args.duration_h = 0.05
-    args.config_file = 'riser/model/cnn_best_model.yaml'
-    args.model_file = 'riser/model/cnn_best_model.pth'
+    args.config_file = 'riser/model/mRNA_config.yaml'
+    args.model_file = 'riser/model/mRNA_model.pth'
     if args.target == 'mRNA':
         args.trim_length = 6481
+    elif args.target == 'globin':
+        args.trim_length = 6474
     args.min = 2
     args.max = 4
-    args.threshold = 0.7
+    args.threshold = 0.9
 
     # Set up
     out_file = f'riser_{get_datetime_now()}'
