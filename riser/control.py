@@ -60,7 +60,7 @@ class SequencerControl():
                         reads_to_reject.append((channel, read.number))
                     elif decision == "no_decision":
                         reads_unclassified.append((channel, read.number))
-                    self._write(out_file, channel, read.id, len(signal),
+                    self._write(out_file, batch_start, channel, read.id, len(signal),
                                 p_on_target, threshold, mode, decision)
 
                 # Send reject requests
@@ -69,10 +69,8 @@ class SequencerControl():
 
                 # Don't need to reassess the reads that were rejected, accepted
                 # or couldn't be classified after the maximum input length
-                reads_done = ([].extend(reads_to_reject)
-                              .extend(reads_to_accept)
-                              .extend(reads_unclassified))
-                self.client.finish_processing_reads(reads_done)
+                done = reads_to_reject + reads_to_accept + reads_unclassified
+                self.client.finish_processing_reads(done)
                 n_accepted += len(reads_to_accept)
 
                 # Log progress each minute
@@ -104,8 +102,9 @@ class SequencerControl():
         return hours * 60 * 60
 
     def _write_header(self, csv_file):
-        csv_file.write('read_id,channel,sig_length,prob_target,threshold,objective,decision\n')
+        csv_file.write('batch_start,read_id,channel,sig_length,prob_target,threshold,objective,decision\n')
 
-    def _write(self, csv_file, channel, read, sig_length, p_on_target, threshold, objective, decision):
-        csv_file.write(f'{read},{channel},{sig_length},{p_on_target:.2f},{threshold},'
+    def _write(self, csv_file, batch_start, channel, read, sig_length,
+               p_on_target, threshold, objective, decision):
+        csv_file.write(f'{batch_start:.0f},{read},{channel},{sig_length},{p_on_target:.2f},{threshold},'
                        f'{objective},{decision}\n')
