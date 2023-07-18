@@ -10,17 +10,22 @@ class SignalProcessor():
         self.min_txt_length = min_input_s * _SAMPLING_HZ
         self.max_txt_length = max_input_s * _SAMPLING_HZ
 
+    def preprocess(self, signal):
+        signal = self.trim_polyA(signal)
+        # If signal is longer than max length, we need to trim it
+        max_length = False
+        if len(signal) > self.max_txt_length:
+            signal = signal[:self.max_txt_length]
+            max_length = True
+        signal = self.mad_normalise(signal)
+        return signal, max_length
+
     def trim_polyA(self, signal):
         """
         Trim polyA + sequencing adapter from start of signal
         using fixed cutoff amount.
         """
         return signal[self.trim_length:]
-
-    def clip_transcript(self, signal):
-        if len(signal) > self.max_txt_length:
-            return signal[:self.max_txt_length]
-        return signal
 
     def mad_normalise(self, signal):
         if signal.shape[0] == 0:
