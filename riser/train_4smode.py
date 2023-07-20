@@ -111,10 +111,10 @@ def main():
     # Create datasets
 
     print("Creating datasets...")
-    train_pfile = f"{data_dir}/train_positive.pt"
-    train_nfile = f"{data_dir}/train_negative.pt"
-    valid_pfile = f"{data_dir}/val_positive.pt"
-    valid_nfile = f"{data_dir}/val_negative.pt"
+    train_pfile = f"{data_dir}/train/positive.pt"
+    train_nfile = f"{data_dir}/train/negative.pt"
+    valid_pfile = f"{data_dir}/val/positive.pt"
+    valid_nfile = f"{data_dir}/val/negative.pt"
     train_data = SignalDataset(train_pfile, train_nfile)
     valid_data = SignalDataset(valid_pfile, valid_nfile)
 
