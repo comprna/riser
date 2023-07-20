@@ -27,13 +27,16 @@ def write_tensor(arr, filename):
 
 
 def main():
-    npy_dir = sys.argv[1]
-    print(npy_dir)
+    pos_npy_file = sys.argv[1]
+    neg_npy_file = sys.argv[2]
+    out_dir = sys.argv[3]
 
     # Build the datasets
 
-    p_data = build_dataset(f"{npy_dir}/positive")
-    n_data = build_dataset(f"{npy_dir}/negative")
+    print(pos_npy_file)
+    print(neg_npy_file)
+    p_data = np.load(pos_npy_file, allow_pickle=True)
+    n_data = np.load(neg_npy_file, allow_pickle=True)
     print("Dataset sizes before balancing:")
     print_shapes(p_data, n_data)
 
@@ -50,9 +53,8 @@ def main():
 
     # Write tensors
 
-    dataset = npy_dir.split("/")[-1]
-    write_tensor(p_data, f"{dataset}_positive.pt")
-    write_tensor(n_data, f"{dataset}_negative.pt")
+    write_tensor(p_data, f"{out_dir}/positive.pt")
+    write_tensor(n_data, f"{out_dir}/negative.pt")
 
 
 if __name__ == "__main__":
