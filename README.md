@@ -153,7 +153,7 @@ optional arguments:
                     models/cnn_best_model.pth)
   -p , --polya      Number of values to remove from the start of the raw
                     signal to exclude the polyA tail and sequencing adapter
-                    signal from analysis. (default: 6481)
+                    signal from analysis. (default: 6778)
   -s , --secs       Number of seconds of transcript signal to use for
                     decision. (default: 4)
 ```
@@ -182,7 +182,7 @@ All settings used (including those set by default):
 --duration_h    : 48
 --config_file   : models/cnn_best_model.yaml
 --model_file    : models/cnn_best_model.pth
---polyA_length  : 6481
+--polyA_length  : 6778
 --secs          : 4
 Client is running.
 Batch of 110 reads received: 59 long enough to assess, 46 of which were rejected (took 0.3148s)

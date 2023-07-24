@@ -52,7 +52,7 @@ def parse_args(parser):
     # If no trim length specified as arg, set based on target
     if args.trim_length is None:
         if args.target == 'mRNA':
-            args.trim_length = 6481
+            args.trim_length = 6778
         elif args.target == 'globin':
             args.trim_length = 6474
 
@@ -136,7 +136,7 @@ def main():
     # args.config_file = 'riser/model/mRNA_config.yaml'
     # args.model_file = 'riser/model/mRNA_model.pth'
     # if args.target == 'mRNA':
-    #     args.trim_length = 6481
+    #     args.trim_length = 6778
     # elif args.target == 'globin':
     #     args.trim_length = 6474
     # args.min = 2

@@ -75,7 +75,7 @@ def main():
     max_length_s = 4
 
     # Sequencing adapter + polyA trim length (hardcoded for now)
-    trim_length = 6481
+    trim_length = 6778
 
     # Setup model
     model_file = sys.argv[2]
