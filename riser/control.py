@@ -8,10 +8,18 @@ class SequencerControl():
         self.logger = logger
         self.out_filename = out_file
 
+    # IMPORTANT: The target function in the split_flowcell branch ignores the
+    # mode setting.  Instead, it splits the flowcell channels into thirds to
+    # allow all conditions to be tested on a single flowcell, removing flowcell
+    # variability as an experimental factor.
+    #
+    # Each consecutive channel alternates between control, enrich and deplete
+    # so that the conditions are evenly distributed throughout the channels in
+    # the flowcell.
     def target(self, mode, duration_h, threshold, unblock_duration=0.1):
         self.client.send_warning(
-            'The sequencing run is being controlled by RISER, reads that are '
-            'not in the target class will be ejected from the pore.')
+            'The sequencing run is being controlled by RISER using a split '
+            'flowcell to test all conditions simultaneously.')
  
         with open(f'{self.out_filename}.csv', 'a') as out_file:
             self._write_header(out_file)
@@ -37,6 +45,19 @@ class SequencerControl():
                     signal, max_length = self.proc.preprocess(signal)
                     p_off_target, p_on_target = self.model.classify(signal)
                     n_assessed += 1
+
+                    # Determine mode based on channel number. Since channels are
+                    # numbered 1-512 (inclusive), the following logic will
+                    # assign 170 channels to enrich, 171 to deplete and 171 to
+                    # control.  Reads from the 171st control channel and 171st
+                    # deplete channel can be discarded later so that there are
+                    # an equal number of channels per condition.
+                    if channel % 3 == 0:
+                        mode = "enrich"
+                    elif channel % 3 == 1:
+                        continue # Control
+                    elif channel % 3 == 2:
+                        mode = "deplete"
 
                     # Decide what to do with this read
                     if mode == "enrich" and p_on_target > threshold:

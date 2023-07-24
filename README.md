@@ -1,3 +1,15 @@
+# Branch note
+
+This branch is to be used for testing only.
+
+The difference to the main branch is that the target function ignores the mode
+setting.  Instead, it splits the flowcell channels into thirds to allow all
+three conditions (control, enrich mRNA, deplete mRNA) to be tested on a single
+flowcell, removing flowcell variability as an experimental factor.
+
+This logic is implemented in control.py.
+
+
 # RISER
 
 **R**eal-Time **I**n-**S**ilico **E**nrichment of **R**NA species during nanopore sequencing.
