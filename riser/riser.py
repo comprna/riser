@@ -56,6 +56,20 @@ def parse_args(parser):
         elif args.target == 'globin':
             args.trim_length = 6474
 
+    # If no config specified as arg, set based on target
+    if args.config is None:
+        if args.target == 'mRNA':
+            args.config = 'model/mRNA_model.yaml'
+        elif args.target == 'globin':
+            args.config = 'model/globin_model.yaml'
+
+    # If no model specified as arg, set based on target
+    if args.model is None:
+        if args.target == 'mRNA':
+            args.model = 'model/mRNA_model.pth'
+        elif args.target == 'globin':
+            args.model = 'model/globin_model.pth'
+
     return args
 
 
@@ -83,12 +97,10 @@ def main():
                         required=True)
     parser.add_argument('--config',
                         dest='config_file',
-                        default='model/cnn_best_model.yaml',
                         help='Config file for model hyperparameters. (default: '
                              '%(default)s)')
     parser.add_argument('--model',
                         dest='model_file',
-                        default='model/cnn_best_model.pth',
                         help='File containing saved model weights. (default: '
                              '%(default)s)')
     parser.add_argument('--trim',
@@ -114,22 +126,22 @@ def main():
                         type=probability,
                         help='Probability threshold for classifier [0,1] '
                              '(default: %(default)s)')
-#     args = parse_args(parser)
+    args = parse_args(parser)
 
     # Local testing
-    args = SimpleNamespace()
-    args.target = 'mRNA'
-    args.mode = 'deplete'
-    args.duration_h = 0.05
-    args.config_file = 'riser/model/mRNA_config.yaml'
-    args.model_file = 'riser/model/mRNA_model.pth'
-    if args.target == 'mRNA':
-        args.trim_length = 6481
-    elif args.target == 'globin':
-        args.trim_length = 6474
-    args.min = 2
-    args.max = 4
-    args.threshold = 0.9
+    # args = SimpleNamespace()
+    # args.target = 'mRNA'
+    # args.mode = 'deplete'
+    # args.duration_h = 0.05
+    # args.config_file = 'riser/model/mRNA_config.yaml'
+    # args.model_file = 'riser/model/mRNA_model.pth'
+    # if args.target == 'mRNA':
+    #     args.trim_length = 6481
+    # elif args.target == 'globin':
+    #     args.trim_length = 6474
+    # args.min = 2
+    # args.max = 4
+    # args.threshold = 0.9
 
     # Set up
     out_file = f'riser_{get_datetime_now()}'
