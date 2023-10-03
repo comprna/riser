@@ -118,7 +118,7 @@ def write_scalars(writer, metrics, epoch):
 
 
 def build_loader(data_dir, batch_size, shuffle):
-    dataset = SignalDataset(f"{data_dir}/positive.pt", f"{data_dir}/negative.pt")
+    dataset = SignalDataset(f"{data_dir}/data.npy", f"{data_dir}/labels.npy")
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
 
