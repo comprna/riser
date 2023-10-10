@@ -4,8 +4,8 @@ from torch.utils.data.dataset import Dataset
 
 class SignalDataset(Dataset):
     def __init__(self, data_file, labels_file):
-        self.data = np.load(data_file, mmap_mode='r')
-        self.label = np.load(labels_file, mmap_mode='r')
+        self.data = np.memmap(data_file, dtype='float64', mode='r')
+        self.label = np.memmap(labels_file, dtype='int64', mode='r')
 
         print(f"Shape of total dataset: {self.data.shape}")
         print(f"Shape of total labels: {self.label.shape}")
