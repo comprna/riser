@@ -35,8 +35,8 @@ def main():
 
     print(pos_npy_file)
     print(neg_npy_file)
-    p_data = np.load(pos_npy_file, allow_pickle=True).astype(np.float32)
-    n_data = np.load(neg_npy_file, allow_pickle=True).astype(np.float32)
+    p_data = np.load(pos_npy_file, allow_pickle=True)
+    n_data = np.load(neg_npy_file, allow_pickle=True)
     print("Dataset sizes before balancing:")
     print_shapes(p_data, n_data)
 
