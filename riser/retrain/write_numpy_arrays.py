@@ -30,6 +30,9 @@ def main():
     pos_npy_file = sys.argv[1]
     neg_npy_file = sys.argv[2]
     out_dir = sys.argv[3]
+    # pos_npy_file = "/home/alex/Documents/tmp/positive.npy"
+    # neg_npy_file = "/home/alex/Documents/tmp/negative.npy"
+    # out_dir = "/home/alex/Documents/tmp"
 
     # Build the datasets
 
