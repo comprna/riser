@@ -64,7 +64,9 @@ def clip_if_outlier(x):
     else:
         return x
 
-def get_polyA_coords(signal):
+def get_polyA_coords(signal, read_id):
+    # plt.figure(figsize=(12,6))
+    # plt.plot(signal)
     i = 0
     polyA_start = None
     polyA_end = None
@@ -88,13 +90,17 @@ def get_polyA_coords(signal):
 
         # End condition
         if polyA_start and not polyA_end and mad > 20:
-            polyA_end = i + resolution
+            polyA_end = i
+        
+        # plt.axvline(i+resolution, color='red')
+        # plt.text(i+resolution, 500, int(mad))
+        # plt.text(i+resolution, 900, int(mean_change))
         i += resolution
 
-    plt.axvline(polyA_start, color='green')
-    plt.axvline(polyA_end, color='green')
-    plt.show()
-    plt.save(f"{polyA_start}_{polyA_end}.png")
+    # if polyA_start: plt.axvline(polyA_start, color='green')
+    # if polyA_end: plt.axvline(polyA_end, color='green')
+    # plt.savefig(f"{read_id}_{polyA_start}_{polyA_end}.png")
+    # plt.clf()
 
     return polyA_start, polyA_end
 
@@ -142,13 +148,13 @@ def main():
             for i, read in enumerate(f5.get_reads()):
 
                 # Retrieve raw current measurements
-                signal_pA = read.get_raw_data(scale=True)
+                signal_pA = read.get_raw_data(scale=False)
 
                 # If needed, trim sequencing adapter & polyA with dynamic cutoff
                 polyA_start = "boostnano"
                 polyA_end = "boostnano"
                 if not already_trimmed:
-                    polyA_start, polyA_end = get_polyA_coords(signal_pA)
+                    polyA_start, polyA_end = get_polyA_coords(signal_pA, read.read_id)
 
                     # If polyA start or end is none
                     if polyA_start is None or polyA_end is None:
