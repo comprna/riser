@@ -156,10 +156,8 @@ def main():
                 if not already_trimmed:
                     polyA_start, polyA_end = get_polyA_coords(signal_pA, read.read_id)
 
-                    # If polyA start or end is none
-                    if polyA_start is None or polyA_end is None:
-                        print(f"PRED\t{model_id}\t{dataset}\t{filename}\t{read.read_id}\t{polyA_start}\t{polyA_end}\tNA\tNA\tNA\tNA\tNA\tNA\n")
-                        continue
+                    # If polyA start or end is none, couldn't find polyA so
+                    # don't trim
 
                     # Otherwise, trim
                     signal_pA = signal_pA[polyA_end+1:]
@@ -170,8 +168,10 @@ def main():
                     # If the signal isn't long enough
                     cutoff = SAMPLING_HZ * j
                     if len(signal_pA) < cutoff:
-                        preds[j] = f"NA\tNA"
-                        continue
+                        # Pad
+                        pad_len = cutoff - len(signal_pA)
+                        signal_pA = np.pad(signal_pA, ((pad_len, 0)), constant_values=(0,))
+                        print(signal_pA)
 
                     # Trim to input length
                     trimmed = signal_pA[:cutoff]
