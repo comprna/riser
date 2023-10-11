@@ -64,13 +64,12 @@ def clip_if_outlier(x):
     else:
         return x
 
-def get_polyA_coords(signal, read_id):
+def get_polyA_coords(signal, resolution):
     # plt.figure(figsize=(12,6))
     # plt.plot(signal)
     i = 0
     polyA_start = None
     polyA_end = None
-    resolution = 500
     history = 2 * resolution
     while i + resolution <= len(signal):
         # Calculate median absolute deviation of this window
@@ -119,10 +118,11 @@ def main():
         already_trimmed = True
     elif already_trimmed == "N":
         already_trimmed = False
+        resolution = int(sys.argv[5])
     else:
         print(f"already_trimmed value {already_trimmed} invalid!")
         exit()
-    
+
     # Load config
     config = get_config(config_file)
 
@@ -154,13 +154,12 @@ def main():
                 polyA_start = "boostnano"
                 polyA_end = "boostnano"
                 if not already_trimmed:
-                    polyA_start, polyA_end = get_polyA_coords(signal_pA, read.read_id)
+                    polyA_start, polyA_end = get_polyA_coords(signal_pA, resolution)
 
                     # If polyA start or end is none, couldn't find polyA so
-                    # don't trim
-
-                    # Otherwise, trim
-                    signal_pA = signal_pA[polyA_end+1:]
+                    # don't trim. Otherwise, trim.
+                    if polyA_end:
+                        signal_pA = signal_pA[polyA_end+1:]
 
                 # Predict for each incremental input signal length
                 preds = {}
@@ -169,9 +168,13 @@ def main():
                     cutoff = SAMPLING_HZ * j
                     if len(signal_pA) < cutoff:
                         # Pad
+                        print("\n\n\n")
+                        print(len(signal_pA))
                         pad_len = cutoff - len(signal_pA)
                         signal_pA = np.pad(signal_pA, ((pad_len, 0)), constant_values=(0,))
+                        print(len(signal_pA))
                         print(signal_pA)
+                        print("\n\n\n")
 
                     # Trim to input length
                     trimmed = signal_pA[:cutoff]
