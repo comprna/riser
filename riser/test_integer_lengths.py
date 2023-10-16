@@ -166,15 +166,10 @@ def main():
                 for j in range(2,5): # 2,3,4
                     # If the signal isn't long enough
                     cutoff = SAMPLING_HZ * j
-                    if len(signal_pA) < cutoff:
-                        # Pad
-                        print("\n\n\n")
-                        print(len(signal_pA))
+                    if j == 2 and len(signal_pA) < cutoff:
+                        # Pad if shorter than 2s
                         pad_len = cutoff - len(signal_pA)
                         signal_pA = np.pad(signal_pA, ((pad_len, 0)), constant_values=(0,))
-                        print(len(signal_pA))
-                        print(signal_pA)
-                        print("\n\n\n")
 
                     # Trim to input length
                     trimmed = signal_pA[:cutoff]
