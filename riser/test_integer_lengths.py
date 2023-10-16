@@ -84,7 +84,7 @@ def get_polyA_coords(signal, resolution):
         mean_change = (mean - rolling_mean) / rolling_mean * 100
 
         # Start condition
-        if not polyA_start and mean_change > 20 and mad <= 15:
+        if not polyA_start and mean_change > 20 and mad <= 20:
             polyA_start = i
 
         # End condition
