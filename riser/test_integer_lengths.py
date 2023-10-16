@@ -64,7 +64,7 @@ def clip_if_outlier(x):
     else:
         return x
 
-def get_polyA_coords(signal, resolution):
+def get_polyA_coords(signal, resolution, mad_threshold):
     # plt.figure(figsize=(12,6))
     # plt.plot(signal)
     i = 0
@@ -84,7 +84,7 @@ def get_polyA_coords(signal, resolution):
         mean_change = (mean - rolling_mean) / rolling_mean * 100
 
         # Start condition
-        if not polyA_start and mean_change > 20 and mad <= 20:
+        if not polyA_start and mean_change > 20 and mad <= mad_threshold:
             polyA_start = i
 
         # End condition
@@ -119,6 +119,7 @@ def main():
     elif already_trimmed == "N":
         already_trimmed = False
         resolution = int(sys.argv[5])
+        mad_threshold = int(sys.argv[6])
     else:
         print(f"already_trimmed value {already_trimmed} invalid!")
         exit()
@@ -154,7 +155,7 @@ def main():
                 polyA_start = "boostnano"
                 polyA_end = "boostnano"
                 if not already_trimmed:
-                    polyA_start, polyA_end = get_polyA_coords(signal_pA, resolution)
+                    polyA_start, polyA_end = get_polyA_coords(signal_pA, resolution, mad_threshold)
 
                     # If polyA start or end is none, couldn't find polyA so
                     # don't trim. Otherwise, trim.
