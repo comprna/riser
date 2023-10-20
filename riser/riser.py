@@ -66,7 +66,7 @@ def main():
                                                   ' run for RNA of a given'
                                                   ' class.'))
     parser.add_argument('-t', '--target',
-                        choices=['mRNA','globin'],
+                        choices=['mRNA','globin', 'mtRNA'],
                         help='RNA class to enrich for. This must be either '
                              '{%(choices)s}. (required)',
                         required=True)
