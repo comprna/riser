@@ -51,17 +51,11 @@ def parse_args(parser):
 
     # If no config specified as arg, set based on target
     if args.config is None:
-        if args.target == 'mRNA':
-            args.config = 'model/mRNA_model.yaml'
-        elif args.target == 'globin':
-            args.config = 'model/globin_model.yaml'
+        args.config = f"model/{args.target}_config_R9.4.1.yaml"
 
     # If no model specified as arg, set based on target
     if args.model is None:
-        if args.target == 'mRNA':
-            args.model = 'model/mRNA_model.pth'
-        elif args.target == 'globin':
-            args.model = 'model/globin_model.pth'
+        args.model = f"model/{args.target}_model_R9.4.1.pth"
 
     return args
 
