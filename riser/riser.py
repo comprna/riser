@@ -49,13 +49,6 @@ def probability(x):
 def parse_args(parser):
     args = parser.parse_args()
 
-    # If no trim length specified as arg, set based on target
-    if args.trim_length is None:
-        if args.target == 'mRNA':
-            args.trim_length = 6481
-        elif args.target == 'globin':
-            args.trim_length = 6474
-
     # If no config specified as arg, set based on target
     if args.config is None:
         if args.target == 'mRNA':
@@ -103,13 +96,6 @@ def main():
                         dest='model_file',
                         help='File containing saved model weights. (default: '
                              '%(default)s)')
-    parser.add_argument('--trim',
-                        dest='trim_length',
-                        type=int,
-                        help='Number of values to remove from the start of the '
-                             'raw signal to exclude the polyA tail and '
-                             'sequencing adapter signal from analysis. '
-                             '(default: target-dependent)')
     parser.add_argument('--min',
                         default=2,
                         type=int,
@@ -133,12 +119,8 @@ def main():
     # args.target = 'mRNA'
     # args.mode = 'deplete'
     # args.duration_h = 0.05
-    # args.config_file = 'riser/model/mRNA_config.yaml'
-    # args.model_file = 'riser/model/mRNA_model.pth'
-    # if args.target == 'mRNA':
-    #     args.trim_length = 6481
-    # elif args.target == 'globin':
-    #     args.trim_length = 6474
+    # args.config_file = 'riser/model/mRNA_config_R9.4.1.yaml'
+    # args.model_file = 'riser/model/mRNA_model_R9.4.1.pth'
     # args.min = 2
     # args.max = 4
     # args.threshold = 0.9

@@ -28,13 +28,15 @@ class SequencerControl():
                 reads_to_accept = []
                 reads_unclassified = []
                 for channel, read in self.client.get_read_batch():
-                    # Only process signal if it's long enough
+                    # Preprocess the signal
                     signal = self.client.get_raw_signal(read)
-                    if len(signal) < self.proc.get_min_assessable_length():
+                    signal, is_polyA_trimmed = self.proc.trim_polyA(signal)
+                    if is_polyA_trimmed or self.proc.is_max_length(signal):
+                        signal = self.proc.preprocess(signal)
+                    else:
                         continue
 
                     # Classify the RNA class to which the read belongs
-                    signal, max_length = self.proc.preprocess(signal)
                     p_off_target, p_on_target = self.model.classify(signal)
                     n_assessed += 1
 
@@ -47,7 +49,7 @@ class SequencerControl():
                         decision = "reject"
                     elif mode == "deplete" and p_off_target > threshold:
                         decision = "accept"
-                    elif max_length == True and p_on_target < threshold \
+                    elif self.proc.is_max_length(signal) and p_on_target < threshold \
                         and p_off_target < threshold:
                         decision = "no_decision"
                     else:

@@ -1,8 +1,13 @@
 import numpy as np
 
+from matplotlib import pyplot as plt
+
+
 _OUTLIER_LIMIT = 3.5
 _SCALING_FACTOR = 1.4826
 _SAMPLING_HZ = 3012
+_TRIM_RESOLUTION = 500
+_TRIM_MAD_THRESHOLD = 20
 
 class SignalProcessor():
     def __init__(self, trim_length, min_input_s, max_input_s):
@@ -10,22 +15,70 @@ class SignalProcessor():
         self.min_txt_length = min_input_s * _SAMPLING_HZ
         self.max_txt_length = max_input_s * _SAMPLING_HZ
 
+    def is_max_length(self, signal):
+        return len(signal) >= self.max_txt_length
+
     def preprocess(self, signal):
-        signal = self.trim_polyA(signal)
-        # If signal is longer than max length, we need to trim it
-        max_length = False
-        if len(signal) > self.max_txt_length:
+        # If signal is shorter than min length then pad after normalising
+        if len(signal) < self.min_txt_length:
+            signal = self.mad_normalise(signal)
+            pad_len = self.min_txt_length - len(signal)
+            signal = np.pad(signal, ((pad_len, 0)), constant_values=(0,))
+        # If signal is longer than max length then trim before normalising
+        elif self.is_max_length(signal):
             signal = signal[:self.max_txt_length]
-            max_length = True
-        signal = self.mad_normalise(signal)
-        return signal, max_length
+            signal = self.mad_normalise(signal)
+        return signal
+
+    def get_polyA_end(self, signal):
+        plt.figure(figsize=(12,6))
+        plt.plot(signal)
+        i = 0
+        polyA_start = None
+        polyA_end = None
+        found = False
+        history = 2 * _TRIM_RESOLUTION
+        while i + _TRIM_RESOLUTION <= len(signal):
+            # Calculate median absolute deviation of this window
+            median = np.median(signal[i:i+_TRIM_RESOLUTION])
+            mad = self._calculate_mad(signal[i:i+_TRIM_RESOLUTION], median)
+
+            # Calculate percentage change of mean for this window
+            mean = np.mean(signal[i:i+_TRIM_RESOLUTION])
+            rolling_mean = mean
+            if i > history:
+                rolling_mean = np.mean(signal[i-history:i])
+            mean_change = (mean - rolling_mean) / rolling_mean * 100
+
+            # Start condition
+            if not polyA_start and mean_change > 20 and mad <= _TRIM_MAD_THRESHOLD:
+                polyA_start = i
+
+            # End condition
+            if polyA_start and not polyA_end and mad > 20:
+                polyA_end = i
+                found = True
+            
+            plt.axvline(i+_TRIM_RESOLUTION, color='red')
+            plt.text(i+_TRIM_RESOLUTION, 500, int(mad))
+            plt.text(i+_TRIM_RESOLUTION, 900, int(mean_change))
+            i += _TRIM_RESOLUTION
+
+        if polyA_start: plt.axvline(polyA_start, color='green')
+        if polyA_end: plt.axvline(polyA_end, color='orange')
+        # plt.savefig(f"{read_id}_{polyA_start}_{polyA_end}.png")
+        plt.clf()
+
+        return polyA_end, found
 
     def trim_polyA(self, signal):
         """
-        Trim polyA + sequencing adapter from start of signal
-        using fixed cutoff amount.
+        If the polyA end can be found, then trim polyA + sequencing adapter 
+        from start of signal.
         """
-        return signal[self.trim_length:]
+        polyA_end, polyA_found = self.get_polyA_end(signal)
+        if polyA_found: signal = signal[polyA_end+1:]
+        return signal, polyA_found
 
     def mad_normalise(self, signal):
         if signal.shape[0] == 0:
