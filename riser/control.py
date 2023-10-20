@@ -21,6 +21,7 @@ class SequencerControl():
             n_assessed = 0
             n_rejected = 0
             n_accepted = 0
+            polyA_cache = {}
             while self.client.is_running() and time.monotonic() < run_start + duration_s:
                 # Get batch of reads to process
                 batch_start = time.monotonic()
@@ -30,7 +31,7 @@ class SequencerControl():
                 for channel, read in self.client.get_read_batch():
                     # Preprocess the signal
                     signal = self.client.get_raw_signal(read)
-                    signal, is_polyA_trimmed = self.proc.trim_polyA(signal)
+                    signal, is_polyA_trimmed = self.proc.trim_polyA(signal, read.id, polyA_cache)
                     if is_polyA_trimmed or self.proc.is_max_length(signal):
                         signal = self.proc.preprocess(signal)
                     else:
@@ -64,6 +65,10 @@ class SequencerControl():
                         reads_unclassified.append((channel, read.number))
                     self._write(out_file, batch_start, channel, read.id, len(signal),
                                 p_on_target, threshold, mode, decision)
+
+                    # Clear the polyA cache every 1000 reads
+                    if len(polyA_cache) >= 1000:
+                        polyA_cache = {}
 
                 # Send reject requests
                 self.client.reject_reads(reads_to_reject, unblock_duration)

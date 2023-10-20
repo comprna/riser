@@ -10,8 +10,7 @@ _TRIM_RESOLUTION = 500
 _TRIM_MAD_THRESHOLD = 20
 
 class SignalProcessor():
-    def __init__(self, trim_length, min_input_s, max_input_s):
-        self.trim_length = trim_length
+    def __init__(self, min_input_s, max_input_s):
         self.min_txt_length = min_input_s * _SAMPLING_HZ
         self.max_txt_length = max_input_s * _SAMPLING_HZ
 
@@ -31,12 +30,11 @@ class SignalProcessor():
         return signal
 
     def get_polyA_end(self, signal):
-        plt.figure(figsize=(12,6))
-        plt.plot(signal)
+        # plt.figure(figsize=(12,6))
+        # plt.plot(signal)
         i = 0
         polyA_start = None
         polyA_end = None
-        found = False
         history = 2 * _TRIM_RESOLUTION
         while i + _TRIM_RESOLUTION <= len(signal):
             # Calculate median absolute deviation of this window
@@ -57,28 +55,35 @@ class SignalProcessor():
             # End condition
             if polyA_start and not polyA_end and mad > 20:
                 polyA_end = i
-                found = True
             
-            plt.axvline(i+_TRIM_RESOLUTION, color='red')
-            plt.text(i+_TRIM_RESOLUTION, 500, int(mad))
-            plt.text(i+_TRIM_RESOLUTION, 900, int(mean_change))
+            # plt.axvline(i+_TRIM_RESOLUTION, color='red')
+            # plt.text(i+_TRIM_RESOLUTION, 500, int(mad))
+            # plt.text(i+_TRIM_RESOLUTION, 900, int(mean_change))
             i += _TRIM_RESOLUTION
 
-        if polyA_start: plt.axvline(polyA_start, color='green')
-        if polyA_end: plt.axvline(polyA_end, color='orange')
+        # if polyA_start: plt.axvline(polyA_start, color='green')
+        # if polyA_end: plt.axvline(polyA_end, color='orange')
         # plt.savefig(f"{read_id}_{polyA_start}_{polyA_end}.png")
-        plt.clf()
+        # plt.clf()
 
-        return polyA_end, found
+        return polyA_end
 
-    def trim_polyA(self, signal):
+    def trim_polyA(self, signal, read_id, cache):
         """
         If the polyA end can be found, then trim polyA + sequencing adapter 
         from start of signal.
         """
-        polyA_end, polyA_found = self.get_polyA_end(signal)
-        if polyA_found: signal = signal[polyA_end+1:]
-        return signal, polyA_found
+        trimmed = False
+        if read_id in cache:
+            polyA_end = cache[read_id]
+        else:
+            polyA_end = self.get_polyA_end(signal)
+            if polyA_end:
+                cache[read_id] = polyA_end
+        if polyA_end:
+            signal = signal[polyA_end+1:]
+            trimmed = True
+        return signal, trimmed
 
     def mad_normalise(self, signal):
         if signal.shape[0] == 0:
@@ -88,12 +93,6 @@ class SignalProcessor():
         vnormalise = np.vectorize(self._normalise)
         normalised = vnormalise(np.array(signal), median, mad)
         return self._smooth_outliers(normalised)
-
-    def get_min_assessable_length(self):
-        return self.trim_length + self.min_txt_length
-
-    def get_max_assessable_length(self):
-        return self.trim_length + self.max_txt_length
 
     def _calculate_mad(self, signal, median):
         f = lambda x, median: np.abs(x - median)

@@ -125,7 +125,7 @@ def main():
     client = Client(logger)
     config = get_config(args.config_file)
     model = Model(args.model_file, config, logger)
-    processor = SignalProcessor(args.trim_length, args.min, args.max)
+    processor = SignalProcessor(args.min, args.max)
     control = SequencerControl(client, model, processor, logger, out_file)
 
     # Log CL args
