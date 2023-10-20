@@ -66,7 +66,8 @@ def main():
                                                   ' run for RNA of a given'
                                                   ' class.'))
     parser.add_argument('-t', '--target',
-                        choices=['mRNA','globin', 'mtRNA'],
+                        choices=['mRNA', 'globin', 'mtRNA'],
+                        nargs='+',
                         help='RNA class to enrich for. This must be either '
                              '{%(choices)s}. (required)',
                         required=True)
@@ -110,7 +111,7 @@ def main():
 
     # Local testing
     # args = SimpleNamespace()
-    # args.target = 'mRNA'
+    # args.target = 'mRNA globin'
     # args.mode = 'deplete'
     # args.duration_h = 0.05
     # args.config_file = 'riser/model/mRNA_config_R9.4.1.yaml'
