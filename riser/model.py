@@ -4,7 +4,9 @@ from nets.cnn import ConvNet
 
 
 class Model():
-    def __init__(self, state, config, logger):
+    def __init__(self, state, config, logger, target):
+        self.target = target
+
         # Logger
         self.logger = logger # TODO: Make private?? How to deal with passing logger around??
 
