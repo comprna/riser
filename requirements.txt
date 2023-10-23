@@ -3,6 +3,7 @@ matplotlib
 minknow-api==4.5.0
 numpy
 ont-fast5-api
+pytorch-lightning
 pyyaml
 read-until==3.0.0
 scikit-learn

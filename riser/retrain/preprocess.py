@@ -40,6 +40,7 @@ def calculate_mad(signal, median):
 
 
 def normalise(x, median, mad):
+    # TODO: Handle divide by zero
     return (x - median) / (1.4826 * mad)
 
 
@@ -64,10 +65,12 @@ def main():
 
     for f5_file in Path(f5_dir).glob('*.fast5'):
 
+        f5_filename = str(f5_file).split("/")[-1].split(".")[0]
+
         # Iterate through signals in file
 
         n_discarded = 0
-        print(f"Processing {f5_file}...")
+        print(f"Processing {f5_filename}...")
         with get_fast5_file(f5_file, mode="r") as f5:
             for i, read in enumerate(f5.get_reads()):
 
@@ -88,7 +91,7 @@ def main():
                 normalised = mad_normalise(signal_pA, outlier_lim)
                 data.append(normalised)
 
-        print(f"# of discarded reads (< {cutoff} samples) in {f5_file}: {n_discarded}")
+        print(f"# of discarded reads (< {cutoff} samples) in {f5_filename}: {n_discarded}")
 
 
     # Write data to file

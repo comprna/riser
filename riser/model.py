@@ -4,7 +4,9 @@ from nets.cnn import ConvNet
 
 
 class Model():
-    def __init__(self, state, config, logger):
+    def __init__(self, state, config, logger, target):
+        self.target = target
+
         # Logger
         self.logger = logger # TODO: Make private?? How to deal with passing logger around??
 
@@ -22,7 +24,7 @@ class Model():
             X = torch.from_numpy(signal).unsqueeze(0)
             X = X.to(self.device, dtype=torch.float)
             logits = self.model(X)
-            probs = torch.nn.functional.softmax(logits, dim=1)
+            probs = torch.nn.functional.softmax(logits, dim=1)[0]
         return probs
 
     def _get_device(self):

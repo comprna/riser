@@ -1,4 +1,3 @@
-import math
 from pathlib import Path
 import sys
 
@@ -9,6 +8,7 @@ import torch
 def build_dataset(npy_dir):
     data = None
     for npy_file in Path(npy_dir).glob('*.npy'):
+        print(npy_file)
         if data is None:
             data = np.load(npy_file, allow_pickle=True)
         else:
@@ -27,13 +27,17 @@ def write_tensor(arr, filename):
 
 
 def main():
-    npy_dir = sys.argv[1]
-    print(npy_dir)
+    pos_npy_file = sys.argv[1]
+    neg_npy_file = sys.argv[2]
+    out_dir = sys.argv[3]
 
     # Build the datasets
 
-    p_data = build_dataset(f"{npy_dir}/positive")
-    n_data = build_dataset(f"{npy_dir}/negative")
+    print(pos_npy_file)
+    print(neg_npy_file)
+    p_data = np.load(pos_npy_file, allow_pickle=True)
+    n_data = np.load(neg_npy_file, allow_pickle=True)
+    print("Dataset sizes before balancing:")
     print_shapes(p_data, n_data)
 
     # Balance the positive and negative sets
@@ -44,29 +48,13 @@ def main():
         p_data = p_data[:n_len]
     elif n_len > p_len:
         n_data = n_data[:p_len]
+    print("Dataset sizes after balancing positive and negative sets:")
     print_shapes(p_data, n_data)
 
-    # If we are creating the training set, split into train and val
+    # Write tensors
 
-    name = npy_dir.split("/")[-1]
-    if name == "train":
-        np.random.shuffle(p_data)
-        np.random.shuffle(n_data)
-
-        train_size = math.ceil(0.8 * len(p_data))
-        p_train = p_data[:train_size]
-        p_val = p_data[train_size:]
-        n_train = n_data[:train_size]
-        n_val = n_data[train_size:]
-
-        write_tensor(p_train, "train_positive.pt")
-        write_tensor(p_val, "val_positive.pt")
-        write_tensor(n_train, "train_negative.pt")
-        write_tensor(n_val, "val_negative.pt")
-
-    else:
-        write_tensor(p_data, f"test_positive.pt")
-        write_tensor(n_data, f"test_negative.pt")
+    write_tensor(p_data, f"{out_dir}/positive.pt")
+    write_tensor(n_data, f"{out_dir}/negative.pt")
 
 
 if __name__ == "__main__":
