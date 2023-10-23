@@ -9,17 +9,17 @@ class SequencerControl():
         self.out_filename = out_file
 
     # IMPORTANT: The target function in the split_flowcell branch ignores the
-    # mode setting.  Instead, it splits the flowcell channels into thirds to
-    # allow all conditions to be tested on a single flowcell, removing flowcell
-    # variability as an experimental factor.
+    # mode setting.  Instead, it splits the flowcell channels into two groups to
+    # allow both depletion and control conditions to be tested on a single
+    # flowcell, removing flowcell variability as an experimental factor.
     #
-    # Each consecutive channel alternates between control, enrich and deplete
+    # Each consecutive channel alternates between control and deplete
     # so that the conditions are evenly distributed throughout the channels in
     # the flowcell.
     def target(self, mode, duration_h, threshold, unblock_duration=0.1):
-        self.client.send_warning(
-            'The sequencing run is being controlled by RISER using a split '
-            'flowcell to test all conditions simultaneously.')
+        msg = "The sequencing run is being controlled by RISER using a split flowcell to test all conditions simultaneously."
+        print(msg)
+        self.client.send_warning(msg)
  
         with open(f'{self.out_filename}.csv', 'a') as out_file:
             self._write_header(out_file)
@@ -37,6 +37,14 @@ class SequencerControl():
                 reads_to_accept = []
                 reads_unclassified = []
                 for channel, read in self.client.get_read_batch():
+                    # Determine mode based on channel number. Since channels are
+                    # numbered 1-512 (inclusive), the following logic will
+                    # assign 256 channels to deplete and 256 to control.
+                    if channel % 2 == 0:
+                        mode = "deplete"
+                    else:
+                        continue # Control
+
                     # Preprocess the signal
                     signal = self.client.get_raw_signal(read)
                     signal, is_polyA_trimmed = self.proc.trim_polyA(signal, read.id, polyA_cache)
@@ -53,19 +61,6 @@ class SequencerControl():
                         p_off_targets.append(p_off_target)
                         p_on_targets.append(p_on_target)
                     n_assessed += 1
-
-                    # Determine mode based on channel number. Since channels are
-                    # numbered 1-512 (inclusive), the following logic will
-                    # assign 170 channels to enrich, 171 to deplete and 171 to
-                    # control.  Reads from the 171st control channel and 171st
-                    # deplete channel can be discarded later so that there are
-                    # an equal number of channels per condition.
-                    if channel % 3 == 0:
-                        mode = "enrich"
-                    elif channel % 3 == 1:
-                        continue # Control
-                    elif channel % 3 == 2:
-                        mode = "deplete"
 
                     # Decide what to do with this read
                     if any(p > threshold for p in p_on_targets):
