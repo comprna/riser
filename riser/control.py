@@ -1,9 +1,9 @@
 import time
 
 class SequencerControl():
-    def __init__(self, client, model, processor, logger, out_file):
+    def __init__(self, client, models, processor, logger, out_file):
         self.client = client
-        self.model = model
+        self.models = models
         self.proc = processor
         self.logger = logger
         self.out_filename = out_file
@@ -29,6 +29,7 @@ class SequencerControl():
             n_assessed = 0
             n_rejected = 0
             n_accepted = 0
+            polyA_cache = {}
             while self.client.is_running() and time.monotonic() < run_start + duration_s:
                 # Get batch of reads to process
                 batch_start = time.monotonic()
@@ -36,14 +37,21 @@ class SequencerControl():
                 reads_to_accept = []
                 reads_unclassified = []
                 for channel, read in self.client.get_read_batch():
-                    # Only process signal if it's long enough
+                    # Preprocess the signal
                     signal = self.client.get_raw_signal(read)
-                    if len(signal) < self.proc.get_min_assessable_length():
+                    signal, is_polyA_trimmed = self.proc.trim_polyA(signal, read.id, polyA_cache)
+                    if is_polyA_trimmed or self.proc.is_max_length(signal):
+                        signal = self.proc.preprocess(signal)
+                    else:
                         continue
 
                     # Classify the RNA class to which the read belongs
-                    signal, max_length = self.proc.preprocess(signal)
-                    p_off_target, p_on_target = self.model.classify(signal)
+                    p_on_targets = []
+                    p_off_targets = []
+                    for model in self.models:
+                        p_off_target, p_on_target = model.classify(signal)
+                        p_off_targets.append(p_off_target)
+                        p_on_targets.append(p_on_target)
                     n_assessed += 1
 
                     # Determine mode based on channel number. Since channels are
@@ -60,16 +68,11 @@ class SequencerControl():
                         mode = "deplete"
 
                     # Decide what to do with this read
-                    if mode == "enrich" and p_on_target > threshold:
-                        decision = "accept"
-                    elif mode == "enrich" and p_off_target > threshold:
-                        decision = "reject"
-                    elif mode == "deplete" and p_on_target > threshold:
-                        decision = "reject"
-                    elif mode == "deplete" and p_off_target > threshold:
-                        decision = "accept"
-                    elif max_length == True and p_on_target < threshold \
-                        and p_off_target < threshold:
+                    if any(p > threshold for p in p_on_targets):
+                        decision = "accept" if mode == "enrich" else "reject"
+                    elif all(p > threshold for p in p_off_targets):
+                        decision = "accept" if mode == "deplete" else "reject"
+                    elif self.proc.is_max_length(signal):
                         decision = "no_decision"
                     else:
                         decision = "try_again"
@@ -81,8 +84,13 @@ class SequencerControl():
                         reads_to_reject.append((channel, read.number))
                     elif decision == "no_decision":
                         reads_unclassified.append((channel, read.number))
-                    self._write(out_file, batch_start, channel, read.id, len(signal),
-                                p_on_target, threshold, mode, decision)
+                    self._write(out_file, batch_start, channel, read.id,
+                                len(signal), self.models, p_on_targets,
+                                threshold, mode, decision)
+
+                    # Clear the polyA cache every 1000 reads
+                    if len(polyA_cache) >= 1000:
+                        polyA_cache = {}
 
                 # Send reject requests
                 self.client.reject_reads(reads_to_reject, unblock_duration)
@@ -96,7 +104,7 @@ class SequencerControl():
 
                 # Log progress each minute
                 if batch_start > progress_time:
-                    self.logger.info(f"In the last minute {n_assessed} reads "
+                    self.logger.info(f"In the last minute {n_assessed} signals "
                                      f"were assessed, {n_accepted} were "
                                      f"accepted and {n_rejected} were rejected")
                     n_assessed = 0
@@ -123,9 +131,11 @@ class SequencerControl():
         return hours * 60 * 60
 
     def _write_header(self, csv_file):
-        csv_file.write('batch_start,read_id,channel,sig_length,prob_target,threshold,objective,decision\n')
+        csv_file.write('batch_start,read_id,channel,sig_length,models,prob_targets,threshold,mode,decision\n')
 
     def _write(self, csv_file, batch_start, channel, read, sig_length,
-               p_on_target, threshold, objective, decision):
-        csv_file.write(f'{batch_start:.0f},{read},{channel},{sig_length},{p_on_target:.2f},{threshold},'
-                       f'{objective},{decision}\n')
+               models, p_on_targets, threshold, mode, decision):
+        csv_file.write(f'{batch_start:.0f},{read},{channel},{sig_length},'
+                       f'{";".join([m.target for m in models])},'
+                       f'{";".join([str(p.item()) for p in p_on_targets])},'
+                       f'{threshold},{mode},{decision}\n')

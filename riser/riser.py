@@ -1,17 +1,38 @@
 import argparse
+from datetime import datetime
 import logging
 from signal import signal, SIGINT, SIGTERM
 import sys
 from types import SimpleNamespace
 
+from attrdict import AttrDict
+import yaml
+
 from client import Client
 from model import Model
 from control import SequencerControl
-from utilities import get_config, get_datetime_now, DT_FORMAT #TODO: Catch-all class ugly
 from preprocess import SignalProcessor
 
 
-# TODO: Documentation
+DT_FORMAT = '%Y-%m-%dT%H:%M:%S'
+
+
+def get_config(filepath):
+    with open(filepath) as config_file:
+        return AttrDict(yaml.load(config_file, Loader=yaml.Loader))
+
+
+def get_models(targets, logger):
+    models = []
+    for target in targets:
+        config = get_config(f"model/{target}_config_R9.4.1.yaml")
+        model_file = f"model/{target}_model_R9.4.1.pth"
+        models.append(Model(model_file, config, logger, target))
+    return models
+
+
+def get_datetime_now():
+    return datetime.now().strftime(DT_FORMAT)
 
 
 def setup_logging(out_file):
@@ -46,42 +67,16 @@ def probability(x):
     return x
 
 
-def parse_args(parser):
-    args = parser.parse_args()
-
-    # If no trim length specified as arg, set based on target
-    if args.trim_length is None:
-        if args.target == 'mRNA':
-            args.trim_length = 6778
-        elif args.target == 'globin':
-            args.trim_length = 6474
-
-    # If no config specified as arg, set based on target
-    if args.config_file is None:
-        if args.target == 'mRNA':
-            args.config_file = 'model/mRNA_model.yaml'
-        elif args.target == 'globin':
-            args.config_file = 'model/globin_model.yaml'
-
-    # If no model specified as arg, set based on target
-    if args.model_file is None:
-        if args.target == 'mRNA':
-            args.model_file = 'model/mRNA_model.pth'
-        elif args.target == 'globin':
-            args.model_file = 'model/globin_model.pth'
-
-    return args
-
-
 def main():
     # CL args
     parser = argparse.ArgumentParser(description=('Enrich a Nanopore sequencing'
                                                   ' run for RNA of a given'
                                                   ' class.'))
     parser.add_argument('-t', '--target',
-                        choices=['mRNA','globin'],
-                        help='RNA class to enrich for. This must be either '
-                             '{%(choices)s}. (required)',
+                        choices=['mRNA', 'globin', 'mtRNA'],
+                        nargs='+',
+                        help='RNA class to enrich for. This must be one or more'
+                             ' of {%(choices)s}. (required)',
                         required=True)
     parser.add_argument('-m', '--mode',
                         choices=['enrich', 'deplete'],
@@ -95,21 +90,6 @@ def main():
                              'This should be the same as the MinKNOW run '
                              'length. (required)',
                         required=True)
-    parser.add_argument('--config',
-                        dest='config_file',
-                        help='Config file for model hyperparameters. (default: '
-                             '%(default)s)')
-    parser.add_argument('--model',
-                        dest='model_file',
-                        help='File containing saved model weights. (default: '
-                             '%(default)s)')
-    parser.add_argument('--trim',
-                        dest='trim_length',
-                        type=int,
-                        help='Number of values to remove from the start of the '
-                             'raw signal to exclude the polyA tail and '
-                             'sequencing adapter signal from analysis. '
-                             '(default: target-dependent)')
     parser.add_argument('--min',
                         default=2,
                         type=int,
@@ -126,19 +106,13 @@ def main():
                         type=probability,
                         help='Probability threshold for classifier [0,1] '
                              '(default: %(default)s)')
-    args = parse_args(parser)
+    args = parser.parse_args()
 
     # Local testing
     # args = SimpleNamespace()
-    # args.target = 'mRNA'
+    # args.target = ['mRNA', 'mtRNA']
     # args.mode = 'deplete'
     # args.duration_h = 0.05
-    # args.config_file = 'riser/model/mRNA_config.yaml'
-    # args.model_file = 'riser/model/mRNA_model.pth'
-    # if args.target == 'mRNA':
-    #     args.trim_length = 6778
-    # elif args.target == 'globin':
-    #     args.trim_length = 6474
     # args.min = 2
     # args.max = 4
     # args.threshold = 0.9
@@ -147,10 +121,9 @@ def main():
     out_file = f'riser_{get_datetime_now()}'
     logger = setup_logging(out_file)
     client = Client(logger)
-    config = get_config(args.config_file)
-    model = Model(args.model_file, config, logger)
-    processor = SignalProcessor(args.trim_length, args.min, args.max)
-    control = SequencerControl(client, model, processor, logger, out_file)
+    models = get_models(args.target, logger)
+    processor = SignalProcessor(args.min, args.max)
+    control = SequencerControl(client, models, processor, logger, out_file)
 
     # Log CL args
     logger.info(f'Usage: {" ".join(sys.argv)}')

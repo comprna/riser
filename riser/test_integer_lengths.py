@@ -1,6 +1,7 @@
 from pathlib import Path
 import sys
 
+from matplotlib import pyplot as plt
 import numpy as np
 from ont_fast5_api.fast5_interface import get_fast5_file
 import torch
@@ -63,6 +64,44 @@ def clip_if_outlier(x):
     else:
         return x
 
+def get_polyA_coords(signal, resolution, mad_threshold):
+    # plt.figure(figsize=(12,6))
+    # plt.plot(signal)
+    i = 0
+    polyA_start = None
+    polyA_end = None
+    history = 2 * resolution
+    while i + resolution <= len(signal):
+        # Calculate median absolute deviation of this window
+        median = np.median(signal[i:i+resolution])
+        mad = calculate_mad(signal[i:i+resolution], median)
+
+        # Calculate percentage change of mean for this window
+        mean = np.mean(signal[i:i+resolution])
+        rolling_mean = mean
+        if i > history:
+            rolling_mean = np.mean(signal[i-history:i])
+        mean_change = (mean - rolling_mean) / rolling_mean * 100
+
+        # Start condition
+        if not polyA_start and mean_change > 20 and mad <= mad_threshold:
+            polyA_start = i
+
+        # End condition
+        if polyA_start and not polyA_end and mad > 20:
+            polyA_end = i
+        
+        # plt.axvline(i+resolution, color='red')
+        # plt.text(i+resolution, 500, int(mad))
+        # plt.text(i+resolution, 900, int(mean_change))
+        i += resolution
+
+    # if polyA_start: plt.axvline(polyA_start, color='green')
+    # if polyA_end: plt.axvline(polyA_end, color='green')
+    # plt.savefig(f"{read_id}_{polyA_start}_{polyA_end}.png")
+    # plt.clf()
+
+    return polyA_start, polyA_end
 
 def main():
     # Location of raw signals
@@ -79,12 +118,11 @@ def main():
         already_trimmed = True
     elif already_trimmed == "N":
         already_trimmed = False
+        resolution = int(sys.argv[5])
+        mad_threshold = int(sys.argv[6])
     else:
         print(f"already_trimmed value {already_trimmed} invalid!")
         exit()
-    trim_length = int(sys.argv[5])
-    if not already_trimmed and trim_length < 0:
-        print(f"Invalid trimming configuration")
 
     # Load config
     config = get_config(config_file)
@@ -111,23 +149,28 @@ def main():
             for i, read in enumerate(f5.get_reads()):
 
                 # Retrieve raw current measurements
-                signal_pA = read.get_raw_data(scale=True)
+                signal_pA = read.get_raw_data(scale=False)
 
-                # If needed, trim sequencing adapter & polyA with fixed cutoff
+                # If needed, trim sequencing adapter & polyA with dynamic cutoff
+                polyA_start = "boostnano"
+                polyA_end = "boostnano"
                 if not already_trimmed:
-                    if len(signal_pA) < trim_length:
-                        print(f"PRED\t{model_id}\t{dataset}\t{filename}\t{read.read_id}\tNA\tNA\tNA\tNA\tNA\tNA\n")
-                        continue
-                    signal_pA = signal_pA[trim_length:]
+                    polyA_start, polyA_end = get_polyA_coords(signal_pA, resolution, mad_threshold)
+
+                    # If polyA start or end is none, couldn't find polyA so
+                    # don't trim. Otherwise, trim.
+                    if polyA_end:
+                        signal_pA = signal_pA[polyA_end+1:]
 
                 # Predict for each incremental input signal length
                 preds = {}
                 for j in range(2,5): # 2,3,4
                     # If the signal isn't long enough
                     cutoff = SAMPLING_HZ * j
-                    if len(signal_pA) < cutoff:
-                        preds[j] = f"NA\tNA"
-                        continue
+                    if j == 2 and len(signal_pA) < cutoff:
+                        # Pad if shorter than 2s
+                        pad_len = cutoff - len(signal_pA)
+                        signal_pA = np.pad(signal_pA, ((pad_len, 0)), constant_values=(0,))
 
                     # Trim to input length
                     trimmed = signal_pA[:cutoff]
@@ -142,7 +185,7 @@ def main():
 
                     preds[j] = f"{prob_n}\t{prob_p}"
                 
-                print(f"PRED\t{model_id}\t{dataset}\t{filename}\t{read.read_id}\t{preds[2]}\t{preds[3]}\t{preds[4]}\n")
+                print(f"PRED\t{model_id}\t{dataset}\t{filename}\t{read.read_id}\t{polyA_start}\t{polyA_end}\t{preds[2]}\t{preds[3]}\t{preds[4]}\n")
 
 
 if __name__ == "__main__":
