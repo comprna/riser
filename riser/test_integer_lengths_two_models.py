@@ -149,7 +149,7 @@ def main():
     summary(model1)
     model1.eval()
     
-	model2 = ConvNet(config2.cnn).to(device)
+    model2 = ConvNet(config2.cnn).to(device)
     model2.load_state_dict(torch.load(model2_file))
     summary(model2)
     model2.eval()
@@ -199,7 +199,7 @@ def main():
                     prob_p1 = probs1[0][1].item()
                     preds1[j] = f"{prob_n1}\t{prob_p1}"
                     
-					probs2 = classify(normalised, device, model2)
+                    probs2 = classify(normalised, device, model2)
                     prob_n2 = probs2[0][0].item()
                     prob_p2 = probs2[0][1].item()
                     preds2[j] = f"{prob_n2}\t{prob_p2}"
