@@ -1,20 +1,25 @@
 from pathlib import Path
 import sys
 
+from attrdict import AttrDict
 from matplotlib import pyplot as plt
 import numpy as np
 from ont_fast5_api.fast5_interface import get_fast5_file
 import torch
 from torchinfo import summary
+import yaml
 
 from nets.cnn import ConvNet
 from nets.resnet import ResNet
 from nets.tcn import TCN
-from utilities import get_config
 
 OUTLIER_LIMIT = 3.5
 SCALING_FACTOR = 1.4826
 SAMPLING_HZ = 3012
+
+def get_config(filepath):
+    with open(filepath) as config_file:
+        return AttrDict(yaml.load(config_file, Loader=yaml.Loader))
 
 def classify(signal, device, model):
     with torch.no_grad():
