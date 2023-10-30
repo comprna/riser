@@ -10,7 +10,6 @@ from torchinfo import summary
 import yaml
 
 from nets.cnn import ConvNet
-from utilities import get_config
 
 OUTLIER_LIMIT = 3.5
 SCALING_FACTOR = 1.4826
