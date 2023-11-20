@@ -148,7 +148,7 @@ def main():
                 signal_pA = read.get_raw_data(scale=False)
 
                 # Signal is retrieved from ReadUntil in 1s chunks
-                for j in range(1,4): # 1,2,3,4
+                for j in range(1,5): # 1,2,3,4
                     signal_pA = signal_pA[:SAMPLING_HZ * j]
 
                     # Attempt to preprocess the signal
