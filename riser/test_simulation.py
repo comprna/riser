@@ -176,7 +176,7 @@ def main():
 
                     preds[j] = f"{prob_n}\t{prob_p}"
                 
-                print(f"PRED\t{model_id}\t{dataset}\t{filename}\t{read.read_id}\t{polyA_start}\t{polyA_end}\t{preds[2]}\t{preds[3]}\t{preds[4]}\n")
+                print(f"PRED\t{model_id}\t{dataset}\t{filename}\t{read.read_id}\t{polyA_start}\t{polyA_end}\t{preds[1]}\t{preds[2]}\t{preds[3]}\t{preds[4]}\n")
 
 
 if __name__ == "__main__":
