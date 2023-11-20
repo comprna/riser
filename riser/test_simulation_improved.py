@@ -149,12 +149,17 @@ def main():
 
                 # Simulate retrieving data in 1s chunks
                 j = 1
-                while len(orig_signal_pA) >= j * SAMPLING_HZ:
+                polyA_start = None
+                polyA_end = None
+                keep_going = True
+                while len(orig_signal_pA) >= j * SAMPLING_HZ and keep_going:
                     signal_pA = orig_signal_pA[:SAMPLING_HZ * j]
 
+                    # Find the polyA if we haven't already for this read
+                    if polyA_start is None or polyA_end is None:
+                        polyA_start, polyA_end = get_polyA_coords(signal_pA, resolution, mad_threshold)
                     # Only predict if we find the polyA and the transcript
                     # signal is at least 2s long
-                    polyA_start, polyA_end = get_polyA_coords(signal_pA, resolution, mad_threshold)
                     if not polyA_end:
                         preds[j] = "no_polyA\tno_polyA"
                         j += 1
@@ -174,6 +179,7 @@ def main():
                         max_length = 4 * SAMPLING_HZ
                         if len(signal_pA) > max_length:
                             signal_pA = signal_pA[:max_length]
+                            keep_going = False
 
                     # Normalise
                     normalised = mad_normalise(signal_pA)
