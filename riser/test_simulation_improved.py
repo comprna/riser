@@ -145,12 +145,12 @@ def main():
                 preds = {}
 
                 # Retrieve raw current measurements
-                signal_pA = read.get_raw_data(scale=False)
+                orig_signal_pA = read.get_raw_data(scale=False)
 
                 # Simulate retrieving data in 1s chunks
                 j = 1
-                while len(signal_pA) >= j * SAMPLING_HZ:
-                    signal_pA = signal_pA[:SAMPLING_HZ * j]
+                while len(orig_signal_pA) >= j * SAMPLING_HZ:
+                    signal_pA = orig_signal_pA[:SAMPLING_HZ * j]
 
                     # Only predict if we find the polyA and the transcript
                     # signal is at least 2s long

@@ -145,11 +145,11 @@ def main():
                 preds = {}
 
                 # Retrieve raw current measurements
-                signal_pA = read.get_raw_data(scale=False)
+                orig_signal_pA = read.get_raw_data(scale=False)
 
                 # Signal is retrieved from ReadUntil in 1s chunks
                 for j in range(1,5): # 1,2,3,4
-                    signal_pA = signal_pA[:SAMPLING_HZ * j]
+                    signal_pA = orig_signal_pA[:SAMPLING_HZ * j]
 
                     # Attempt to preprocess the signal
                     polyA_start, polyA_end = get_polyA_coords(signal_pA, resolution, mad_threshold)
