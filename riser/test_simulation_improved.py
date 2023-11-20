@@ -170,6 +170,11 @@ def main():
                             j += 1
                             continue
 
+                        # Signal input to network can be max 4s long
+                        max_length = 4 * SAMPLING_HZ
+                        if len(signal_pA) > max_length:
+                            signal_pA = signal_pA[:max_length]
+
                     # Normalise
                     normalised = mad_normalise(signal_pA)
                     
