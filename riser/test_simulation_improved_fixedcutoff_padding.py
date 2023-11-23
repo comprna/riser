@@ -183,12 +183,11 @@ def main():
                     if polyA_end is not None:
                         signal_pA = signal_pA[polyA_end+1:]
 
-                        # Can only consider transcript signals at least 2s long
+                        # Pad if input signal less than 2s
                         min_length = 2 * SAMPLING_HZ
                         if len(signal_pA) < min_length:
-                            preds[j] = "too_short\ttoo_short"
-                            j += 1
-                            continue
+                            pad_len = min_length - len(signal_pA)
+                            signal_pA = np.pad(signal_pA, ((pad_len, 0)), constant_values=(0,))
 
                         # Signal input to network can be max 4s long
                         max_length = 4 * SAMPLING_HZ
