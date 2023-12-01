@@ -10,16 +10,16 @@ from torchinfo import summary
 import yaml
 
 from nets.cnn import ConvNet
+from nets.resnet import ResNet
+from nets.tcn import TCN
 
 OUTLIER_LIMIT = 3.5
 SCALING_FACTOR = 1.4826
 SAMPLING_HZ = 3012
 
-
 def get_config(filepath):
     with open(filepath) as config_file:
         return AttrDict(yaml.load(config_file, Loader=yaml.Loader))
-
 
 def classify(signal, device, model):
     with torch.no_grad():
@@ -114,36 +114,45 @@ def main():
     dataset = f5_dir.split("/")[-1]
 
     # Setup
-    model_file = sys.argv[2]
-    config_file = sys.argv[3]
+    model1_file = sys.argv[2]
+    config1_file = sys.argv[3]
+    model2_file = sys.argv[4]
+    config2_file = sys.argv[5]
 
     # Have the signals already been trimmed by BoostNano?
-    already_trimmed = sys.argv[4]
+    already_trimmed = sys.argv[6]
     if already_trimmed == "Y":
         already_trimmed = True
     elif already_trimmed == "N":
         already_trimmed = False
-        resolution = int(sys.argv[5])
-        mad_threshold = int(sys.argv[6])
+        resolution = int(sys.argv[7])
+        mad_threshold = int(sys.argv[8])
     else:
         print(f"already_trimmed value {already_trimmed} invalid!")
         exit()
 
     # Load config
-    config = get_config(config_file)
+    config1 = get_config(config1_file)
+    config2 = get_config(config2_file)
 
     # Test info
-    model_id = model_file.split('.pth')[0].split('/')[-1]
+    model1_id = model1_file.split('.pth')[0].split('/')[-1]
+    model2_id = model2_file.split('.pth')[0].split('/')[-1]
 
     # Get device for model evaluation
     device = "cuda" if torch.cuda.is_available() else "cpu"
     device = torch.device(device)
 
     # Define model
-    model = ConvNet(config.cnn).to(device)
-    model.load_state_dict(torch.load(model_file))
-    summary(model)
-    model.eval()
+    model1 = ConvNet(config1.cnn).to(device)
+    model1.load_state_dict(torch.load(model1_file))
+    summary(model1)
+    model1.eval()
+    
+    model2 = ConvNet(config2.cnn).to(device)
+    model2.load_state_dict(torch.load(model2_file))
+    summary(model2)
+    model2.eval()
 
     # Iterate through files
     for f5_file in Path(f5_dir).glob('*.fast5'):
@@ -168,7 +177,8 @@ def main():
                         signal_pA = signal_pA[polyA_end+1:]
 
                 # Predict for each incremental input signal length
-                preds = {}
+                preds1 = {}
+                preds2 = {}
                 for j in range(2,5): # 2,3,4
                     # If the signal isn't long enough
                     cutoff = SAMPLING_HZ * j
@@ -184,13 +194,17 @@ def main():
                     normalised = mad_normalise(trimmed)
 
                     # Predict
-                    probs = classify(normalised, device, model)
-                    prob_n = probs[0][0].item()
-                    prob_p = probs[0][1].item()
-
-                    preds[j] = f"{prob_n}\t{prob_p}"
+                    probs1 = classify(normalised, device, model1)
+                    prob_n1 = probs1[0][0].item()
+                    prob_p1 = probs1[0][1].item()
+                    preds1[j] = f"{prob_n1}\t{prob_p1}"
+                    
+                    probs2 = classify(normalised, device, model2)
+                    prob_n2 = probs2[0][0].item()
+                    prob_p2 = probs2[0][1].item()
+                    preds2[j] = f"{prob_n2}\t{prob_p2}"
                 
-                print(f"PRED\t{model_id}\t{dataset}\t{filename}\t{read.read_id}\t{polyA_start}\t{polyA_end}\t{preds[2]}\t{preds[3]}\t{preds[4]}\n")
+                print(f"PRED\t{model1_id}\t{model2_id}\t{dataset}\t{filename}\t{read.read_id}\t{polyA_start}\t{polyA_end}\t{preds1[2]}\t{preds1[3]}\t{preds1[4]}\t{preds2[2]}\t{preds2[3]}\t{preds2[4]}\n")
 
 
 if __name__ == "__main__":

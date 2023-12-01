@@ -116,18 +116,8 @@ def main():
     # Setup
     model_file = sys.argv[2]
     config_file = sys.argv[3]
-
-    # Have the signals already been trimmed by BoostNano?
-    already_trimmed = sys.argv[4]
-    if already_trimmed == "Y":
-        already_trimmed = True
-    elif already_trimmed == "N":
-        already_trimmed = False
-        resolution = int(sys.argv[5])
-        mad_threshold = int(sys.argv[6])
-    else:
-        print(f"already_trimmed value {already_trimmed} invalid!")
-        exit()
+    resolution = int(sys.argv[4])
+    mad_threshold = int(sys.argv[5])
 
     # Load config
     config = get_config(config_file)
@@ -152,45 +142,41 @@ def main():
         # Iterate through signals in file
         with get_fast5_file(f5_file, mode="r") as f5:
             for i, read in enumerate(f5.get_reads()):
+                preds = {}
 
                 # Retrieve raw current measurements
-                signal_pA = read.get_raw_data(scale=False)
+                orig_signal_pA = read.get_raw_data(scale=False)
 
-                # If needed, trim sequencing adapter & polyA with dynamic cutoff
-                polyA_start = "boostnano"
-                polyA_end = "boostnano"
-                if not already_trimmed:
+                # Signal is retrieved from ReadUntil in 1s chunks
+                for j in range(1,5): # 1,2,3,4
+                    signal_pA = orig_signal_pA[:SAMPLING_HZ * j]
+
+                    # Attempt to preprocess the signal
                     polyA_start, polyA_end = get_polyA_coords(signal_pA, resolution, mad_threshold)
-
-                    # If polyA start or end is none, couldn't find polyA so
-                    # don't trim. Otherwise, trim.
                     if polyA_end:
-                        signal_pA = signal_pA[polyA_end+1:]
+                        # Cutoff polyA
+                        if polyA_end: signal_pA = signal_pA[polyA_end+1:]
 
-                # Predict for each incremental input signal length
-                preds = {}
-                for j in range(2,5): # 2,3,4
-                    # If the signal isn't long enough
-                    cutoff = SAMPLING_HZ * j
-                    if j == 2 and len(signal_pA) < cutoff:
-                        # Pad if shorter than 2s
-                        pad_len = cutoff - len(signal_pA)
-                        signal_pA = np.pad(signal_pA, ((pad_len, 0)), constant_values=(0,))
-
-                    # Trim to input length
-                    trimmed = signal_pA[:cutoff]
-
-                    # Normalise signal
-                    normalised = mad_normalise(trimmed)
-
-                    # Predict
-                    probs = classify(normalised, device, model)
+                        # If signal is too short, pad after normalising
+                        min_length = 2 * SAMPLING_HZ
+                        if len(signal_pA) < min_length:
+                            signal_pA = mad_normalise(signal_pA)
+                            pad_len = min_length - len(signal_pA)
+                            signal_pA = np.pad(signal_pA, ((pad_len, 0)), constant_values=(0,))
+                    elif j == 4:
+                        signal_pA = mad_normalise(signal_pA)
+                    else:
+                        preds[j] = "NA\tNA"
+                        continue
+                    
+                    # Classify
+                    probs = classify(signal_pA, device, model)
                     prob_n = probs[0][0].item()
                     prob_p = probs[0][1].item()
 
                     preds[j] = f"{prob_n}\t{prob_p}"
                 
-                print(f"PRED\t{model_id}\t{dataset}\t{filename}\t{read.read_id}\t{polyA_start}\t{polyA_end}\t{preds[2]}\t{preds[3]}\t{preds[4]}\n")
+                print(f"PRED\t{model_id}\t{dataset}\t{filename}\t{read.read_id}\t{polyA_start}\t{polyA_end}\t{preds[1]}\t{preds[2]}\t{preds[3]}\t{preds[4]}\n")
 
 
 if __name__ == "__main__":
