@@ -8,6 +8,7 @@ _SCALING_FACTOR = 1.4826
 _SAMPLING_HZ = 3012
 _TRIM_RESOLUTION = 500
 _TRIM_MAD_THRESHOLD = 20
+_TRIM_FIXED_LENGTH = 6481
 
 class SignalProcessor():
     def __init__(self, min_input_s, max_input_s):
@@ -22,18 +23,6 @@ class SignalProcessor():
 
     def is_max_length(self, signal):
         return len(signal) >= self.get_max_length()
-
-    def preprocess(self, signal):
-        # If signal is shorter than min length then pad after normalising
-        if len(signal) < self.get_min_length():
-            signal = self.mad_normalise(signal)
-            pad_len = self.get_min_length() - len(signal)
-            signal = np.pad(signal, ((pad_len, 0)), constant_values=(0,))
-        # If signal is longer than max length then trim before normalising
-        elif self.is_max_length(signal):
-            signal = signal[:self.get_max_length()]
-            signal = self.mad_normalise(signal)
-        return signal
 
     def get_polyA_end(self, signal):
         # plt.figure(figsize=(12,6))
@@ -61,7 +50,7 @@ class SignalProcessor():
             # End condition
             if polyA_start and not polyA_end and mad > 20:
                 polyA_end = i
-            
+
             # plt.axvline(i+_TRIM_RESOLUTION, color='red')
             # plt.text(i+_TRIM_RESOLUTION, 500, int(mad))
             # plt.text(i+_TRIM_RESOLUTION, 900, int(mean_change))
@@ -73,6 +62,9 @@ class SignalProcessor():
         # plt.clf()
 
         return polyA_end
+
+    def should_trim_fixed_length(self, signal):
+        return len(signal) > _TRIM_FIXED_LENGTH + self.get_max_length()
 
     def trim_polyA(self, signal, read_id, cache):
         """
@@ -90,6 +82,9 @@ class SignalProcessor():
             signal = signal[polyA_end+1:]
             trimmed = True
         return signal, trimmed
+
+    def trim_polyA_fixed_length(self, signal):
+        return signal[_TRIM_FIXED_LENGTH:]
 
     def mad_normalise(self, signal):
         if signal.shape[0] == 0:

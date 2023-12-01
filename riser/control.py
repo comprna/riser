@@ -31,11 +31,36 @@ class SequencerControl():
                 for channel, read in self.client.get_read_batch():
                     # Preprocess the signal
                     signal = self.client.get_raw_signal(read)
+
+                    # Attempt to trim the polyA tail
                     signal, is_polyA_trimmed = self.proc.trim_polyA(signal, read.id, polyA_cache)
-                    if is_polyA_trimmed or self.proc.is_max_length(signal):
-                        signal = self.proc.preprocess(signal)
+
+                    # If we haven't found the polyA yet
+                    if not is_polyA_trimmed:
+
+                        # Use a fixed trim length if enough time has passed
+                        if self.proc.should_trim_fixed_length(signal):
+                            signal = self.proc.trim_polyA_fixed_length(signal)
+
+                            # Show max input length to network
+                            signal = signal[:self.proc.get_max_length()]
+
+                        # Otherwise, try again the next time we see this read
+                        else:
+                            continue
+
+                    # If we have trimmed the polyA
                     else:
-                        continue
+                        # Make sure signal is long enough to be assessed
+                        if len(signal) < self.proc.get_min_length():
+                            continue
+
+                        # Trim signal if it is too long
+                        if len(signal) > self.proc.get_max_length():
+                            signal = signal[:self.proc.get_max_length()]
+
+                    # Normalise
+                    signal = self.proc.mad_normalise(signal)
 
                     # Classify the RNA class to which the read belongs
                     p_on_targets = []
