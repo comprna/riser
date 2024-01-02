@@ -1,12 +1,24 @@
 # RISER
 
-**R**eal-Time **I**n-**S**ilico **E**nrichment of **R**NA species during nanopore sequencing.
+Biochemical-free enrichment or depletion of RNA classes in real-time during direct RNA sequencing with RISER
+
+> Preprint: <https://www.biorxiv.org/content/10.1101/2022.11.29.518281v1>
 
 # Overview
 
-RISER allows the real-time in-silico enrichment of RNA species during nanopore direct RNA sequencing.  RISER accurately classifies raw nanopore signals into protein-coding and non-coding RNA, without the need for basecalling or a reference.  Depending on the user's chosen target for enrichment or depletion, RISER then translates this prediction into the sequencing hardware via Oxford Nanopore's [ReadUntil API](https://github.com/nanoporetech/read_until_api) to eject unwanted RNAs from the pore and make room for more sequencing of the target.
+RISER allows nanopore direct RNA sequencing runs to be targeted for the enrichment or depletion of RNA classes. RISER accurately classifies RNA molecules live during sequencing, directly from the first 2-4s of raw nanopore signals with a convolutional neural network, without the need for basecalling or a reference. Depending on the user's chosen target for enrichment or depletion, RISER then either allows the molecule to complete sequencing or sends a reject command to the sequencing platform via Oxford Nanopore Technologies' [ReadUntil API](https://github.com/nanoporetech/read_until_api) to eject unwanted RNAs from the pore and conserve sequencing capacity for the RNA molecules of interest.
 
+Example shown: RISER enriching non-coding RNAs (such as lncRNAs) by the selective rejection of protein-coding RNAs.
 ![RISER architecture](architecture.png?raw=true)
+
+# RNA classes supported
+
+RISER provides models to target the following RNA classes, which are typically highly abundant in various cell lines:
+* Messenger RNA (mRNA)
+* Mitochondrial RNA (mtRNA)
+* Globin mRNA (globin)
+
+Users can also target their own RNA classes, by retraining the RISER model (instructions below).
 
 
 **Important: Make sure you perform the steps in Testing first to make sure everything is working properly before applying RISER to a live sequencing run.**
@@ -18,7 +30,7 @@ RISER allows the real-time in-silico enrichment of RNA species during nanopore d
 
 * **Operating System:** Linux
 
-  Tested on Ubuntu v18.04 (other versions and distros need to be tested before use)
+  Tested on Ubuntu v20.04 (other versions and distros need to be tested before use)
 * **MinKNOW Core:** >= 4.0
 
   To determine MinKNOW core version on Ubuntu:
