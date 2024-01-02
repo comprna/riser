@@ -116,7 +116,7 @@ optional arguments:
   --threshold      Probability threshold for classifer [0,1]. (default: 0.9)
 ```
 
-**Example **
+**Example**
 
 To deplete mRNA in a 48h sequencing run:
 ```
@@ -150,12 +150,12 @@ Batch of 107 reads received: 32 long enough to assess, 24 of which were rejected
 
 ### Logs
 
-A log file named *riser_\[datetime\].log* will be generated in `<path/to/riser>` each time you run RISER.  It will contain a more detailed version of the console output.
+A log file named `riser_[datetime].log` will be generated in `/path/to/riser` each time you run RISER.  It will contain a more detailed version of the console output.
 
 
 ### CSV file with read decisions
 
-A CSV file named *riser_\[datetime\].csv* will be generated in `<path/to/riser>` each time you run RISER.  It will contain details of the accept/reject decision made for each read.
+A CSV file named `riser_[datetime].csv` will be generated in `/path/to/riser` each time you run RISER.  It will contain details of the accept/reject decision made for each read.
 
 E.g., (Not all columns shown for brevity):
 
@@ -177,56 +177,58 @@ The training code is provided to retrain RISER to target other RNA classes.
 1. Consider whether the RNA class you would like to enrich/deplete is appropriate for RISER. For RISER to work, the RNA class needs to have unique features (e.g. sequence or biochemical modifications) in its 3' end to enable the distinction from other RNAs using the raw nanopore signal (e.g. mRNAs share common motif configurations in their 3' UTR).
 2. Prepare two sets of fast5 files: 1 set containing signals that can be confidently assigned to the target class, and the other set containing signals from other RNAs (refer to preprint linked above for how this was done for mRNA, mtRNA and globin models). Randomly split the signals in each set into train/test/val (e.g., with 80:10:10 split) fast5 files.
 3. Preprocess all fast5 files using BoostNano to remove the sequencing adapter and poly(A) tail: <https://github.com/haotianteng/BoostNano>.
+   ```
    python3 boostnano_eval.py -i $FAST5_DIR -o $OUT_DIR -m $MODEL_DIR --replace
-5. Run riser/retrain/preprocess.py to convert the fast5 signals into numpy files. Note: The script should be run 3 times with input lengths of 2s, 3s and 4s to ensure the training data reflects the varying signal lengths streamed from the nanopore.
    ```
-source /path/to/riser/.venv/bin/activate
-SCRIPT='/path/to/riser/riser/retrain/preprocess.py'
-FAST5_DIR='/path/to/boostnano/processed/fast5s'
-
-SECS=4
-python3 $SCRIPT $SECS "$FAST5_DIR"
-
-SECS=3
-python3 $SCRIPT $SECS "$FAST5_DIR"
-
-SECS=2
-python3 $SCRIPT $SECS "$FAST5_DIR"
+5. Run `riser/retrain/preprocess.py` to convert the fast5 signals into numpy files. Note: The script should be run 3 times with input lengths of 2s, 3s and 4s to ensure the training data reflects the varying signal lengths streamed from the nanopore.
    ```
-6. Run riser/retrain/write_tensors.py to convert the numpy files into PyTorch tensors for training, for each train/test/val dataset for each signal length.
+   source /path/to/riser/.venv/bin/activate
+   SCRIPT='/path/to/riser/riser/retrain/preprocess.py'
+   FAST5_DIR='/path/to/boostnano/processed/fast5s'
+  
+   SECS=4
+   python3 $SCRIPT $SECS "$FAST5_DIR"
+  
+   SECS=3
+   python3 $SCRIPT $SECS "$FAST5_DIR"
+  
+   SECS=2
+   python3 $SCRIPT $SECS "$FAST5_DIR"
    ```
-source /path/to/riser/.venv/bin/activate
-SCRIPT='/path/to/riser/riser/retrain/write_tensors.py'
-
-NPY_DIR='/path/to/numpy/files'
-python3 $SCRIPT $NPY_DIR
+6. Run `riser/retrain/write_tensors.py` to convert the numpy files into PyTorch tensors for training, for each train/test/val dataset for each signal length.
+   ```
+   source /path/to/riser/.venv/bin/activate
+   SCRIPT='/path/to/riser/riser/retrain/write_tensors.py'
+  
+   NPY_DIR='/path/to/numpy/files'
+   python3 $SCRIPT $NPY_DIR
    ```
 
 ## Train and test
-1. Run riser/train.py to train the RISER model on the new RNA class. The yaml file allows you to configure the training parameters (e.g. number of epochs, learning rate). You can copy and modify any of the RISER yaml files (found at /path/to/riser/riser/model/*_config_*.yaml) - but do not modify any of the cnn parameters, as this will break the model.
+1. Run `riser/train.py` to train the RISER model on the new RNA class. The yaml file allows you to configure the training parameters (e.g. number of epochs, learning rate). You can copy and modify any of the RISER yaml files (found at `/path/to/riser/riser/model/*_config_*.yaml`) - but do not modify any of the cnn parameters, as this will break the model.
    ```
-source /path/to/riser/.venv/bin/activate
-SCRIPT='/path/to/riser/riser/train.py'
-EXP_DIR='/path/to/your/experiment/directory'
-DATA_DIR='/path/to/tensors'
-CHECKPT=None
-CONFIG="/path/to/config.yaml"
-EPOCH=0
-
-python3 $SCRIPT $EXP_DIR $DATA_DIR $CHECKPT $CONFIG $EPOCH
+   source /path/to/riser/.venv/bin/activate
+   SCRIPT='/path/to/riser/riser/train.py'
+   EXP_DIR='/path/to/your/experiment/directory'
+   DATA_DIR='/path/to/tensors'
+   CHECKPT=None
+   CONFIG="/path/to/config.yaml"
+   EPOCH=0
+  
+   python3 $SCRIPT $EXP_DIR $DATA_DIR $CHECKPT $CONFIG $EPOCH
    ```
-2. Run riser/test.py to evaluate the performance of the newly trained model.
+2. Run `riser/test.py` to evaluate the performance of the newly trained model.
    ```
-source /path/to/riser/.venv/bin/activate
-SCRIPT='/path/to/riser/riser/test.py'
-MODEL_FILE='/path/to/best_model.pth' # Model trained in previous step
-CONFIG_FILE='/path/to/config.yaml' # Config file used for training in previous step
-F5_DIR='/path/to/boostnano/processed/test/fast5s'
-python3 $SCRIPT $F5_DIR $MODEL_FILE $CONFIG_FILE Y -1
+   source /path/to/riser/.venv/bin/activate
+   SCRIPT='/path/to/riser/riser/test.py'
+   MODEL_FILE='/path/to/best_model.pth' # Model trained in previous step
+   CONFIG_FILE='/path/to/config.yaml' # Config file used for training in previous step
+   F5_DIR='/path/to/boostnano/processed/test/fast5s'
+   python3 $SCRIPT $F5_DIR $MODEL_FILE $CONFIG_FILE Y -1
    ```
 3. Process the .tsv results file from step (2) to compute accuracy.
 
 ## Add new model to RISER
-1. Add model.pth file to /path/to/riser/riser/model, with correspondingly named config.yaml file (see provided models and config files for naming convention).
-2. Update the arg parser in /path/to/riser/riser/riser.py (main function) to include your new RNA class in the "--target" choices list.
+1. Add model.pth file to `/path/to/riser/riser/model`, with correspondingly named config.yaml file (see provided models and config files for naming convention).
+2. Update the arg parser in `/path/to/riser/riser/riser.py` (main function) to include your new RNA class in the `--target` choices list.
 3. You're ready to use RISER with the new model.
