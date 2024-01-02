@@ -133,14 +133,14 @@ While running RISER, you will receive real-time progress updates:
 
 ```
 Using cuda device
-Usage: riser.py -t mRNA -m deplete -d 48
+Usage: riser.py --target mRNA mtRNA --mode deplete --duration 24
 All settings used (including those set by default):
---target        : Species.NONCODING
---duration_h    : 48
---config_file   : models/cnn_best_model.yaml
---model_file    : models/cnn_best_model.pth
---polyA_length  : 6481
---secs          : 4
+--target        : ['mRNA', 'mtRNA']
+--mode          : deplete
+--duration_h    : 24
+--min           : 2
+--max           : 4
+--threshold     : 0.9
 Client is running.
 Batch of 110 reads received: 59 long enough to assess, 46 of which were rejected (took 0.3148s)
 Batch of  93 reads received: 29 long enough to assess, 21 of which were rejected (took 0.1376s)
@@ -150,20 +150,20 @@ Batch of 107 reads received: 32 long enough to assess, 24 of which were rejected
 
 ### Logs
 
-A log file named *riser_\[datetime\].log* will be generated in `<path/to/riser>` each time you run RISER.  It will contain a more detailed version of the information sent to your console window.
+A log file named *riser_\[datetime\].log* will be generated in `<path/to/riser>` each time you run RISER.  It will contain a more detailed version of the console output.
 
 
 ### CSV file with read decisions
 
 A CSV file named *riser_\[datetime\].csv* will be generated in `<path/to/riser>` each time you run RISER.  It will contain details of the accept/reject decision made for each read.
 
-E.g.:
+E.g., (Not all columns shown for brevity):
 
-| read_id                              | channel | probability_noncoding | probability_coding | prediction | target | decision |
-|--------------------------------------|---------|-----------------------|--------------------|------------|--------|----------|
-| 075391a9-2816-45b0-aebb-12b1f398fcd3 | 204     | 0.83                  | 0.17               | NONCODING  | CODING | REJECT   |
-| afcbd456-1843-4322-85d2-7f001ef0dc01 | 176     | 0.24                  | 0.76               | CODING     | CODING | ACCEPT   |
-| d8de6be4-4a01-42dc-b8ab-77abc8f818e1 | 373     | 0.36                  | 0.64               | CODING     | CODING | ACCEPT   |
-| 02cdeae6-3d5d-4615-bc61-7d5dd9a7217c | 91      | 0.79                  | 0.21               | NONCODING  | CODING | REJECT   |
-| 4460c783-4663-4666-be4d-c52590fdff31 | 293     | 0.26                  | 0.74               | CODING     | CODING | ACCEPT   |
+| read_id                              | channel | prob_targets          | threshold          | mode       | decision    |
+|--------------------------------------|---------|-----------------------|--------------------|------------|-------------|
+| 075391a9-2816-45b0-aebb-12b1f398fcd3 | 204     | 0.94                  | 0.9                | deplete    | reject      |
+| afcbd456-1843-4322-85d2-7f001ef0dc01 | 176     | 0.83                  | 0.9                | deplete    | no_decision |
+| d8de6be4-4a01-42dc-b8ab-77abc8f818e1 | 373     | 0.05                  | 0.9                | deplete    | accept      |
+| 02cdeae6-3d5d-4615-bc61-7d5dd9a7217c | 91      | 0.92                  | 0.9                | deplete    | reject      |
+| 4460c783-4663-4666-be4d-c52590fdff31 | 293     | 0.99                  | 0.9                | deplete    | reject      |
 ...
