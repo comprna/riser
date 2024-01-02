@@ -89,7 +89,7 @@ Now you can check that RISER is able to selectively sequence the target RNA clas
 5. Since a playback run simply replays the signals recorded in the bulk fast5 file, it cannot mimic reads being physically ejected from the pore. Instead, the signal is simply clipped upon receiving a reject command. Therefore, the effect of RISER can be tested by assessing the average length of reads that are mRNA and non-mRNA. The expectation is that the average length of non-mRNA reads are longer than mRNA reads, which are being rejected.
 
 
-# Use RISER during live sequencing
+# Use during live sequencing
 
 1. Start a sequencing run as usual, using flow cell FLO-MIN106.
 2. Once the initial MUX scan has completed, in a terminal window run RISER (command structure detailed below).
@@ -167,3 +167,32 @@ E.g., (Not all columns shown for brevity):
 | 02cdeae6-3d5d-4615-bc61-7d5dd9a7217c | 91      | 0.92                  | 0.9                | deplete    | reject      |
 | 4460c783-4663-4666-be4d-c52590fdff31 | 293     | 0.99                  | 0.9                | deplete    | reject      |
 ...
+
+# Retrain for other RNA classes
+
+The training code is provided to retrain RISER to target other RNA classes.
+
+## Preparation for retraining
+
+1. Consider whether the RNA class you would like to enrich/deplete is appropriate for RISER. For RISER to work, the RNA class needs to have unique features (e.g. sequence or biochemical modifications) in its 3' end to enable the distinction from other RNAs using the raw nanopore signal (e.g. mRNAs share common motif configurations in their 3' UTR).
+2. Prepare two sets of fast5 files: 1 set containing signals that can be confidently assigned to the target class, and the other set containing signals from other RNAs (refer to preprint linked above for how this was done for mRNA, mtRNA and globin models). Randomly split the signals in each set into train/test/val (e.g., with 80:10:10 split) fast5 files.
+3. Preprocess all fast5 files using BoostNano to remove the sequencing adapter and poly(A) tail: <https://github.com/haotianteng/BoostNano>.
+4. Run riser/retrain/preprocess.py to convert the fast5 signals into numpy files. Note: The script should be run 3 times with input lengths of 2s, 3s and 4s to ensure the training data reflects the varying signal lengths streamed from the nanopore.
+   ```
+   
+   ```
+5. Run riser/retrain/write_tensors.py to convert the numpy files into PyTorch tensors for training, for each train/test/val dataset for each signal length.
+   ```
+   
+   ```
+
+## Train and test
+1. Run riser/train.py to train the RISER model on the new RNA class. YAML file...
+   ```
+   ```
+2. Run riser/test.py to evaluate the performance of the newly trained model.
+   ```
+   ```
+
+## Add new model to RISER
+1. 
