@@ -21,22 +21,17 @@ RISER provides models to target the following RNA classes, which are typically h
 Users can also target their own RNA classes, by retraining the RISER model (instructions below).
 
 
-**Important: Make sure you perform the steps in Testing first to make sure everything is working properly before applying RISER to a live sequencing run.**
-
-
 # Installation
 
 ## Environment
+RISER has so far been tested with the following sequencing environment, usage in other configurations may be possible but should be tested first.
 
-* **Operating System:** Linux
-
-  Tested on Ubuntu v20.04 (other versions and distros need to be tested before use)
-* **MinKNOW Core:** >= 4.0
-
-  To determine MinKNOW core version on Ubuntu:
+* **Operating system:** Linux (ubuntu v18.04 and v20.04)
+* **MinKNOW core:** >= 5.7.2 (the MinKNOW Core version must be compatible with your MinKNOW GUI version). To determine MinKNOW core version on Ubuntu:
   ```
   dpkg -s minion-nc
   ```
+* **Sequencing platform:** MinION Mk1B (R9.4.1 flow cell)
 
 
 ## Dependencies
@@ -62,110 +57,72 @@ Users can also target their own RNA classes, by retraining the RISER model (inst
    ```
 
 
-# Testing
+# Test before live sequencing
 
-**Acknowledgement:** These testing instructions have been adapted from the "Testing" section of ReadFish (https://github.com/LooseLab/readfish)
+**Important: Make sure you do this test first to make sure everything is working properly before applying RISER to a live sequencing run.**
 
-## Configure MinKNOW bulk fast5 file playback
+## Setup MinKNOW playback
 
-To test RISER without wasting resources on a live sequencing run, the "playback" mechanism in MinKNOW can be utilised.  This allows a bulk fast5 file recorded from a previous sequencing run to be replayed so that data is streamed as though a real sequencing device were connected.
-
-1. Obtain a bulk fast5 file (generated with flowcell FLO-MIN106) for playback in MinKNOW.
-
+Without wasting resources on a live sequencing run, RISER can be tested using MinKNOW's "playback" feature, which replays a bulk fast5 file recorded from a previous sequencing run to mimic data being streamed from a sequencer.
+1. Obtain a bulk fast5 file (generated with flow cell FLO-MIN106) for playback in MinKNOW.
 2. Open the sequencing TOML file *sequencing_MIN106_RNA.toml*, found in `/opt/ont/minknow/conf/package/sequencing`.
-
 3. In the **[custom_settings]** section, add a field:
    ```
    simulation = "/full/path/to/bulk.fast5"
    ```
+4. Save the toml file under a new name, e.g. *sequencing_MIN106_RNA_mod.toml*.
+5. Apply the above changes to enable playback by selecting "Reload Scripts" on the Start Sequencing page (top right-hand corner menu).
+6. Insert a configuration test flowcell into the sequencer.
+7. Start a sequencing run as usual, using flowcell FLO-MIN106. If you have followed Step 5 correctly, then after selecting a kit you will be presented with a choice "Select the script you would like to run." Make sure you select your **_mod** file to enable playback.
+8. Once the run starts, a MUX scan will take about 5 minutes.  Once this is complete, you can run RISER (next section).
 
-4. Save the toml file under a new name, e.g. *sequencing_MIN106_RNA_mod.toml*.  **Important: If you do not follow this step, remember to revert the changes made in steps 3 and 4 after you have finished using RISER to allow regular sequencing runs again!**
+## Test RISER
 
-5. To apply the above changes and enable playback you will need to select "Reload Scripts" found on the Start Sequencing page (top right-hand corner menu).
-
-6. Insert a configuration test flowcell into the sequencing device.
-
-7. Start a sequencing run as usual, using flowcell FLO-MIN106.  If you have followed Step 5, then after selecting a kit you will be presented with a choice "Select the script you would like to run."  Make sure you select your **_mod** file to enable playback.
-
-8. Once the run starts, a MUX scan will take about 5 minutes.  Once this is complete, observe the read length histogram.
-
-
-## Test reject command
-
-To check that RISER is able to communicate with MinKNOW and enact sequencing decisions, a simple test is to reject all reads.
-
-1. Continue this test immediately after Step 8 of "Configure MinKNOW bulk fast5 file playback" (do not stop the sequencing run).
-
-2. Run the reject-all script.
-
+Now you can check that RISER is able to selectively sequence the target RNA class.
+1. Make sure the steps in "Setup MinKNOW playback" are done first.
+2. Run RISER. The below will selectively reject molecules that RISER predicts to be mRNA. The script will run for 1 hour (this can be modified as desired with the `--duration` parameter).
    ```
    cd <path/to/riser/riser>
-   python3 reject_all.py
+   python3 riser.py --target mRNA --mode deplete --duration 1
    ```
+4. You should see a message in MinKNOW's System Messages stating that RISER is now controlling the run.
+5. Since a playback run simply replays the signals recorded in the bulk fast5 file, it cannot mimic reads being physically ejected from the pore. Instead, the signal is simply clipped upon receiving a reject command. Therefore, the effect of RISER can be tested by assessing the average length of reads that are mRNA and non-mRNA. The expectation is that the average length of non-mRNA reads are longer than mRNA reads, which are being rejected.
 
-3. Wait for a few minutes and then observe the read length histogram.  You should see a growing peak at ~200-300 b.  If you check "Split by read end reason" you should see that the peak corresponds to "Adaptive sampling voltage reversal."
 
+# Use RISER during live sequencing
 
-## Test RNA species enrichment
-
-Now you can check that RISER is able to selectively sequence a desired RNA species.
-
-1. Start a new sequencing run (remember to select the **_mod** script to enable playback) and wait for the initial MUX scan to complete.
-
-2. Run RISER.  The below will selectively sequence reads that RISER predicts to be protein-coding and will reject reads predicted to be non-coding.  The script will run for 1 hour (this can be modified as desired with the `--duration` parameter).
-
+1. Start a sequencing run as usual, using flow cell FLO-MIN106.
+2. Once the initial MUX scan has completed, in a terminal window run RISER (command structure detailed below).
    ```
-   cd <path/to/riser/riser>
-   python3 riser.py --target noncoding --duration 1
+   cd <path/to/riser>
+   source .venv/bin/activate
+   python3 riser.py --target {target} --mode {mode} --duration {duration}
    ```
-
-3. You should see a message in the System Messages page on MinKNOW stating that RISER is now controlling the run.
-
-4. Since a playback run simply replays the signals recorded in the bulk fast5 file, it is not able to mimic reads being physically rejected from the nanopore.  Instead, the signal recorded for a read is simply clipped upon receiving a reject command.  Therefore, to test whether RISER is having an effect you will need to assess the average length of reads that are protein-coding and non-coding.  The expectation is that the average length of reads in the target species will be longer than those that are off target. *A script to automate this test will be provided in a future release of RISER.*
-
-
-# Usage in real sequencing run
-
-## Configure MinKNOW
-
-1. **Important: If you followed the Testing steps above, make sure that the "simulation" field you added to the sequencing TOML file *sequencing_MIN106_RNA.toml*, found in `/opt/ont/minknow/conf/package/sequencing` is now removed!**  To apply the changes and enable RISER you will need to select "Reload Scripts" found on the Start Sequencing page (top right-hand corner menu).
-
-2. Start a sequencing run as usual, using flowcell FLO-MIN106.  If you have followed Step 5, then after selecting a kit you will be presented with a choice "Select the script you would like to run."  Make sure you select your **_mod** file to enable RISER.
-
-3. Once the initial MUX scan has completed, run RISER using the commands below.
-
 4. You should see a message in the System Messages page on MinKNOW stating that RISER is now controlling the run.
 
 ## Command structure
 
 ```
-usage: riser.py [-h] -t  -d  [-c] [-m] [-p] [-s]
+usage: riser.py [-h] -t -m -d [--min] [--max] [--threshold]
 
 optional arguments:
-  -h, --help        show this help message and exit
-  -t , --target     RNA species to enrich for. This must be either {coding,
-                    noncoding}. (required)
-  -d , --duration   Length of time (in hours) to run RISER for. This should be
-                    the same as the MinKNOW run length. (required)
-  -c , --config     Config file for model hyperparameters. (default:
-                    models/cnn_best_model.yaml)
-  -m , --model      File containing saved model weights. (default:
-                    models/cnn_best_model.pth)
-  -p , --polya      Number of values to remove from the start of the raw
-                    signal to exclude the polyA tail and sequencing adapter
-                    signal from analysis. (default: 6481)
-  -s , --secs       Number of seconds of transcript signal to use for
-                    decision. (default: 4)
+  -h, --help       Show this help message and exit.
+  -t, --target     RNA class to enrich for. This must be one or more of {mRNA,mtRNA,globin}. (required)
+  -m, --mode       Whether to enrich or deplete the target class. This must be one of {enrich,deplete}. (required)
+  -d, --duration   Length of time (in hours) to run RISER for. This should be
+                   the same as the MinKNOW run length. (required)
+  --min            Minimum number of seconds of transcript signal to use for RISER prediction. (default: 2)
+  --max            Maximum number of seconds of transcript signal to try to classify before skipping this read. (default: 4)
+  --threshold      Probability threshold for classifer [0,1]. (default: 0.9)
 ```
 
+**Example **
 
-## Example usage
-
-To enrich for non-coding RNA, RISER can simply be run with the following command (make sure to set the duration `-d` equal to your MinKNOW run length in hours).
-
+To deplete mRNA in a 48h sequencing run:
 ```
 cd <path/to/riser/riser>
-python3 riser.py -t noncoding -d 48
+source .venv/bin/activate
+python3 riser.py -t mRNA -m deplete -d 48
 ```
 
 ## Output
@@ -176,7 +133,7 @@ While running RISER, you will receive real-time progress updates:
 
 ```
 Using cuda device
-Usage: riser.py -t noncoding -d 48
+Usage: riser.py -t mRNA -m deplete -d 48
 All settings used (including those set by default):
 --target        : Species.NONCODING
 --duration_h    : 48
