@@ -236,7 +236,7 @@ The training code is provided to retrain RISER to target other RNA classes.
 # Extend to new sequencing platforms
 
 Since different sequencing platforms produce signals with different characteristics (e.g. sampling rate, translocation speed, etc.) to adapt RISER to new sequencing platforms, the following needs to be performed:
-(1) Train and add a new model to RISER, trained using signals from the new hardware (as per model retraining instructions above). It may also be worth exploring other variants of the CNN hyperparameter configuration that may be better suited to the new signal type.
-(2) Update the poly(A) detection algorithm (specifically, the thresholds for detecting the low-variance poly(A) signal using mean and median absolute deviation will need to be checked/updated in `/path/to/riser/preprocess.py`).
+1. Train and add a new model to RISER, trained using signals from the new hardware (as per model retraining instructions above). It may also be worth exploring other variants of the CNN hyperparameter configuration that may be better suited to the new signal type.
+2. Update the poly(A) detection algorithm (specifically, the thresholds for detecting the low-variance poly(A) signal using mean and median absolute deviation will need to be checked/updated in `/path/to/riser/preprocess.py`).
 
 The RISER software has been designed with ease of maintainability and adaptability in mind, so changes in the other classes should not be required.
