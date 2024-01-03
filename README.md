@@ -233,7 +233,7 @@ The training code is provided to retrain RISER to target other RNA classes.
 2. Update the arg parser in `/path/to/riser/riser/riser.py` (main function) to include your new RNA class in the `--target` choices list.
 3. You're ready to use RISER with the new model.
 
-# Adapting RISER to new sequencing platforms
+# Extend to new sequencing platforms
 
 Since different sequencing platforms produce signals with different characteristics (e.g. sampling rate, translocation speed, etc.) to adapt RISER to new sequencing platforms, the following needs to be performed:
 (1) Train and add a new model to RISER, trained using signals from the new hardware (as per model retraining instructions above). It may also be worth exploring other variants of the CNN hyperparameter configuration that may be better suited to the new signal type.
