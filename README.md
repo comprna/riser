@@ -8,7 +8,7 @@ Biochemical-free enrichment or depletion of RNA classes in real-time during dire
 
 RISER allows nanopore direct RNA sequencing runs to be targeted for the enrichment or depletion of RNA classes. RISER accurately classifies RNA molecules live during sequencing, directly from the first 2-4s of raw nanopore signals with a convolutional neural network, without the need for basecalling or a reference. Depending on the user's chosen target for enrichment or depletion, RISER then either allows the molecule to complete sequencing or sends a reject command to the sequencing platform via Oxford Nanopore Technologies' [ReadUntil API](https://github.com/nanoporetech/read_until_api) to eject unwanted RNAs from the pore and conserve sequencing capacity for the RNA molecules of interest.
 
-Example shown: RISER enriching non-coding RNAs (such as lncRNAs) by the selective rejection of protein-coding RNAs.
+Example shown: RISER enriching the target class by rejecting off-target molecules.
 ![RISER architecture](arch.png?raw=true)
 
 # RNA classes supported
