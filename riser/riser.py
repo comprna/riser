@@ -85,7 +85,7 @@ def main():
                         required=True)
     parser.add_argument('-d', '--duration',
                         dest='duration_h',
-                        type=int,
+                        type=float,
                         help='Length of time (in hours) to run RISER for. '
                              'This should be the same as the MinKNOW run '
                              'length. (required)',
