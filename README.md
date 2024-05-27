@@ -2,7 +2,8 @@
 
 Biochemical-free enrichment or depletion of RNA classes in real-time during direct RNA sequencing with RISER
 
-> Preprint: <https://www.biorxiv.org/content/10.1101/2022.11.29.518281v1>
+If you use this software, please cite:
+> Sneddon, A., Ravindran, A., Shanmuganandam, S. et al. Biochemical-free enrichment or depletion of RNA classes in real-time during direct RNA sequencing with RISER. Nat Commun 15, 4422 (2024). https://doi.org/10.1038/s41467-024-48673-8
 
 # Overview
 
