@@ -7,10 +7,29 @@ If you use this software, please cite:
 
 # Overview
 
-RISER allows nanopore direct RNA sequencing runs to be targeted for the enrichment or depletion of RNA classes. RISER accurately classifies RNA molecules live during sequencing, directly from the first 2-4s of raw nanopore signals with a convolutional neural network, without the need for basecalling or a reference. Depending on the user's chosen target for enrichment or depletion, RISER then either allows the molecule to complete sequencing or sends a reject command to the sequencing platform via Oxford Nanopore Technologies' [ReadUntil API](https://github.com/nanoporetech/read_until_api) to eject unwanted RNAs from the pore and conserve sequencing capacity for the RNA molecules of interest.
+RISER allows the enrichment or depletion of RNA classes in real-time during nanopore direct RNA sequencing. RISER accurately classifies RNA molecules live during sequencing, directly from the first 2-4s of raw nanopore signals with a convolutional neural network, without the need for basecalling or a reference. Depending on the user's chosen target for enrichment or depletion, RISER then either allows the molecule to complete sequencing or sends a reject command to the sequencing platform via Oxford Nanopore Technologies' [ReadUntil API](https://github.com/nanoporetech/read_until_api) to eject unwanted RNAs from the pore and conserve sequencing capacity for the RNA molecules of interest.
 
-Example shown: RISER enriching the target class by rejecting off-target molecules.
+_Example shown:_ RISER enriching the target class by rejecting off-target molecules.
 ![RISER architecture](arch.png?raw=true)
+
+# Contents
+
+- [RNA classes supported](#rna-classes-supported)
+- [Installation](#installation)
+  - [Environment](#environment)
+  - [Dependencies](#dependencies)
+- [Test before live sequencing](#test-before-live-sequencing)
+  - [Setup MinKNOW playback](#setup-minknow-playback)
+  - [Test RISER with MinKNOW playback](#test-riser-with-minknow-playback)
+- [Use during live sequencing](#use-during-live-sequencing)
+  - [Command structure](#command-structure)
+  - [Output files](#output-files)
+- [Retrain for other RNA classes](#retrain-for-other-rna-classes)
+  - [Preparation for retraining](#preparation-for-retraining)
+  - [Retraining and testing](#retraining-and-testing)
+  - [Add new model to RISER](#add-new-model-to-riser)
+- [Extend RISER to new sequencing platforms](#extend-riser-to-new-sequencing-platforms)
+
 
 # RNA classes supported
 
@@ -20,6 +39,8 @@ RISER provides models to target the following RNA classes, which are typically h
 * Globin mRNA (globin)
 
 Users can also target their own RNA classes, by retraining the RISER model (instructions below).
+
+**Note:** RISER currently supports the RNA002 (R9.4.1 pore) sequencing kit by Oxford Nanopore Technologies, but is being actively updated for the new RNA004 sequencing kit.
 
 
 # Installation
@@ -77,7 +98,7 @@ Without wasting resources on a live sequencing run, RISER can be tested using Mi
 7. Start a sequencing run as usual, using flowcell FLO-MIN106. If you have followed Step 5 correctly, then after selecting a kit you will be presented with a choice "Select the script you would like to run." Make sure you select your **_mod** file to enable playback.
 8. Once the run starts, a MUX scan will take about 5 minutes.  Once this is complete, you can run RISER (next section).
 
-## Test RISER
+## Test RISER with MinKNOW playback
 
 Now you can check that RISER is able to selectively sequence the target RNA class.
 1. Make sure the steps in "Setup MinKNOW playback" are done first.
@@ -126,7 +147,7 @@ source .venv/bin/activate
 python3 riser.py -t mRNA -m deplete -d 48
 ```
 
-## Output
+## Output files
 
 ### Console output
 
@@ -205,7 +226,7 @@ The training code is provided to retrain RISER to target other RNA classes.
    python3 $SCRIPT $NPY_DIR
    ```
 
-## Train and test
+## Retraining and testing
 1. Run `riser/train.py` to train the RISER model on the new RNA class. The yaml file allows you to configure the training parameters (e.g. number of epochs, learning rate). You can copy and modify any of the RISER yaml files (found at `/path/to/riser/riser/model/*_config_*.yaml`) - but do not modify any of the cnn parameters, as this will break the model.
    ```
    source /path/to/riser/.venv/bin/activate
@@ -233,8 +254,8 @@ The training code is provided to retrain RISER to target other RNA classes.
 1. Add model.pth file to `/path/to/riser/riser/model`, with correspondingly named config.yaml file (see provided models and config files for naming convention).
 2. Update the arg parser in `/path/to/riser/riser/riser.py` (main function) to include your new RNA class in the `--target` choices list.
 3. You're ready to use RISER with the new model.
-
-# Extend to new sequencing platforms
+ 
+# Extend RISER to new sequencing platforms
 
 Since different sequencing platforms produce signals with different characteristics (e.g. sampling rate, translocation speed, etc.) to adapt RISER to new sequencing platforms, the following needs to be performed:
 1. Train and add a new model to RISER, trained using signals from the new hardware (as per model retraining instructions above). It may also be worth exploring other variants of the CNN hyperparameter configuration that may be better suited to the new signal type.
