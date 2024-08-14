@@ -1,3 +1,4 @@
+import math
 from pathlib import Path
 import sys
 
@@ -11,15 +12,22 @@ import yaml
 
 from nets.cnn import ConvNet
 
+
 OUTLIER_LIMIT = 3.5
 SCALING_FACTOR = 1.4826
-SAMPLING_HZ = 3012
-
+SAMPLING_HZ_RNA002 = 3012
+SAMPLING_HZ_RNA004 = 4000
+MIN_SIGNAL_LENGTH = 4096 # Min input length that CNN can handle
+MIN_SIGNAL_SEC_RNA002 = MIN_SIGNAL_LENGTH / SAMPLING_HZ_RNA002
+MIN_SIGNAL_SEC_RNA004 = MIN_SIGNAL_LENGTH / SAMPLING_HZ_RNA004
+MAX_SIGNAL_SEC_RNA002 = 4
+MAX_SIGNAL_SEC_RNA004 = 2.15 # 280nt @ 130bps (make decision after same # nt passed as 002)
+FIXED_TRIM_RNA002 = 6481
+FIXED_TRIM_RNA004 = 4634
 
 def get_config(filepath):
     with open(filepath) as config_file:
         return AttrDict(yaml.load(config_file, Loader=yaml.Loader))
-
 
 def classify(signal, device, model):
     with torch.no_grad():
@@ -116,15 +124,34 @@ def main():
     # Setup
     model_file = sys.argv[2]
     config_file = sys.argv[3]
+    sqk_kit = sys.argv[4]
+
+    # Where to write test output
+    out_dir = sys.argv[5]
+
+    # Set up sequencing kit parameters
+    if sqk_kit == "RNA002":
+        sampling_hz = SAMPLING_HZ_RNA002
+        min_sec = MIN_SIGNAL_SEC_RNA002
+        max_sec = MAX_SIGNAL_SEC_RNA002
+        fixed_trim = FIXED_TRIM_RNA002
+    elif sqk_kit == "RNA004":
+        sampling_hz = SAMPLING_HZ_RNA004
+        min_sec = MIN_SIGNAL_SEC_RNA004
+        max_sec = MAX_SIGNAL_SEC_RNA004
+        fixed_trim = FIXED_TRIM_RNA004
+    else:
+        print(f"Sequencing kit invalid")
+        exit()
 
     # Have the signals already been trimmed by BoostNano?
-    already_trimmed = sys.argv[4]
+    already_trimmed = sys.argv[6]
     if already_trimmed == "Y":
         already_trimmed = True
     elif already_trimmed == "N":
         already_trimmed = False
-        resolution = int(sys.argv[5])
-        mad_threshold = int(sys.argv[6])
+        resolution = int(sys.argv[7])
+        mad_threshold = int(sys.argv[8])
     else:
         print(f"already_trimmed value {already_trimmed} invalid!")
         exit()
@@ -146,8 +173,9 @@ def main():
     model.eval()
 
     # Iterate through files
-    for f5_file in Path(f5_dir).glob('*.fast5'):
+    for f5_file in Path(f5_dir).glob('**/*.fast5'):
         filename = f5_file.name.split("/")[-1]
+        out = []
 
         # Iterate through signals in file
         with get_fast5_file(f5_file, mode="r") as f5:
@@ -163,22 +191,24 @@ def main():
                     polyA_start, polyA_end = get_polyA_coords(signal_pA, resolution, mad_threshold)
 
                     # If polyA start or end is none, couldn't find polyA so
-                    # don't trim. Otherwise, trim.
+                    # use fixed trim length. Otherwise, trim with computed length.
                     if polyA_end:
                         signal_pA = signal_pA[polyA_end+1:]
+                    else:
+                        signal_pA = signal_pA[fixed_trim:]
 
                 # Predict for each incremental input signal length
                 preds = {}
-                for j in range(2,5): # 2,3,4
+                input_length = math.ceil(min_sec * sampling_hz)
+                max_input_length = math.floor(max_sec * sampling_hz)
+                while input_length <= max_input_length:
                     # If the signal isn't long enough
-                    cutoff = SAMPLING_HZ * j
-                    if j == 2 and len(signal_pA) < cutoff:
-                        # Pad if shorter than 2s
-                        pad_len = cutoff - len(signal_pA)
-                        signal_pA = np.pad(signal_pA, ((pad_len, 0)), constant_values=(0,))
+                    if len(signal_pA) < input_length:
+                        input_length += sampling_hz
+                        continue
 
                     # Trim to input length
-                    trimmed = signal_pA[:cutoff]
+                    trimmed = signal_pA[:input_length]
 
                     # Normalise signal
                     normalised = mad_normalise(trimmed)
@@ -188,10 +218,17 @@ def main():
                     prob_n = probs[0][0].item()
                     prob_p = probs[0][1].item()
 
-                    preds[j] = f"{prob_n}\t{prob_p}"
-                
-                print(f"PRED\t{model_id}\t{dataset}\t{filename}\t{read.read_id}\t{polyA_start}\t{polyA_end}\t{preds[2]}\t{preds[3]}\t{preds[4]}\n")
+                    preds[input_length] = f"{input_length}:{prob_n},{prob_p}"
 
+                    # Increment by 1s
+                    input_length += sampling_hz
+                
+                out.append(f"{model_id}\t{dataset}\t{filename}\t{read.read_id}\t{polyA_start}\t{polyA_end}\t{';'.join([preds[x] for x in preds.keys()])}\n")
+
+        # Write output for this fast5 file
+        with open(f"{out_dir}/{filename}_test_output.tsv", "w") as out_f:
+            for line in out:
+                out_f.write(line)
 
 if __name__ == "__main__":
     main()
