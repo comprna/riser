@@ -8,7 +8,7 @@ class Model():
         self.target = target
 
         # Logger
-        self.logger = logger # TODO: Make private?? How to deal with passing logger around??
+        self.logger = logger
 
         # Device to run model on
         self.device = self._get_device()

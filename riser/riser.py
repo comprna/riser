@@ -11,7 +11,7 @@ import yaml
 from client import Client
 from model import Model
 from control import SequencerControl
-from preprocess import SignalProcessor
+from preprocess import SignalProcessor, Kit
 
 
 DT_FORMAT = '%Y-%m-%dT%H:%M:%S'
@@ -22,11 +22,21 @@ def get_config(filepath):
         return AttrDict(yaml.load(config_file, Loader=yaml.Loader))
 
 
-def get_models(targets, logger):
+def get_pore_version(kit):
+    if kit == "RNA002":
+        return "R9.4.1"
+    elif kit == "RNA004":
+        return "RP4"
+    else:
+        raise Exception(f"Invalid kit {kit}")
+
+
+def get_models(targets, logger, kit):
+    pore = get_pore_version(kit)
     models = []
     for target in targets:
-        config = get_config(f"model/{target}_config_R9.4.1.yaml")
-        model_file = f"model/{target}_model_R9.4.1.pth"
+        config = get_config(f"model/{target}_config_{kit}_{pore}.yaml")
+        model_file = f"model/{target}_model_{kit}_{pore}.pth"
         models.append(Model(model_file, config, logger, target))
     return models
 
@@ -90,17 +100,11 @@ def main():
                              'This should be the same as the MinKNOW run '
                              'length. (required)',
                         required=True)
-    parser.add_argument('--min',
-                        default=2,
-                        type=int,
-                        help='Minimum number of seconds of transcript signal to'
-                             ' use for decision. (default: %(default)s)')
-    parser.add_argument('--max',
-                        default=4,
-                        type=int,
-                        help='Maximum number of seconds of transcript signal to '
-                            'try to classify before skipping this read. '
-                            '(default: %(default)s)')
+    parser.add_argument('-k', '--kit',
+                        choices=['RNA002', 'RNA004'],
+                        help='Sequencing kit. This must be one of {%(choices)}.'
+                             ' (required)',
+                        required=True)
     parser.add_argument('--threshold',
                         default=0.9,
                         type=probability,
@@ -113,16 +117,15 @@ def main():
     # args.target = ['mRNA', 'mtRNA']
     # args.mode = 'deplete'
     # args.duration_h = 0.05
-    # args.min = 2
-    # args.max = 4
-    # args.threshold = 0.9
+    # args.kit = "RNA004"
 
     # Set up
     out_file = f'riser_{get_datetime_now()}'
     logger = setup_logging(out_file)
     client = Client(logger)
-    models = get_models(args.target, logger)
-    processor = SignalProcessor(args.min, args.max)
+    models = get_models(args.target, logger, args.kit)
+    kit = Kit.create_from_version(args.kit)
+    processor = SignalProcessor(kit)
     control = SequencerControl(client, models, processor, logger, out_file)
 
     # Log CL args
