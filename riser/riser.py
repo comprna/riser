@@ -1,11 +1,12 @@
 import argparse
+from collections import UserDict
 from datetime import datetime
 import logging
 from signal import signal, SIGINT, SIGTERM
 import sys
 from types import SimpleNamespace
 
-from attrdict import AttrDict
+import attridict
 import yaml
 
 from client import Client
@@ -19,7 +20,7 @@ DT_FORMAT = '%Y-%m-%dT%H:%M:%S'
 
 def get_config(filepath):
     with open(filepath) as config_file:
-        return AttrDict(yaml.load(config_file, Loader=yaml.Loader))
+        return attridict(yaml.load(config_file, Loader=yaml.Loader))
 
 
 def get_pore_version(kit):
@@ -84,13 +85,13 @@ def main():
                                                   ' class.'))
     parser.add_argument('-t', '--target',
                         choices=['mRNA', 'globin', 'mtRNA'],
+                        help='RNA class(es) to target for enrichment or '
+                             'depletion. Select one or more. (required)',
                         nargs='+',
-                        help='RNA class to enrich for. This must be one or more'
-                             ' of {%(choices)s}. (required)',
                         required=True)
     parser.add_argument('-m', '--mode',
                         choices=['enrich', 'deplete'],
-                        help='Whether to enrich or deplete the target class.'
+                        help='Whether to enrich or deplete the target class(es).'
                              ' (required)',
                         required=True)
     parser.add_argument('-d', '--duration',
@@ -102,22 +103,22 @@ def main():
                         required=True)
     parser.add_argument('-k', '--kit',
                         choices=['RNA002', 'RNA004'],
-                        help='Sequencing kit. This must be one of {%(choices)}.'
-                             ' (required)',
+                        help='Sequencing kit. (required)',
                         required=True)
-    parser.add_argument('--threshold',
+    parser.add_argument('-p', '--prob_threshold',
                         default=0.9,
                         type=probability,
                         help='Probability threshold for classifier [0,1] '
                              '(default: %(default)s)')
-    args = parser.parse_args()
+    # args = parser.parse_args()
 
     # Local testing
-    # args = SimpleNamespace()
-    # args.target = ['mRNA', 'mtRNA']
-    # args.mode = 'deplete'
-    # args.duration_h = 0.05
-    # args.kit = "RNA004"
+    args = SimpleNamespace()
+    args.target = ['mRNA', 'mtRNA']
+    args.mode = 'deplete'
+    args.duration_h = 0.05
+    args.kit = "RNA002"
+    args.prob_threshold = 0.9
 
     # Set up
     out_file = f'riser_{get_datetime_now()}'
@@ -139,7 +140,7 @@ def main():
 
     # Run analysis
     control.start()
-    control.target(args.mode, args.duration_h, args.threshold)
+    control.target(args.mode, args.duration_h, args.prob_threshold)
     control.finish()
 
 

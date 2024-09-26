@@ -18,11 +18,11 @@ class Kit():
         self.transloc_rate = transloc_rate
 
     @classmethod
-    def create_from_version(version):
+    def create_from_version(cls, version):
         if version == "RNA002":
-            return Kit(3012, 70)
+            return cls(3012, 70)
         elif version == "RNA004":
-            return Kit(4000, 130)
+            return cls(4000, 130)
         else:
             raise Exception(f"Invalid kit version {version}")
 
