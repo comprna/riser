@@ -83,11 +83,11 @@ class SequencerControl():
 
                     # Process the read decision
                     if decision == "accept":
-                        reads_to_accept.append((channel, read.number))
+                        reads_to_accept.append((channel, self._get_read_id(read)))
                     elif decision == "reject":
-                        reads_to_reject.append((channel, read.number))
+                        reads_to_reject.append((channel, self._get_read_id(read)))
                     elif decision == "no_decision":
-                        reads_unclassified.append((channel, read.number))
+                        reads_unclassified.append((channel, self._get_read_id(read)))
                     self._write(out_file, batch_start, channel, read.id,
                                 len(signal), self.models, p_on_targets,
                                 threshold, mode, decision)
@@ -133,6 +133,14 @@ class SequencerControl():
 
     def _hours_to_seconds(self, hours):
         return hours * 60 * 60
+
+    def _get_read_id(self, read):
+        # Support for minknow-api <= v5.*
+        if hasattr(read, "number"):
+            return read.number
+        # Support for minknow-api >= v6.*
+        else:
+            return read.id
 
     def _write_header(self, csv_file):
         csv_file.write('batch_start,read_id,channel,sig_length,models,prob_targets,threshold,mode,decision\n')

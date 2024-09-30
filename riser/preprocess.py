@@ -34,7 +34,7 @@ class SignalProcessor():
         return _MIN_INPUT_SIGNALS
 
     def get_max_length(self):
-        return _MAX_INPUT_NT / self.kit.transloc_rate * self.kit.sampling_hz
+        return int(_MAX_INPUT_NT / self.kit.transloc_rate * self.kit.sampling_hz)
 
     def is_max_length(self, signal):
         return len(signal) >= self.get_max_length()
@@ -79,7 +79,7 @@ class SignalProcessor():
         return polyA_end
 
     def get_fixed_trim_length(self):
-        return _TRIM_FIXED_LENGTH_NT / self.kit.transloc_rate * self.kit.sampling_hz
+        return int(_TRIM_FIXED_LENGTH_NT / self.kit.transloc_rate * self.kit.sampling_hz)
 
     def should_trim_fixed_length(self, signal):
         return len(signal) > self.get_fixed_trim_length() + self.get_max_length()

@@ -3,6 +3,13 @@ from timeit import default_timer as timer
 
 from read_until import ReadUntilClient
 
+def get_read_id(read):
+    # Support for minknow-api <= v5.*
+    if hasattr(read, "number"):
+        return read.number
+    # Support for minknow-api >= v6.*
+    else:
+        return read.id
 
 def reject_all(client, duration=0.1, throttle=0.4, batch_size=512):
     # Reject reads as long as client is running
@@ -19,8 +26,8 @@ def reject_all(client, duration=0.1, throttle=0.4, batch_size=512):
             client.get_read_chunks(batch_size=batch_size, last=True),
             start=1):
 
-            unblock_batch_reads.append((channel, read.number))
-            stop_receiving_reads.append((channel, read.number))
+            unblock_batch_reads.append((channel, get_read_id(read)))
+            stop_receiving_reads.append((channel, get_read_id(read)))
 
         # Reject all reads
         if len(unblock_batch_reads) > 0:

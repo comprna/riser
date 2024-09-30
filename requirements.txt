@@ -1,11 +1,11 @@
-attrdict
+attridict
 matplotlib
-minknow-api==4.5.0
+minknow-api
 numpy
 ont-fast5-api
 pytorch-lightning
 pyyaml
-read-until==3.0.0
+git+https://github.com/nanoporetech/read_until_api@dev
 scikit-learn
 seaborn
 tensorboard
