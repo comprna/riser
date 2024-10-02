@@ -110,15 +110,15 @@ def main():
                         type=probability,
                         help='Probability threshold for classifier [0,1] '
                              '(default: %(default)s)')
-    # args = parser.parse_args()
+    args = parser.parse_args()
 
     # Local testing
-    args = SimpleNamespace()
-    args.target = ['mRNA', 'mtRNA']
-    args.mode = 'deplete'
-    args.duration_h = 0.05
-    args.kit = "RNA002"
-    args.prob_threshold = 0.9
+    # args = SimpleNamespace()
+    # args.target = ['mRNA', 'mtRNA']
+    # args.mode = 'deplete'
+    # args.duration_h = 0.05
+    # args.kit = "RNA002"
+    # args.prob_threshold = 0.9
 
     # Set up
     out_file = f'riser_{get_datetime_now()}'
