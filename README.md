@@ -8,9 +8,11 @@
   <img src="arch.png">
 </p>
 
-RISER accurately classifies RNA molecules live during sequencing, directly from the first 2-4s of raw nanopore signals with a convolutional neural network, without the need for basecalling or a reference. Depending on the user's chosen target for enrichment or depletion, RISER then either allows the molecule to complete sequencing or sends a reject command to the sequencing platform via Oxford Nanopore Technologies' [ReadUntil API](https://github.com/nanoporetech/read_until_api) to eject unwanted RNAs from the pore and conserve sequencing capacity for the RNA molecules of interest.
+RISER accurately classifies RNA molecules live during sequencing, directly from the first ~70-280nt-worth of raw nanopore signals with a convolutional neural network, without the need for basecalling or a reference. Depending on the user's chosen target for enrichment or depletion, RISER then either allows the molecule to complete sequencing or sends a reject command to the sequencing platform via Oxford Nanopore Technologies' [ReadUntil API](https://github.com/nanoporetech/read_until_api) to eject unwanted RNAs from the pore and conserve sequencing capacity for the RNA molecules of interest.
 
-**If you use this software, please cite:**
+**[UPDATE] 2nd October 2024: RISER now supports the new RNA004 sequencing kit from ONT, in addition to the RNA002 (R9.4.1) kit. The sequencing kit can be specified with a new "--kit" parameter.**
+
+If you use this software, please cite:
 > Sneddon, A., Ravindran, A., Shanmuganandam, S. et al. Biochemical-free enrichment or depletion of RNA classes in real-time during direct RNA sequencing with RISER. Nat Commun 15, 4422 (2024). https://doi.org/10.1038/s41467-024-48673-8
 
 # Contents
@@ -41,20 +43,19 @@ RISER provides models to target the following RNA classes, which are typically h
 
 Users can also target their own RNA classes, by retraining the RISER model (instructions below).
 
-**Note:** RISER currently supports the RNA002 (R9.4.1 pore) sequencing kit by Oxford Nanopore Technologies, but is being actively updated for the new RNA004 sequencing kit.
-
 
 # Installation
 
 ## Environment
-RISER has so far been tested with the following sequencing environment, usage in other configurations may be possible but should be tested first.
+RISER has so far been tested with the following hardware/software configuration. Usage in other configurations may be possible but should be tested using [playback mode](#setup-minknow-playback) first.
 
-* **Operating system:** Linux (ubuntu v18.04 and v20.04)
-* **MinKNOW core:** >= 5.7.2 (the MinKNOW Core version must be compatible with your MinKNOW GUI version). To determine MinKNOW core version on Ubuntu:
+* **Operating system:** Linux (Ubuntu v18.04, v20.04, v22.04)
+* **MinKNOW core:** >= 5.7.2 (the MinKNOW core version must be compatible with your MinKNOW GUI version, which usually means they need to have the same major version number, e.g., 5.* or 6.* - otherwise you will get an rpc error when attempting to run RISER). To determine MinKNOW core version on Ubuntu:
   ```
   dpkg -s minion-nc
   ```
-* **Sequencing platform:** MinION Mk1B (R9.4.1 flow cell)
+* **Sequencing platform:** MinION Mk1B (RNA002, RNA004)
+* **Python version:** 3.8.0, 3.10.8
 
 
 ## Dependencies
@@ -69,9 +70,7 @@ RISER has so far been tested with the following sequencing environment, usage in
    source bin/activate
    ```
 
-2. Install PyTorch for your CUDA version: <https://pytorch.org/get-started/locally/>
-
-3. Install RISER dependencies
+2. Install RISER dependencies
 
    ```
    cd <path/to/riser>
@@ -79,73 +78,74 @@ RISER has so far been tested with the following sequencing environment, usage in
    pip install -r requirements.txt
    ```
 
-
 # Test before live sequencing
 
-**Important: Make sure you do this test first to make sure everything is working properly before applying RISER to a live sequencing run.**
+**Important: Make sure you do this test first to ensure communication with the sequencing device is working before applying RISER to a live sequencing run.**
 
 ## Setup MinKNOW playback
 
 Without wasting resources on a live sequencing run, RISER can be tested using MinKNOW's "playback" feature, which replays a bulk fast5 file recorded from a previous sequencing run to mimic data being streamed from a sequencer.
-1. Obtain a bulk fast5 file (generated with flow cell FLO-MIN106) for playback in MinKNOW.
-2. Open the sequencing TOML file *sequencing_MIN106_RNA.toml*, found in `/opt/ont/minknow/conf/package/sequencing`.
+1. Obtain a bulk fast5 file (generated with either FLO-MIN106 for RNA002 or FLO-MIN004RA for RNA004) for playback in MinKNOW.
+2. Open the corresponding sequencing TOML file (either *sequencing_MIN106_RNA.toml* or *sequencing_MIN004RA_RNA.toml*), found in `/opt/ont/minknow/conf/package/sequencing`.
 3. In the **[custom_settings]** section, add a field:
    ```
    simulation = "/full/path/to/bulk.fast5"
    ```
-4. Save the toml file under a new name, e.g. *sequencing_MIN106_RNA_mod.toml*.
+4. Save the toml file.
 5. Apply the above changes to enable playback by selecting "Reload Scripts" on the Start Sequencing page (top right-hand corner menu).
 6. Insert a configuration test flowcell into the sequencer.
-7. Start a sequencing run as usual, using flowcell FLO-MIN106. If you have followed Step 5 correctly, then after selecting a kit you will be presented with a choice "Select the script you would like to run." Make sure you select your **_mod** file to enable playback.
-8. Once the run starts, a MUX scan will take about 5 minutes.  Once this is complete, you can run RISER (next section).
+7. Start a sequencing run as usual, using the flowcell FLO-MIN106 or FLO-MIN004RA.
+8. Once the run starts, a pore scan will take a few minutes. Once this is complete, you can run RISER (next section).
 
 ## Test RISER with MinKNOW playback
 
-Now you can check that RISER is able to selectively sequence the target RNA class.
+Now you can check that RISER can communicate with the sequencing hardware to reject molecules.
 1. Make sure the steps in "Setup MinKNOW playback" are done first.
-2. Run RISER. The below will selectively reject molecules that RISER predicts to be mRNA. The script will run for 1 hour (this can be modified as desired with the `--duration` parameter).
+2. Run RISER. The below will selectively reject (deplete) molecules that RISER predicts to be mRNA. The script will run for 0.1 hours (this can be modified as desired with the `--duration` parameter). Please select the kit that the bulk fast5 file was generated with.
    ```
    cd <path/to/riser/riser>
-   python3 riser.py --target mRNA --mode deplete --duration 1
+   source .venv/bin/activate
+   python3 riser.py --target mRNA --mode deplete --duration 0.1 --kit RNA004
    ```
 4. You should see a message in MinKNOW's System Messages stating that RISER is now controlling the run.
-5. Since a playback run simply replays the signals recorded in the bulk fast5 file, it cannot mimic reads being physically ejected from the pore. Instead, the signal is simply clipped upon receiving a reject command. Therefore, the effect of RISER can be tested by assessing the average length of reads that are mRNA and non-mRNA. The expectation is that the average length of non-mRNA reads are longer than mRNA reads, which are being rejected.
+5. For a quick check that RISER is rejecting molecules, 
+6. Since a playback run simply replays the signals recorded in the bulk fast5 file, it cannot mimic reads being physically ejected from the pore. Instead, the signal is simply clipped upon receiving a reject command. Therefore, the effect of RISER can be tested by assessing the average length of reads that are mRNA and non-mRNA. The expectation is that the average length of non-mRNA reads are longer than mRNA reads, which are being rejected.
+7. **Remember to remove the "simulation" field from the toml file and "Reload scripts" after testing, before sequencing your sample!**
 
 
 # Use during live sequencing
 
-1. Start a sequencing run as usual, using flow cell FLO-MIN106.
-2. Once the initial MUX scan has completed, in a terminal window run RISER (command structure detailed below).
+1. Start a sequencing run as usual.
+2. Once the initial pore scan has completed, in a terminal window run RISER (command structure detailed below).
    ```
-   cd <path/to/riser>
+   cd <path/to/riser/riser>
    source .venv/bin/activate
-   python3 riser.py --target {target} --mode {mode} --duration {duration}
+   python3 riser.py --target {target} --mode {mode} --duration {duration} --kit {kit}
    ```
 4. You should see a message in the System Messages page on MinKNOW stating that RISER is now controlling the run.
 
 ## Command structure
 
 ```
-usage: riser.py [-h] -t -m -d [--min] [--max] [--threshold]
+usage: riser.py [-h] -t -m -d -k [-p]
 
 optional arguments:
-  -h, --help       Show this help message and exit.
-  -t, --target     RNA class to enrich for. This must be one or more of {mRNA,mtRNA,globin}. (required)
-  -m, --mode       Whether to enrich or deplete the target class. This must be one of {enrich,deplete}. (required)
-  -d, --duration   Length of time (in hours) to run RISER for. This should be
-                   the same as the MinKNOW run length. (required)
-  --min            Minimum number of seconds of transcript signal to use for RISER prediction. (default: 2)
-  --max            Maximum number of seconds of transcript signal to try to classify before skipping this read. (default: 4)
-  --threshold      Probability threshold for classifer [0,1]. (default: 0.9)
+  -h, --help             Show this help message and exit.
+  -t, --target           RNA class(es) to target for enrichment or depletion. This must be one or more of {mRNA,mtRNA,globin}. (required)
+  -m, --mode             Whether to enrich or deplete the target class(es). This must be one of {enrich,deplete}. (required)
+  -d, --duration         Length of time (in hours) to run RISER for. This should be
+                         the same as the MinKNOW run length. (required)
+  -k, --kit              Sequencing kit. This must be one of {RNA002, RNA004}. (required)
+  -p, --prob_threshold   Probability threshold for classifer [0,1]. (default: 0.9)
 ```
 
 **Example**
 
-To deplete mRNA in a 48h sequencing run:
+To deplete both mRNA and mtRNA in a 48h sequencing run using the RNA004 sequencing kit:
 ```
 cd <path/to/riser/riser>
 source .venv/bin/activate
-python3 riser.py -t mRNA -m deplete -d 48
+python3 riser.py -t mRNA mtRNA -m deplete -d 48 -k RNA004
 ```
 
 ## Output files
@@ -156,13 +156,12 @@ While running RISER, you will receive real-time progress updates:
 
 ```
 Using cuda device
-Usage: riser.py --target mRNA mtRNA --mode deplete --duration 24
+Usage: riser.py --target mRNA mtRNA --mode deplete --duration 24 --kit RNA002
 All settings used (including those set by default):
 --target        : ['mRNA', 'mtRNA']
 --mode          : deplete
 --duration_h    : 24
---min           : 2
---max           : 4
+--kit           : RNA002
 --threshold     : 0.9
 Client is running.
 Batch of 110 reads received: 59 long enough to assess, 46 of which were rejected (took 0.3148s)
@@ -179,6 +178,12 @@ A log file named `riser_[datetime].log` will be generated in `/path/to/riser` ea
 ### CSV file with read decisions
 
 A CSV file named `riser_[datetime].csv` will be generated in `/path/to/riser` each time you run RISER.  It will contain details of the accept/reject decision made for each read.
+
+The possible decisions for each read are as follows:
+* **Reject**: A reject request was sent to the sequencing hardware for this molecule.
+* **Accept**: This molecule was sequence to completion.
+* **Try again**: The RISER prediction was not confident enough (i.e., did not exceed the probability threshold argument) to make a decision for this signal, RISER will try again the next time that read is retrieved from the sequencing device, after more of the molecule has transited.
+* **No decision**: The RISER prediction was not confident enough (i.e., did not exceed the probability threshold argument) to make a decision for the signal and the molecule had already transited beyond the maximum input length to RISER.
 
 E.g., (Not all columns shown for brevity):
 
@@ -198,7 +203,7 @@ The training code is provided to retrain RISER to target other RNA classes.
 ## Preparation for retraining
 
 1. Consider whether the RNA class you would like to enrich/deplete is appropriate for RISER. For RISER to work, the RNA class needs to have unique features (e.g. sequence or biochemical modifications) in its 3' end to enable the distinction from other RNAs using the raw nanopore signal (e.g. mRNAs share common motif configurations in their 3' UTR).
-2. Prepare two sets of fast5 files: 1 set containing signals that can be confidently assigned to the target class, and the other set containing signals from other RNAs (refer to preprint linked above for how this was done for mRNA, mtRNA and globin models). Randomly split the signals in each set into train/test/val (e.g., with 80:10:10 split) fast5 files.
+2. Prepare two sets of fast5 files: 1 set containing signals that can be confidently assigned to the target class, and the other set containing signals from other RNAs (refer to publication linked above for how this was done for mRNA, mtRNA and globin models). Randomly split the signals in each set into train/test/val (e.g., with 80:10:10 split) fast5 files.
 3. Preprocess all fast5 files using BoostNano to remove the sequencing adapter and poly(A) tail: <https://github.com/haotianteng/BoostNano>.
    ```
    python3 boostnano_eval.py -i $FAST5_DIR -o $OUT_DIR -m $MODEL_DIR --replace
