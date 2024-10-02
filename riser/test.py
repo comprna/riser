@@ -2,7 +2,7 @@ import math
 from pathlib import Path
 import sys
 
-from attrdict import AttrDict
+import attridict
 from matplotlib import pyplot as plt
 import numpy as np
 from ont_fast5_api.fast5_interface import get_fast5_file
@@ -27,7 +27,7 @@ FIXED_TRIM_RNA004 = 4634
 
 def get_config(filepath):
     with open(filepath) as config_file:
-        return AttrDict(yaml.load(config_file, Loader=yaml.Loader))
+        return attridict(yaml.load(config_file, Loader=yaml.Loader))
 
 def classify(signal, device, model):
     with torch.no_grad():

@@ -49,12 +49,12 @@ def main():
     # Number of samples to use per signal
 
     n_secs = int(sys.argv[1])
-    freq   = 3012
+    freq   = int(sys.argv[2])
     cutoff = freq * n_secs
 
     # Location of raw signals
 
-    f5_dir = sys.argv[2]
+    f5_dir = sys.argv[3]
     name = f5_dir.split("/")[-1]
 
     # Store processed data

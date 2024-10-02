@@ -5,21 +5,36 @@ from matplotlib import pyplot as plt
 
 _OUTLIER_LIMIT = 3.5
 _SCALING_FACTOR = 1.4826
-_SAMPLING_HZ = 3012
+_MIN_INPUT_SIGNALS = 4096 # This is constrained by the CNN model
+_MAX_INPUT_NT = 280 # This was optimised for adaptive sampling to be beneficial
 _TRIM_RESOLUTION = 500
 _TRIM_MAD_THRESHOLD = 20
-_TRIM_FIXED_LENGTH = 6481
+_TRIM_FIXED_LENGTH_NT = 150.6
+
+
+class Kit():
+    def __init__(self, sampling_hz, transloc_rate):
+        self.sampling_hz = sampling_hz
+        self.transloc_rate = transloc_rate
+
+    @classmethod
+    def create_from_version(cls, version):
+        if version == "RNA002":
+            return cls(3012, 70)
+        elif version == "RNA004":
+            return cls(4000, 130)
+        else:
+            raise Exception(f"Invalid kit version {version}")
 
 class SignalProcessor():
-    def __init__(self, min_input_s, max_input_s):
-        self.min_input_s = min_input_s
-        self.max_input_s = max_input_s
+    def __init__(self, kit):
+        self.kit = kit
 
     def get_min_length(self):
-        return self.min_input_s * _SAMPLING_HZ
+        return _MIN_INPUT_SIGNALS
 
     def get_max_length(self):
-        return self.max_input_s * _SAMPLING_HZ
+        return int(_MAX_INPUT_NT / self.kit.transloc_rate * self.kit.sampling_hz)
 
     def is_max_length(self, signal):
         return len(signal) >= self.get_max_length()
@@ -63,8 +78,11 @@ class SignalProcessor():
 
         return polyA_end
 
+    def get_fixed_trim_length(self):
+        return int(_TRIM_FIXED_LENGTH_NT / self.kit.transloc_rate * self.kit.sampling_hz)
+
     def should_trim_fixed_length(self, signal):
-        return len(signal) > _TRIM_FIXED_LENGTH + self.get_max_length()
+        return len(signal) > self.get_fixed_trim_length() + self.get_max_length()
 
     def trim_polyA(self, signal, read_id, cache):
         """
@@ -84,7 +102,8 @@ class SignalProcessor():
         return signal, trimmed
 
     def trim_polyA_fixed_length(self, signal):
-        return signal[_TRIM_FIXED_LENGTH:]
+        trim = self.get_fixed_trim_length()
+        return signal[trim:]
 
     def mad_normalise(self, signal):
         if signal.shape[0] == 0:
@@ -101,7 +120,8 @@ class SignalProcessor():
         return np.median(distances_from_median)
 
     def _normalise(self, x, median, mad):
-        # TODO: Handle divide by zero
+        if mad == 0:
+            return 0
         return (x - median) / (_SCALING_FACTOR * mad)
 
     def _smooth_outliers(self, arr):
