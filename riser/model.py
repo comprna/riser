@@ -16,7 +16,8 @@ class Model():
 
         # Build CNN for testing
         self.model = ConvNet(config.cnn).to(self.device)
-        self.model.load_state_dict(torch.load(state))
+        # self.model.load_state_dict(torch.load(state))
+        self.model.load_state_dict(torch.load(state, map_location=self.device))
         self.model.eval()
 
     def classify(self, signal):
@@ -30,3 +31,10 @@ class Model():
     def _get_device(self):
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         return torch.device(device)
+    # def _get_device(self):
+    #     # if torch.cuda.is_available():
+    #     #     return torch.device('cuda')
+    #     # elif torch.backends.mps.is_available():
+    #     #     return torch.device('mps')  # For Apple Silicon GPUs like M2
+    #     # else:
+    #         return torch.device('cpu')

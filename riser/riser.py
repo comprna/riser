@@ -9,7 +9,6 @@ from types import SimpleNamespace
 import attridict
 import yaml
 
-from client import Client
 from model import Model
 from control import SequencerControl
 from preprocess import SignalProcessor, Kit
@@ -18,12 +17,12 @@ from preprocess import SignalProcessor, Kit
 DT_FORMAT = '%Y-%m-%dT%H:%M:%S'
 
 
-def get_config(filepath):
+def get_config(filepath): 
     with open(filepath) as config_file:
-        return attridict(yaml.load(config_file, Loader=yaml.Loader))
+        return attridict(yaml.load(config_file, Loader=yaml.Loader)) # change to dictionary style
 
 
-def get_pore_version(kit):
+def get_pore_version(kit): # get pore version from sequencing kit
     if kit == "RNA002":
         return "R9.4.1"
     elif kit == "RNA004":
@@ -32,12 +31,12 @@ def get_pore_version(kit):
         raise Exception(f"Invalid kit {kit}")
 
 
-def get_models(targets, logger, kit):
+def get_models(targets, logger, kit): # load model per RNA class
     pore = get_pore_version(kit)
     models = []
     for target in targets:
-        config = get_config(f"model/{target}_config_{kit}_{pore}.yaml")
-        model_file = f"model/{target}_model_{kit}_{pore}.pth"
+        config = get_config(f"model/{target}_config_{kit}_{pore}.yaml") # settings for the model
+        model_file = f"model/{target}_model_{kit}_{pore}.pth" # actual trained model
         models.append(Model(model_file, config, logger, target))
     return models
 
@@ -94,13 +93,6 @@ def main():
                         help='Whether to enrich or deplete the target class(es).'
                              ' (required)',
                         required=True)
-    parser.add_argument('-d', '--duration',
-                        dest='duration_h',
-                        type=float,
-                        help='Length of time (in hours) to run RISER for. '
-                             'This should be the same as the MinKNOW run '
-                             'length. (required)',
-                        required=True)
     parser.add_argument('-k', '--kit',
                         choices=['RNA002', 'RNA004'],
                         help='Sequencing kit. (required)',
@@ -110,24 +102,31 @@ def main():
                         type=probability,
                         help='Probability threshold for classifier [0,1] '
                              '(default: %(default)s)')
+    parser.add_argument('-f', '--pod5_file',
+                        required=True,
+                        help='Path to POD5 file.')
+    parser.add_argument('-l', '--limit',
+                        type=int,
+                        default=None,
+                        help='Limit number of reads to process.')
     args = parser.parse_args()
 
     # Local testing
     # args = SimpleNamespace()
     # args.target = ['mRNA', 'mtRNA']
     # args.mode = 'deplete'
-    # args.duration_h = 0.05
     # args.kit = "RNA002"
     # args.prob_threshold = 0.9
+    # args.pod5_file = "path/to/file.pod5"
+    # args.limit = 2000
 
     # Set up
     out_file = f'riser_{get_datetime_now()}'
     logger = setup_logging(out_file)
-    client = Client(logger)
     models = get_models(args.target, logger, args.kit)
     kit = Kit.create_from_version(args.kit)
     processor = SignalProcessor(kit)
-    control = SequencerControl(client, models, processor, logger, out_file)
+    control = SequencerControl(models, processor, logger, out_file) # HAVE REMOVE CLIENT
 
     # Log CL args
     logger.info(f'Usage: {" ".join(sys.argv)}')
@@ -140,7 +139,7 @@ def main():
 
     # Run analysis
     control.start()
-    control.target(args.mode, args.duration_h, args.prob_threshold)
+    control.target(args.mode, args.prob_threshold, args.pod5_file, args.limit)
     control.finish()
 
 
