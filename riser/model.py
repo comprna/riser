@@ -16,7 +16,7 @@ class Model():
 
         # Build CNN for testing
         self.model = ConvNet(config.cnn).to(self.device)
-        self.model.load_state_dict(torch.load(state))
+        self.model.load_state_dict(torch.load(state, map_location=torch.device(self.device)))
         self.model.eval()
 
     def classify(self, signal):
